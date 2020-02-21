@@ -19,6 +19,7 @@ project(libp2p C CXX)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 option(TESTING "Build tests" ON)
+option(BUILD_EXAMPLES "Build examples" ON)
 option(CLANG_FORMAT "Enable clang-format target" ON)
 option(CLANG_TIDY "Enable clang-tidy checks during compilation" OFF)
 option(COVERAGE "Enable generation of coverage info" OFF)
@@ -91,7 +92,10 @@ include_directories(
 )
 
 add_subdirectory(src)
-add_subdirectory(example)
+
+if (BUILD_EXAMPLES)
+  add_subdirectory(example)
+endif()
 
 if(TESTING)
   enable_testing()
