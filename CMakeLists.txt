@@ -16,18 +16,6 @@ set(CMAKE_TOOLCHAIN_FILE
 include("cmake/Hunter/init.cmake")
 project(libp2p C CXX)
 
-include(cmake/print.cmake)
-print("C flags: ${CMAKE_C_FLAGS}")
-print("CXX flags: ${CMAKE_CXX_FLAGS}")
-print("Using CMAKE_TOOLCHAIN_FILE=${CMAKE_TOOLCHAIN_FILE}")
-
-include(CheckCXXCompilerFlag)
-include(cmake/install.cmake)
-include(cmake/libp2p_add_library.cmake)
-include(cmake/dependencies.cmake)
-include(cmake/functions.cmake)
-include(cmake/san.cmake)
-
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 option(TESTING "Build tests" ON)
@@ -40,6 +28,18 @@ option(LSAN "Enable leak sanitizer" OFF)
 option(MSAN "Enable memory sanitizer" OFF)
 option(TSAN "Enable thread sanitizer" OFF)
 option(UBSAN "Enable UB sanitizer" OFF)
+
+include(CheckCXXCompilerFlag)
+include(cmake/install.cmake)
+include(cmake/libp2p_add_library.cmake)
+include(cmake/dependencies.cmake)
+include(cmake/functions.cmake)
+include(cmake/san.cmake)
+
+include(cmake/print.cmake)
+print("C flags: ${CMAKE_C_FLAGS}")
+print("CXX flags: ${CMAKE_CXX_FLAGS}")
+print("Using CMAKE_TOOLCHAIN_FILE=${CMAKE_TOOLCHAIN_FILE}")
 
 
 ## setup compilation flags
