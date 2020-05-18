@@ -106,7 +106,7 @@ function(add_proto_library NAME)
       ${SOURCES}
       )
   target_link_libraries(${NAME}
-      protobuf::libprotobuf
+#      protobuf::libprotobuf
       )
   target_include_directories(${NAME} PUBLIC
       # required for common targets

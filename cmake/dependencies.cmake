@@ -11,8 +11,9 @@ if (TESTING)
 endif()
 
 # https://docs.hunter.sh/en/latest/packages/pkg/Boost.html
-hunter_add_package(Boost COMPONENTS random filesystem program_options)
-find_package(Boost CONFIG REQUIRED  random filesystem program_options)
+# hunter_add_package(Boost COMPONENTS random filesystem program_options)
+# find_package(Boost CONFIG REQUIRED  random filesystem program_options)
+find_package(Boost REQUIRED  random filesystem program_options)
 
 # added from hunter_config
 hunter_add_package(GSL)
@@ -22,17 +23,24 @@ hunter_add_package(OpenSSL)
 find_package(OpenSSL REQUIRED)
 
 # https://developers.google.com/protocol-buffers/
-hunter_add_package(Protobuf)
-find_package(Protobuf CONFIG REQUIRED)
+# hunter_add_package(Protobuf)
+# find_package(Protobuf CONFIG REQUIRED)
+find_package(Protobuf REQUIRED)
+
 
 # https://docs.hunter.sh/en/latest/packages/pkg/spdlog.html
-hunter_add_package(spdlog)
-find_package(spdlog CONFIG REQUIRED)
+# hunter_add_package(spdlog)
+# find_package(spdlog CONFIG REQUIRED)
+find_package(spdlog REQUIRED)
+
 
 # https://github.com/masterjedy/hat-trie
-hunter_add_package(tsl_hat_trie)
-find_package(tsl_hat_trie CONFIG REQUIRED)
+# hunter_add_package(tsl_hat_trie)
+# find_package(tsl_hat_trie CONFIG REQUIRED)
+find_package(tsl_hat_trie REQUIRED)
 
 # https://github.com/masterjedy/di
-hunter_add_package(Boost.DI)
-find_package(Boost.DI CONFIG REQUIRED)
+# hunter_add_package(Boost.DI)
+# find_package(Boost.DI CONFIG REQUIRED)
+
+find_package(Boost.DI REQUIRED)

@@ -11,6 +11,11 @@
 #include <map>
 #include <string_view>
 
+#if defined(_MSC_VER)
+#include <BaseTsd.h>
+typedef SSIZE_T ssize_t;
+#endif
+
 namespace libp2p::multi {
 
   /**
