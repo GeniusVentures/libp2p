@@ -8,6 +8,7 @@
 #include <vector>
 
 #include <arpa/inet.h>
+
 #include <boost/assert.hpp>
 #include <libp2p/basic/message_read_writer_error.hpp>
 #include <libp2p/common/byteutil.hpp>
