@@ -23,7 +23,7 @@
 #include <libp2p/crypto/rsa_provider.hpp>
 #include <libp2p/crypto/secp256k1_provider.hpp>
 
-OUTCOME_CPP_DEFINE_CATEGORY(libp2p::crypto, CryptoProviderImpl::Error, e) {
+OUTCOME_CPP_DEFINE_CATEGORY_3(libp2p::crypto, CryptoProviderImpl::Error, e) {
   using E = libp2p::crypto::CryptoProviderImpl::Error;
   switch (e) {
     case E::UNKNOWN_CIPHER_TYPE:

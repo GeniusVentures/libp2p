@@ -43,6 +43,6 @@ namespace libp2p::protocol::kademlia {
 
 }  // namespace libp2p::protocol::kademlia
 
-OUTCOME_HPP_DECLARE_ERROR(libp2p::protocol::kademlia, Error);
+OUTCOME_HPP_DECLARE_ERROR_2(libp2p::protocol::kademlia, Error);
 
 #endif  // LIBP2P_KADEMLIA_COMMON_HPP

@@ -59,6 +59,6 @@ namespace libp2p::protocol::kademlia {
 
 }  // namespace libp2p::protocol::kademlia
 
-OUTCOME_HPP_DECLARE_ERROR(libp2p::protocol::kademlia, RoutingTableImpl::Error);
+OUTCOME_HPP_DECLARE_ERROR_2(libp2p::protocol::kademlia, RoutingTableImpl::Error);
 
 #endif  // LIBP2P_KAD_ROUTING_TABLE_IMPL_HPP

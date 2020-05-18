@@ -84,6 +84,6 @@ namespace libp2p::peer {
   };
 }  // namespace libp2p::peer
 
-OUTCOME_HPP_DECLARE_ERROR(libp2p::peer, PeerAddress::FactoryError)
+OUTCOME_HPP_DECLARE_ERROR_2(libp2p::peer, PeerAddress::FactoryError)
 
 #endif  // LIBP2P_PEER_ADDRESS_HPP

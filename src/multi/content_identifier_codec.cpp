@@ -10,7 +10,7 @@
 #include <libp2p/multi/multicodec_type.hpp>
 #include <libp2p/multi/uvarint.hpp>
 
-OUTCOME_CPP_DEFINE_CATEGORY(libp2p::multi, ContentIdentifierCodec::EncodeError,
+OUTCOME_CPP_DEFINE_CATEGORY_3(libp2p::multi, ContentIdentifierCodec::EncodeError,
                             e) {
   using E = libp2p::multi::ContentIdentifierCodec::EncodeError;
   switch (e) {
@@ -26,7 +26,7 @@ OUTCOME_CPP_DEFINE_CATEGORY(libp2p::multi, ContentIdentifierCodec::EncodeError,
   return "Unknown error";
 }
 
-OUTCOME_CPP_DEFINE_CATEGORY(libp2p::multi, ContentIdentifierCodec::DecodeError,
+OUTCOME_CPP_DEFINE_CATEGORY_3(libp2p::multi, ContentIdentifierCodec::DecodeError,
                             e) {
   using E = libp2p::multi::ContentIdentifierCodec::DecodeError;
   switch (e) {

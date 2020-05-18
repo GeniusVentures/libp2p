@@ -7,7 +7,7 @@
 
 #include <numeric>
 
-OUTCOME_CPP_DEFINE_CATEGORY(libp2p::transport, UpgraderImpl::Error, e) {
+OUTCOME_CPP_DEFINE_CATEGORY_3(libp2p::transport, UpgraderImpl::Error, e) {
   using E = libp2p::transport::UpgraderImpl::Error;
   switch (e) {
     case E::SUCCESS:

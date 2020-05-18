@@ -14,7 +14,7 @@
 #include <libp2p/crypto/hmac_provider.hpp>
 #include <libp2p/outcome/outcome.hpp>
 
-OUTCOME_CPP_DEFINE_CATEGORY(libp2p::connection, SecioConnection::Error, e) {
+OUTCOME_CPP_DEFINE_CATEGORY_3(libp2p::connection, SecioConnection::Error, e) {
   using E = libp2p::connection::SecioConnection::Error;
   switch (e) {
     case E::CONN_NOT_INITIALIZED:

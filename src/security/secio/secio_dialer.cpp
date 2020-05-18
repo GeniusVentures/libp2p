@@ -12,7 +12,7 @@
 #include <libp2p/security/secio/exchange_message_marshaller.hpp>
 #include <libp2p/security/secio/propose_message_marshaller.hpp>
 
-OUTCOME_CPP_DEFINE_CATEGORY(libp2p::security::secio, Dialer::Error, e) {
+OUTCOME_CPP_DEFINE_CATEGORY_3(libp2p::security::secio, Dialer::Error, e) {
   using E = libp2p::security::secio::Dialer::Error;
   switch (e) {
     case E::INTERNAL_FAILURE:

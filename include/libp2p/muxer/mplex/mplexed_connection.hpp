@@ -208,6 +208,6 @@ namespace libp2p::connection {
   };
 }  // namespace libp2p::connection
 
-OUTCOME_HPP_DECLARE_ERROR(libp2p::connection, MplexedConnection::Error)
+OUTCOME_HPP_DECLARE_ERROR_2(libp2p::connection, MplexedConnection::Error)
 
 #endif  // LIBP2P_MPLEXED_CONNECTION_HPP

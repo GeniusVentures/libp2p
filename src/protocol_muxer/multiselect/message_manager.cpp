@@ -12,7 +12,7 @@
 #include <libp2p/common/hexutil.hpp>
 #include <libp2p/common/types.hpp>
 
-OUTCOME_CPP_DEFINE_CATEGORY(libp2p::protocol_muxer, MessageManager::ParseError,
+OUTCOME_CPP_DEFINE_CATEGORY_3(libp2p::protocol_muxer, MessageManager::ParseError,
                             e) {
   using Error = libp2p::protocol_muxer::MessageManager::ParseError;
   switch (e) {

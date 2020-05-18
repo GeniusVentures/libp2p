@@ -8,7 +8,7 @@
 #include <libp2p/network/connection_manager.hpp>
 #include <libp2p/protocol/kademlia/impl/kad_server.hpp>
 
-OUTCOME_CPP_DEFINE_CATEGORY(libp2p::protocol::kademlia, Error, e) {
+OUTCOME_CPP_DEFINE_CATEGORY_3(libp2p::protocol::kademlia, Error, e) {
   using E = libp2p::protocol::kademlia::Error;
   switch (e) {
     case E::SUCCESS:

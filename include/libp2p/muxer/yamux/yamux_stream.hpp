@@ -187,6 +187,6 @@ namespace libp2p::connection {
   };
 }  // namespace libp2p::connection
 
-OUTCOME_HPP_DECLARE_ERROR(libp2p::connection, YamuxStream::Error)
+OUTCOME_HPP_DECLARE_ERROR_2(libp2p::connection, YamuxStream::Error)
 
 #endif  // LIBP2P_YAMUX_STREAM_HPP

@@ -7,7 +7,7 @@
 
 #include <generated/security/plaintext/protobuf/plaintext.pb.h>
 
-OUTCOME_CPP_DEFINE_CATEGORY(libp2p::security::plaintext,
+OUTCOME_CPP_DEFINE_CATEGORY_3(libp2p::security::plaintext,
                             ExchangeMessageMarshallerImpl::Error, e) {
   using E = libp2p::security::plaintext::ExchangeMessageMarshallerImpl::Error;
   switch (e) {

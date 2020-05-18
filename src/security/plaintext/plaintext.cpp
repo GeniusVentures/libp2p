@@ -39,7 +39,7 @@
 #define PLAINTEXT_OUTCOME_VOID_TRY(res, conn, cb) \
   PLAINTEXT_OUTCOME_TRY_VOID_I(UNIQUE_NAME(void_var), res, conn, cb)
 
-OUTCOME_CPP_DEFINE_CATEGORY(libp2p::security, Plaintext::Error, e) {
+OUTCOME_CPP_DEFINE_CATEGORY_3(libp2p::security, Plaintext::Error, e) {
   using E = libp2p::security::Plaintext::Error;
   switch (e) {
     case E::EXCHANGE_SEND_ERROR:
