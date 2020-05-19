@@ -66,8 +66,8 @@ namespace libp2p::security::plaintext {
     // C99 style structure initialize fix
     // return {ExchangeMessage{.pubkey = pubkey, .peer_id = peer_id},
     //         proto_pubkey};
-    ExchangeMessage ext_msg;
-    ext_msg.pubkey = pubkey, ext_msg.peer_id = peer_id;
+
+    ExchangeMessage ext_msg = {pubkey, peer_id};
     return {ext_msg,
             proto_pubkey};
 
