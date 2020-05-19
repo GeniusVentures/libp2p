@@ -98,7 +98,11 @@ namespace libp2p::crypto::rsa {
     OUTCOME_TRY(private_bytes, encodeKeyDer(rsa, i2d_RSAPrivateKey));
     OUTCOME_TRY(public_bytes, encodeKeyDer(rsa, i2d_RSA_PUBKEY));
 
-    return KeyPair{.private_key = private_bytes, .public_key = public_bytes};
+//    return KeyPair{.private_key = private_bytes, .public_key = public_bytes};
+    KeyPair result;
+    result.private_key = private_bytes,result.public_key = public_bytes;
+    return result ;
+
   }
 
   outcome::result<PublicKey> RsaProviderImpl::derive(
