@@ -63,9 +63,14 @@ namespace libp2p::security::plaintext {
     std::vector<uint8_t> peer_id_bytes(proto_msg.id().begin(),
                                        proto_msg.id().end());
     OUTCOME_TRY(peer_id, peer::PeerId::fromBytes(peer_id_bytes));
-
-    return {ExchangeMessage{.pubkey = pubkey, .peer_id = peer_id},
+    // C99 style structure initialize fix
+    // return {ExchangeMessage{.pubkey = pubkey, .peer_id = peer_id},
+    //         proto_pubkey};
+    ExchangeMessage ext_msg;
+    ext_msg.pubkey = pubkey, ext_msg.peer_id = peer_id;
+    return {ext_msg,
             proto_pubkey};
+
   }
 
   outcome::result<std::vector<uint8_t>> ExchangeMessageMarshallerImpl::marshal(
