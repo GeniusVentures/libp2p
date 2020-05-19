@@ -168,7 +168,9 @@ namespace libp2p::multi::detail {
 
   std::string encodeBase58(const common::ByteArray &bytes) {
     // return encodeImpl(bytes.begin().base(), bytes.end().base());
-    return encodeImpl(bytes.begin(), bytes.end());
+    auto start_it =  bytes.begin();
+    auto end_it = bytes.end();
+    return encodeImpl(&*start_it, &*end_it);
   }
 
   outcome::result<common::ByteArray> decodeBase58(std::string_view string) {
