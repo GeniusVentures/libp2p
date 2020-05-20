@@ -75,9 +75,12 @@ namespace libp2p::protocol::kademlia {
     log_.debug("request from '{}', type = {}",
                from->remoteMultiaddr().value().getStringAddress(), msg.type);
 
+    // bool close_session = (msg.type >= Message::kTableSize)
+    //     || (not(this->*(request_handlers_table[msg.type]))(msg))  // NOLINT
+    //     || (not session->write(msg));
     bool close_session = (msg.type >= Message::kTableSize)
-        || (not(this->*(request_handlers_table[msg.type]))(msg))  // NOLINT
-        || (not session->write(msg));
+        || (!(this->*(request_handlers_table[msg.type]))(msg))  // NOLINT
+        || (! session->write(msg));
 
     if (close_session) {
       closeSession(from);
