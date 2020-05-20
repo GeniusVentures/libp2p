@@ -86,7 +86,8 @@ namespace libp2p::multi {
 
   outcome::result<ContentIdentifier> ContentIdentifierCodec::decode(
       gsl::span<const uint8_t> bytes) {
-    if (bytes.size() == 34 and bytes[0] == 0x12 and bytes[1] == 0x20) {
+//    if (bytes.size() == 34 and bytes[0] == 0x12 and bytes[1] == 0x20) {
+    if (bytes.size() == 34 && bytes[0] == 0x12 && bytes[1] == 0x20) {
       OUTCOME_TRY(hash, Multihash::createFromBytes(bytes));
       return ContentIdentifier(ContentIdentifier::Version::V0,
                                MulticodecType::DAG_PB, std::move(hash));
