@@ -127,7 +127,8 @@ namespace libp2p::multi {
   bool Multiaddress::decapsulateStringFromAddress(std::string_view proto,
                                                   const ByteBuffer &bytes) {
     auto str_pos = stringified_address_.rfind(proto);
-    if (proto == "/p2p" or proto == "/ipfs") {
+//    if (proto == "/p2p" or proto == "/ipfs") {
+    if (proto == "/p2p" || proto == "/ipfs") {
       auto alt_pos =
           stringified_address_.rfind(proto == "/ipfs" ? "/p2p" : "/ipfs");
       if (alt_pos != std::string::npos) {

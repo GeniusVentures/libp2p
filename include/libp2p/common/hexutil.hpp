@@ -8,7 +8,7 @@
 
 #include <string_view>
 #include <vector>
-
+#include <cctype>  //  std::isdigit error fix
 #include <gsl/span>
 
 #include <libp2p/outcome/outcome.hpp>
