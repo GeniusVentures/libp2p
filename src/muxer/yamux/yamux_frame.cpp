@@ -11,6 +11,8 @@
 #define TRACE_ENABLED 0
 #include <libp2p/common/trace.hpp>
 
+#include <arpa/inet.h>
+
 namespace libp2p::connection {
   YamuxFrame::ByteArray YamuxFrame::frameBytes(uint8_t version, FrameType type,
                                                Flag flag, uint32_t stream_id,

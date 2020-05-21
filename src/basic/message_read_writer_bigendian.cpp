@@ -13,6 +13,9 @@
 #include <libp2p/basic/message_read_writer_error.hpp>
 #include <libp2p/common/byteutil.hpp>
 
+
+#include <arpa/inet.h>
+
 namespace libp2p::basic {
   MessageReadWriterBigEndian::MessageReadWriterBigEndian(
       std::shared_ptr<ReadWriter> conn)
