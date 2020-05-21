@@ -3,14 +3,14 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include <libp2p/protocol/gossip/impl/topic_subscriptions.hpp>
+// #include <libp2p/protocol/gossip/impl/topic_subscriptions.hpp>
 
 #include <algorithm>
 #include <cassert>
 
 #include <libp2p/protocol/gossip/impl/connectivity.hpp>
 #include <libp2p/protocol/gossip/impl/message_builder.hpp>
-
+#include <libp2p/protocol/gossip/impl/topic_subscriptions.hpp>
 namespace libp2p::protocol::gossip {
 
   namespace {
@@ -39,7 +39,9 @@ namespace libp2p::protocol::gossip {
         log_(log) {}
 
   bool TopicSubscriptions::empty() const {
-    return (not self_subscribed_) && (fanout_period_ends_ == 0)
+    // return (not self_subscribed_) && (fanout_period_ends_ == 0)
+    //     && subscribed_peers_.empty() && mesh_peers_.empty();
+    return (! self_subscribed_) && (fanout_period_ends_ == 0)
         && subscribed_peers_.empty() && mesh_peers_.empty();
   }
 
