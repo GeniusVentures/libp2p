@@ -6,11 +6,14 @@
 #ifndef LIBP2P_PLAINTEXT_ADAPTOR_HPP
 #define LIBP2P_PLAINTEXT_ADAPTOR_HPP
 
-#include <libp2p/common/logger.hpp>
+// #include <libp2p/common/logger.hpp>
 #include <libp2p/crypto/key_marshaller.hpp>
 #include <libp2p/peer/identity_manager.hpp>
 #include <libp2p/security/plaintext/exchange_message_marshaller.hpp>
 #include <libp2p/security/security_adaptor.hpp>
+
+#include <libp2p/common/logger.hpp>
+
 
 namespace libp2p::basic {
   class ProtobufMessageReadWriter;
