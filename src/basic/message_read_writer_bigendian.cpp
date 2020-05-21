@@ -7,7 +7,7 @@
 
 #include <vector>
 
-#include <arpa/inet.h>
+// #include <arpa/inet.h>
 
 #include <boost/assert.hpp>
 #include <libp2p/basic/message_read_writer_error.hpp>
@@ -26,7 +26,8 @@ namespace libp2p::basic {
     conn_->read(
         *buffer, kLenMarkerSize,
         [self{shared_from_this()}, buffer, cb{std::move(cb)}](auto &&result) {
-          if (not result) {
+          // if (not result) {
+          if (! result) {
             return cb(result.error());
           }
           uint32_t msg_len = ntohl(  // NOLINT
@@ -35,7 +36,8 @@ namespace libp2p::basic {
           std::fill(buffer->begin(), buffer->end(), 0u);
           self->conn_->read(*buffer, msg_len,
                             [self, buffer, cb](auto &&result) {
-                              if (not result) {
+                              // if (not result) {
+                              if (! result) {
                                 return cb(result.error());
                               }
                               cb(buffer);
@@ -55,7 +57,8 @@ namespace libp2p::basic {
     raw_buf.insert(raw_buf.end(), buffer.begin(), buffer.end());
     conn_->write(raw_buf, raw_buf.size(),
                  [self{shared_from_this()}, cb{std::move(cb)}](auto &&result) {
-                   if (not result) {
+                  //  if (not result) {
+                   if (! result) {
                      return cb(result.error());
                    }
                    cb(result.value() - self->kLenMarkerSize);

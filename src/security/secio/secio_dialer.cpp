@@ -157,7 +157,8 @@ namespace libp2p::security::secio {
 
   outcome::result<crypto::Buffer> Dialer::generateSharedSecret(
       crypto::Buffer remote_ephemeral_public_key) const {
-    if (not ekey_pair_) {
+    // if (not ekey_pair_) {
+    if (! ekey_pair_) {
       return Error::INTERNAL_FAILURE;
     }
     OUTCOME_TRY(shared_secret,

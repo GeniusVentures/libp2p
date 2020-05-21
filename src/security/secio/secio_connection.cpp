@@ -7,7 +7,7 @@
 
 #include <algorithm>
 
-#include <arpa/inet.h>
+// #include <arpa/inet.h>
 #include <libp2p/common/byteutil.hpp>
 #include <libp2p/crypto/aes_ctr/aes_ctr_impl.hpp>
 #include <libp2p/crypto/error.hpp>
@@ -209,7 +209,8 @@ namespace libp2p::connection {
     ReadCallbackFunc cb_wrapper =
         [self{shared_from_this()}, user_cb{cb}, out,
          bytes](outcome::result<size_t> size_read_res) -> void {
-      if (not size_read_res) {
+      // if (not size_read_res) {
+      if (! size_read_res) {
         // in case of error, propagate it to the caller
         user_cb(size_read_res);
         return;
@@ -236,7 +237,8 @@ namespace libp2p::connection {
     size_t out_size{out.empty() ? 0 : static_cast<size_t>(out.size())};
     size_t read_limit{out_size < bytes ? out_size : bytes};
 
-    if (not user_data_buffer_.empty()) {
+    // if (not user_data_buffer_.empty()) {
+    if (! user_data_buffer_.empty()) {
       auto bytes_available{user_data_buffer_.size()};
       size_t to_read{bytes_available < read_limit ? bytes_available
                                                   : read_limit};
@@ -249,7 +251,8 @@ namespace libp2p::connection {
     ReadCallbackFunc cb_wrapper =
         [self{shared_from_this()}, user_cb{cb}, out,
          bytes](outcome::result<size_t> size_read_res) -> void {
-      if (not size_read_res) {
+      // if (not size_read_res) {
+      if (! size_read_res) {
         user_cb(size_read_res);
         return;
       }
@@ -346,7 +349,8 @@ namespace libp2p::connection {
     basic::Writer::WriteCallbackFunc cb_wrapper =
         [user_cb{std::move(cb)}, bytes,
          raw_bytes{frame_buffer.size()}](auto &&res) {
-          if (not res) {
+          // if (not res) {
+          if (! res) {
             return user_cb(res);  // pulling out the error occurred
           }
           if (res.value() != raw_bytes) {
