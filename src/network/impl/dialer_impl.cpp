@@ -80,12 +80,16 @@ namespace libp2p::network {
           // 2. open new stream on that connection
           conn->newStream(
               [this, cb{std::move(cb)},
-               protocol](outcome::result<std::shared_ptr<connection::Stream>>
+              //  protocol](outcome::result<std::shared_ptr<connection::Stream>>
+               protocol](std::shared_ptr<connection::Stream>
                              rstream) mutable {
                 if (!rstream) {
                   return cb(rstream.error());
                 }
-                auto &&stream = rstream.value();
+                // auto &&stream = rstream.value();
+                
+                auto &&stream = rstream;
+                
 
                 TRACE("dialer: before multiselect");
 
