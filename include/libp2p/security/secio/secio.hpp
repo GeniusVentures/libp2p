@@ -6,7 +6,7 @@
 #ifndef LIBP2P_SECIO_ADAPTOR_HPP
 #define LIBP2P_SECIO_ADAPTOR_HPP
 
-#include <libp2p/common/logger.hpp>
+// #include <libp2p/common/logger.hpp>
 #include <libp2p/crypto/aes_ctr.hpp>
 #include <libp2p/crypto/crypto_provider.hpp>
 #include <libp2p/crypto/hmac_provider.hpp>
@@ -16,7 +16,7 @@
 #include <libp2p/security/secio/exchange_message_marshaller.hpp>
 #include <libp2p/security/secio/propose_message_marshaller.hpp>
 #include <libp2p/security/security_adaptor.hpp>
-
+#include <libp2p/common/logger.hpp>
 namespace libp2p::security {
 
   namespace secio {

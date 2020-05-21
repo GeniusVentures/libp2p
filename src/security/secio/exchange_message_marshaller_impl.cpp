@@ -33,10 +33,14 @@ namespace libp2p::security::secio {
 
   ExchangeMessage ExchangeMessageMarshallerImpl::protoToHandy(
       const protobuf::Exchange &proto_msg) const {
+    // return ExchangeMessage{
+    //     .epubkey = {proto_msg.epubkey().begin(), proto_msg.epubkey().end()},
+    //     .signature = {proto_msg.signature().begin(),
+    //                   proto_msg.signature().end()}};
     return ExchangeMessage{
-        .epubkey = {proto_msg.epubkey().begin(), proto_msg.epubkey().end()},
-        .signature = {proto_msg.signature().begin(),
-                      proto_msg.signature().end()}};
+        {proto_msg.epubkey().begin(), proto_msg.epubkey().end()},
+        {proto_msg.signature().begin(),
+                proto_msg.signature().end()}};
   }
 
   outcome::result<std::vector<uint8_t>> ExchangeMessageMarshallerImpl::marshal(
