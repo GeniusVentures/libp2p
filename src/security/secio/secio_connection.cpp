@@ -144,7 +144,8 @@ namespace libp2p::connection {
   }
 
   bool SecioConnection::isInitialized() const {
-    return local_encryptor_ and remote_decryptor_;
+    // return local_encryptor_ and remote_decryptor_;
+    return local_encryptor_ && remote_decryptor_;
   }
 
   outcome::result<peer::PeerId> SecioConnection::localPeer() const {

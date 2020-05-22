@@ -168,7 +168,8 @@ namespace libp2p::security::secio {
   }
 
   outcome::result<crypto::StretchedKey> Dialer::localStretchedKey() const {
-    if (local_peer_is_preferred_ and stretched_keys_) {
+    // if (local_peer_is_preferred_ and stretched_keys_) {
+    if (local_peer_is_preferred_ && stretched_keys_) {
       return (*local_peer_is_preferred_ ? stretched_keys_->first
                                         : stretched_keys_->second);
     }
@@ -176,7 +177,8 @@ namespace libp2p::security::secio {
   }
 
   outcome::result<crypto::StretchedKey> Dialer::remoteStretchedKey() const {
-    if (local_peer_is_preferred_ and stretched_keys_) {
+    // if (local_peer_is_preferred_ and stretched_keys_) {
+    if (local_peer_is_preferred_ && stretched_keys_) {
       return (*local_peer_is_preferred_ ? stretched_keys_->second
                                         : stretched_keys_->first);
     }

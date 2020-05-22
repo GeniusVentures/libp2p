@@ -63,12 +63,12 @@ namespace libp2p::security {
         idmgr_(std::move(idmgr)),
         key_marshaller_(std::move(key_marshaller)),
         hmac_provider_(std::move(hmac_provider)),
-        propose_message_{.rand = csprng_->randomBytes(16),
-                         .pubkey = {},  // marshalled public key will be stored
+        propose_message_{/*.rand =*/ csprng_->randomBytes(16),
+                         /*.pubkey =*/ {},  // marshalled public key will be stored
                                         // here, initialized in constructor body
-                         .exchanges = kExchanges,
-                         .ciphers = kCiphers,
-                         .hashes = kHashes} {
+                         /*.exchanges =*/ kExchanges,
+                         /*.ciphers =*/ kCiphers,
+                         /*.hashes =*/ kHashes} {
     BOOST_ASSERT(csprng_);
     BOOST_ASSERT(propose_marshaller_);
     BOOST_ASSERT(exchange_marshaller_);
@@ -161,8 +161,8 @@ namespace libp2p::security {
         crypto_provider_->sign(local_corpus, idmgr_->getKeyPair().privateKey),
         conn, cb)
     secio::ExchangeMessage local_exchange{
-        .epubkey = ephemeral_key.ephemeral_public_key,
-        .signature = std::move(local_corpus_signature)};
+        /*.epubkey =*/ ephemeral_key.ephemeral_public_key,
+        /*.signature =*/ std::move(local_corpus_signature)};
     auto proto_exchange{exchange_marshaller_->handyToProto(local_exchange)};
     dialer->rw->write<secio::protobuf::Exchange>(
         proto_exchange,
@@ -244,7 +244,8 @@ namespace libp2p::security {
                     [self, cb, conn, secio_conn, buffer](auto &&read_res) {
                       SECIO_OUTCOME_TRY(read_bytes, read_res, conn, cb)
                       if (read_bytes != buffer->size()
-                          or *buffer != self->propose_message_.rand) {
+                          // or *buffer != self->propose_message_.rand) {
+                          || *buffer != self->propose_message_.rand) {
                         return cb(Error::INITIAL_PACKET_VERIFICATION_FAILED);
                       }
                       self->log_->info("connection initialized");
