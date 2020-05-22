@@ -8,7 +8,7 @@
 
 #include <vector>
 
-#include <libp2p/common/logger.hpp>
+// #include <libp2p/common/logger.hpp>
 #include <libp2p/event/bus.hpp>
 #include <libp2p/host/host.hpp>
 #include <libp2p/network/connection_manager.hpp>
@@ -16,7 +16,7 @@
 #include <libp2p/peer/peer_info.hpp>
 #include <libp2p/peer/protocol_repository.hpp>
 #include <libp2p/protocol/base_protocol.hpp>
-
+#include <libp2p/common/logger.hpp>
 namespace identify::pb {
   class Identify;
 }
