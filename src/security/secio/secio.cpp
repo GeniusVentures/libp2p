@@ -12,9 +12,9 @@
 #include <libp2p/security/secio/secio_connection.hpp>
 #include <libp2p/security/secio/secio_dialer.hpp>
 
-#ifndef UNIQUE_NAME
-#define UNIQUE_NAME(base) base##__LINE__
-#endif  // UNIQUE_NAME
+#ifndef _UNIQUE_NAME_
+#define _UNIQUE_NAME_(base) base##__LINE__
+#endif  // _UNIQUE_NAME_
 
 #define SECIO_OUTCOME_TRY_VOID_I(var, res, conn, cb) \
   auto && (var) = (res);                             \
@@ -29,10 +29,10 @@
   auto && (val) = (var).value();
 
 #define SECIO_OUTCOME_TRY(name, res, conn, cb) \
-  SECIO_OUTCOME_TRY_NAME_I(UNIQUE_NAME(name), name, res, conn, cb)
+  SECIO_OUTCOME_TRY_NAME_I(_UNIQUE_NAME_(name), name, res, conn, cb)
 
 #define SECIO_OUTCOME_VOID_TRY(res, conn, cb) \
-  SECIO_OUTCOME_TRY_VOID_I(UNIQUE_NAME(void_var), res, conn, cb)
+  SECIO_OUTCOME_TRY_VOID_I(_UNIQUE_NAME_(void_var), res, conn, cb)
 
 OUTCOME_CPP_DEFINE_CATEGORY_3(libp2p::security, Secio::Error, e) {
   using E = libp2p::security::Secio::Error;

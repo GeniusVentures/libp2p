@@ -45,9 +45,9 @@ OUTCOME_CPP_DEFINE_CATEGORY_3(libp2p::connection, SecioConnection::Error, e) {
   }
 }
 
-#ifndef UNIQUE_NAME
-#define UNIQUE_NAME(base) base##__LINE__
-#endif  // UNIQUE_NAME
+#ifndef _UNIQUE_NAME_
+#define _UNIQUE_NAME_(base) base##__LINE__
+#endif  // _UNIQUE_NAME_
 
 #define IO_OUTCOME_TRY_NAME(var, val, res, cb) \
   auto && (var) = (res);                       \
@@ -58,7 +58,7 @@ OUTCOME_CPP_DEFINE_CATEGORY_3(libp2p::connection, SecioConnection::Error, e) {
   auto && (val) = (var).value();
 
 #define IO_OUTCOME_TRY(name, res, cb) \
-  IO_OUTCOME_TRY_NAME(UNIQUE_NAME(name), name, res, cb)
+  IO_OUTCOME_TRY_NAME(_UNIQUE_NAME_(name), name, res, cb)
 
 namespace {
   template <typename AesSecretType>
