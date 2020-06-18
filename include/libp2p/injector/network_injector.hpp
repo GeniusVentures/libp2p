@@ -140,8 +140,13 @@ namespace libp2p::injector {
    * );
    * @endcode
    */
-  inline auto useKeyPair(const crypto::KeyPair &key_pair) {
-    return boost::di::bind<crypto::KeyPair>().template to(
+  // inline auto useKeyPair(const crypto::KeyPair &key_pair) {
+  //   return boost::di::bind<crypto::KeyPair>().template to(
+  //       key_pair)[boost::di::override];
+  // }
+  //----------------------------------------------------------------
+  auto useKeyPair(const crypto::KeyPair &key_pair) {
+    return boost::di::bind<crypto::KeyPair>.to(
         key_pair)[boost::di::override];
   }
 
