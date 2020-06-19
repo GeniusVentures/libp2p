@@ -105,9 +105,13 @@ function(add_proto_library NAME)
   add_library(${NAME}
       ${SOURCES}
       )
-  target_link_libraries(${NAME}
-       protobuf::libprotobuf
-      )
+
+if(WIN32)
+        target_link_libraries(${NAME} )
+ else()
+      target_link_libraries(${NAME}   protobuf::libprotobuf)
+endif()
+
   target_include_directories(${NAME} PUBLIC
       # required for common targets
       $<BUILD_INTERFACE:${CMAKE_BINARY_DIR}/pb/${NAME}>
