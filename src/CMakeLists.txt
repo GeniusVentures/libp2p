@@ -6,7 +6,6 @@
 add_subdirectory(basic)
 add_subdirectory(common)
 add_subdirectory(crypto)
-return()
 add_subdirectory(host)
 add_subdirectory(multi)
 add_subdirectory(muxer)
