@@ -24,8 +24,9 @@ find_package(OpenSSL REQUIRED)
 
 # https://developers.google.com/protocol-buffers/
 # hunter_add_package(Protobuf)
-# find_package(Protobuf CONFIG REQUIRED)
-find_package(Protobuf REQUIRED)
+#---- updated by ruymaster ----#
+find_package(Protobuf CONFIG REQUIRED)
+#find_package(Protobuf REQUIRED)
 
 
 # https://docs.hunter.sh/en/latest/packages/pkg/spdlog.html

@@ -106,11 +106,11 @@ function(add_proto_library NAME)
       ${SOURCES}
       )
 
-if(WIN32)
-        target_link_libraries(${NAME} )
- else()
+ # if(WIN32)
+ #       target_link_libraries(${NAME} )
+# else()
       target_link_libraries(${NAME}   protobuf::libprotobuf)
-endif()
+#endif()
 
   target_include_directories(${NAME} PUBLIC
       # required for common targets
