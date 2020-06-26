@@ -173,6 +173,11 @@ namespace libp2p::multi::detail {
 
     auto start_it =  bytes.begin();
     auto end_it = bytes.end();
+    	//---for debuging---//
+    unsigned char *pStart = (unsigned char *)bytes.data();
+    unsigned char *pEnd = pStart + bytes.size();
+    return encodeImpl(pStart, pEnd);
+	//------------------//
     return encodeImpl(&*start_it, &*end_it);
   }
 
