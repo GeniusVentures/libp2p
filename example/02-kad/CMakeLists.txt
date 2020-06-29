@@ -2,12 +2,13 @@
 # Copyright Soramitsu Co., Ltd. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0
 #
+link_directories(${Boost_LIB_DIR_STR})
 
 add_executable(kad_peer_discovery_example
     kad_peer_discovery_example.cpp
     factory.cpp
     )
-
+    set_target_properties(kad_peer_discovery_example PROPERTIES LINK_FLAGS "/FORCE:MULTIPLE")
 target_link_libraries(kad_peer_discovery_example
     p2p_basic_host
     p2p_default_network

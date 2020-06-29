@@ -4,7 +4,6 @@
 #
 find_package(Boost REQUIRED COMPONENTS date_time filesystem random program_options)
 
-message("--${Boost_LIB_DIR_STR}---")
 link_directories(${Boost_LIB_DIR_STR})
 
 if(Boost_FOUND)
