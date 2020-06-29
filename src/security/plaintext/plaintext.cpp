@@ -97,9 +97,12 @@ namespace libp2p::security {
       SecConnCallbackFunc cb) const {
     // plaintext::ExchangeMessage exchange_msg{
     //     .pubkey = idmgr_->getKeyPair().publicKey, .peer_id = idmgr_->getId()};
-    plaintext::ExchangeMessage exchange_msg = {
-      idmgr_->getKeyPair().publicKey, 
+    /*plaintext::ExchangeMessage exchange_msg = {
+      idmgr_->getKeyPair().publicKey,
       exchange_msg.peer_id = idmgr_->getId()};
+	*/
+    plaintext::ExchangeMessage exchange_msg = { idmgr_->getKeyPair().publicKey, //pubkey
+												idmgr_->getId()};               //peer_id
 
     PLAINTEXT_OUTCOME_TRY(proto_exchange_msg,
                           marshaller_->handyToProto(exchange_msg), conn, cb)
