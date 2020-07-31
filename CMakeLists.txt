@@ -1,11 +1,14 @@
 cmake_minimum_required(VERSION 3.12)
 
-find_program(CCACHE_FOUND ccache)
-if (CCACHE_FOUND)
-  set_property(GLOBAL PROPERTY RULE_LAUNCH_COMPILE ccache)
-  set_property(GLOBAL PROPERTY RULE_LAUNCH_LINK ccache)
-endif (CCACHE_FOUND)
+#find_program(CCACHE_FOUND ccache)
 
+#if (CCACHE_FOUND)
+#  set_property(GLOBAL PROPERTY RULE_LAUNCH_COMPILE ccache)
+#  set_property(GLOBAL PROPERTY RULE_LAUNCH_LINK ccache)
+#endif (CCACHE_FOUND)
+
+set (Boost_NO_SYSTEM_PATHS ON)
+message("---${CMAKE_TOOLCHAIN_FILE}--")
 set(CMAKE_TOOLCHAIN_FILE
     "${CMAKE_SOURCE_DIR}/cmake/toolchain/cxx17.cmake"
     CACHE
@@ -42,6 +45,8 @@ print("C flags: ${CMAKE_C_FLAGS}")
 print("CXX flags: ${CMAKE_CXX_FLAGS}")
 print("Using CMAKE_TOOLCHAIN_FILE=${CMAKE_TOOLCHAIN_FILE}")
 
+print("------CMAKE_SYSTEM_NAME: ${CMAKE_SYSTEM_NAME}")
+print("-------BOOST PATH: ${BOOST_ROOT}")
 
 ## setup compilation flags
 if ("${CMAKE_CXX_COMPILER_ID}" MATCHES "^(AppleClang|Clang|GNU)$")
