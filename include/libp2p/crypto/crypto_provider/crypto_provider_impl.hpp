@@ -5,7 +5,7 @@
 
 #ifndef LIBP2P_CRYPTO_PROVIDER_CRYPTO_PROVIDER_IMPL_HPP
 #define LIBP2P_CRYPTO_PROVIDER_CRYPTO_PROVIDER_IMPL_HPP
-
+#include <openssl/bn.h> ///\to fix building with openssl1.1.1g--------------------//
 #include <libp2p/crypto/crypto_provider.hpp>
 
 namespace libp2p::crypto {

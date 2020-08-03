@@ -8,6 +8,8 @@
 
 #include <memory>
 
+#include <openssl/rsa.h>  ///\to fix building with openssl 1.1.1g ------//
+
 #include <libp2p/crypto/crypto_provider.hpp>
 #include <libp2p/crypto/key_validator.hpp>
 
