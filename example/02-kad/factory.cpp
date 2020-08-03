@@ -66,14 +66,14 @@ namespace libp2p::protocol::kademlia::example {
           boost::di::extension::shared_config>(
           boost::di::bind<crypto::CryptoProvider>().to(
               crypto_provider)[boost::di::override],
-          boost::di::bind<crypto::KeyPair>().template to(
+          boost::di::bind<crypto::KeyPair>()./*template */to(
               std::move(keypair))[boost::di::override],
-          boost::di::bind<crypto::random::CSPRNG>().template to(
+          boost::di::bind<crypto::random::CSPRNG>()./*template */to(
               std::move(csprng))[boost::di::override],
           boost::di::bind<crypto::marshaller::KeyMarshaller>()
-              .template to<
+              ./*template */to<
                   crypto::marshaller::KeyMarshallerImpl>()[boost::di::override],
-          boost::di::bind<crypto::validator::KeyValidator>().template to(
+          boost::di::bind<crypto::validator::KeyValidator>()./*template */to(
               std::move(validator))[boost::di::override],
 
           std::forward<decltype(args)>(args)...);
