@@ -2,7 +2,7 @@
  * Copyright Soramitsu Co., Ltd. All Rights Reserved.
  * SPDX-License-Identifier: Apache-2.0
  */
-
+#include "platform/platform.hpp"
 
 #include "factory.hpp"
 
@@ -64,16 +64,16 @@ namespace libp2p::protocol::kademlia::example {
 
       return libp2p::injector::makeHostInjector<
           boost::di::extension::shared_config>(
-          boost::di::bind<crypto::CryptoProvider>().to(
+          boost::di::bind<crypto::CryptoProvider>()./*template to*/TEMPLATE_TO(
               crypto_provider)[boost::di::override],
-          boost::di::bind<crypto::KeyPair>()./*template */to(
+          boost::di::bind<crypto::KeyPair>()./*template to*/TEMPLATE_TO(
               std::move(keypair))[boost::di::override],
-          boost::di::bind<crypto::random::CSPRNG>()./*template */to(
+          boost::di::bind<crypto::random::CSPRNG>()./*template to*/TEMPLATE_TO(
               std::move(csprng))[boost::di::override],
           boost::di::bind<crypto::marshaller::KeyMarshaller>()
-              ./*template */to<
+              ./*template to*/TEMPLATE_TO<
                   crypto::marshaller::KeyMarshallerImpl>()[boost::di::override],
-          boost::di::bind<crypto::validator::KeyValidator>()./*template */to(
+          boost::di::bind<crypto::validator::KeyValidator>()./*template to*/TEMPLATE_TO(
               std::move(validator))[boost::di::override],
 
           std::forward<decltype(args)>(args)...);
