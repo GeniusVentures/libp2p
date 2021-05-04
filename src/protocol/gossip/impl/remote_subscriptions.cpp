@@ -40,7 +40,7 @@ namespace libp2p::protocol::gossip {
 
   void RemoteSubscriptions::onPeerSubscribed(const PeerContextPtr &peer,
                                              bool subscribed,
-                                             const TopicId &topic) {
+                                             TopicId topic) {
     if (subscribed) {
       if (!peer->subscribed_to.insert(topic).second) {
         // request from wire, already subscribed, ignoring double subscription
