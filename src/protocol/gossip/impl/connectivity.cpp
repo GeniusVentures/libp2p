@@ -427,8 +427,9 @@ namespace libp2p::protocol::gossip {
       if (it->first > ts) {
         break;
       }
-      unban(it->second);
-      connectable_peers_.insert(it->second);
+      auto ctx = it->second;
+      unban(ctx);
+      connectable_peers_.insert(ctx);
     }
 
     // connect if needed
