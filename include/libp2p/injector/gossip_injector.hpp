@@ -15,7 +15,7 @@
 namespace libp2p::injector {
 
   auto useGossipConfig(const protocol::gossip::Config& c) {
-    return boost::di::bind<protocol::gossip::Config>()./*template*/ to(
+    return boost::di::bind<protocol::gossip::Config>()./*template to*/TEMPLATE_TO(
         c)[boost::di::override];
   }
 
@@ -28,10 +28,10 @@ namespace libp2p::injector {
     return di::make_injector<InjectorConfig>(
         makeHostInjector<InjectorConfig>(),
 
-        di::bind<protocol::gossip::Config>./*template*/ to(protocol::gossip::Config {}),
-        di::bind<protocol::SchedulerConfig>./*template*/ to(protocol::SchedulerConfig {}),
-        di::bind<protocol::gossip::Gossip>./*template*/ to<protocol::gossip::GossipCore>(),
-        di::bind<protocol::Scheduler>./*template*/ to<protocol::AsioScheduler>(),
+        di::bind<protocol::gossip::Config>./*template to*/TEMPLATE_TO(protocol::gossip::Config {}),
+        di::bind<protocol::SchedulerConfig>./*template to*/TEMPLATE_TO(protocol::SchedulerConfig {}),
+        di::bind<protocol::gossip::Gossip>./*template to*/TEMPLATE_TO<protocol::gossip::GossipCore>(),
+        di::bind<protocol::Scheduler>./*template to*/TEMPLATE_TO<protocol::AsioScheduler>(),
 
         // user-defined overrides...
         std::forward<decltype(args)>(args)...
