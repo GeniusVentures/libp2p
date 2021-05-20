@@ -22,5 +22,5 @@ target_link_libraries(kad_peer_discovery_example
     p2p_literals
     p2p_kad
     asio_scheduler
-    crypt32
+    ${WIN_CRYPT_LIBRARY}
     )

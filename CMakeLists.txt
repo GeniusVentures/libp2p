@@ -80,6 +80,11 @@ elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
   # TODO(warchant): add flags https://github.com/lefticus/cppbestpractices/blob/master/02-Use_the_Tools_Available.md#msvc
 endif ()
 
+SET(WIN_CRYPT_LIBRARY)
+if (NOT UNIX)
+    SET(WIN_CRYPT_LIBRARY crypt32)
+endif()
+
 if (COVERAGE)
   include(cmake/coverage.cmake)
 endif ()
