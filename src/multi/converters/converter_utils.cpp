@@ -122,7 +122,7 @@ namespace libp2p::multi::converters {
 
     // Process Hex String
     while (lastpos < bytes.size() * 2) {
-      gsl::span<const uint8_t, -1> pid_bytes{bytes};
+      gsl::span<const uint8_t, 1> pid_bytes{bytes};
       int protocol_int = UVarint(pid_bytes.subspan(lastpos / 2)).toUInt64();
       Protocol const *protocol =
           ProtocolList::get(static_cast<Protocol::Code>(protocol_int));
