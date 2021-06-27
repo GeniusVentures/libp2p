@@ -1,11 +1,14 @@
 cmake_minimum_required(VERSION 3.12)
 
-find_program(CCACHE_FOUND ccache)
-if (CCACHE_FOUND)
-  set_property(GLOBAL PROPERTY RULE_LAUNCH_COMPILE ccache)
-  set_property(GLOBAL PROPERTY RULE_LAUNCH_LINK ccache)
-endif (CCACHE_FOUND)
+#find_program(CCACHE_FOUND ccache)
 
+#if (CCACHE_FOUND)
+#  set_property(GLOBAL PROPERTY RULE_LAUNCH_COMPILE ccache)
+#  set_property(GLOBAL PROPERTY RULE_LAUNCH_LINK ccache)
+#endif (CCACHE_FOUND)
+
+set (Boost_NO_SYSTEM_PATHS ON)
+message("---${CMAKE_TOOLCHAIN_FILE}--")
 set(CMAKE_TOOLCHAIN_FILE
     "${CMAKE_SOURCE_DIR}/cmake/toolchain/cxx17.cmake"
     CACHE
@@ -16,21 +19,10 @@ set(CMAKE_TOOLCHAIN_FILE
 include("cmake/Hunter/init.cmake")
 project(libp2p C CXX)
 
-include(cmake/print.cmake)
-print("C flags: ${CMAKE_C_FLAGS}")
-print("CXX flags: ${CMAKE_CXX_FLAGS}")
-print("Using CMAKE_TOOLCHAIN_FILE=${CMAKE_TOOLCHAIN_FILE}")
-
-include(CheckCXXCompilerFlag)
-include(cmake/install.cmake)
-include(cmake/libp2p_add_library.cmake)
-include(cmake/dependencies.cmake)
-include(cmake/functions.cmake)
-include(cmake/san.cmake)
-
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 option(TESTING "Build tests" ON)
+option(BUILD_EXAMPLES "Build examples" ON)
 option(CLANG_FORMAT "Enable clang-format target" ON)
 option(CLANG_TIDY "Enable clang-tidy checks during compilation" OFF)
 option(COVERAGE "Enable generation of coverage info" OFF)
@@ -42,6 +34,20 @@ option(TSAN "Enable thread sanitizer" OFF)
 option(UBSAN "Enable UB sanitizer" OFF)
 option(EXPOSE_MOCKS "Make mocks header files visible for child projects" OFF)
 
+include(CheckCXXCompilerFlag)
+include(cmake/install.cmake)
+include(cmake/libp2p_add_library.cmake)
+include(cmake/dependencies.cmake)
+include(cmake/functions.cmake)
+include(cmake/san.cmake)
+
+include(cmake/print.cmake)
+print("C flags: ${CMAKE_C_FLAGS}")
+print("CXX flags: ${CMAKE_CXX_FLAGS}")
+print("Using CMAKE_TOOLCHAIN_FILE=${CMAKE_TOOLCHAIN_FILE}")
+
+print("------CMAKE_SYSTEM_NAME: ${CMAKE_SYSTEM_NAME}")
+print("-------BOOST PATH: ${BOOST_ROOT}")
 
 ## setup compilation flags
 if ("${CMAKE_CXX_COMPILER_ID}" MATCHES "^(AppleClang|Clang|GNU)$")
@@ -67,13 +73,18 @@ if ("${CMAKE_CXX_COMPILER_ID}" MATCHES "^(AppleClang|Clang|GNU)$")
   # promote to errors
   add_flag(-Werror-unused-lambda-capture)  # error if lambda capture is unused
   add_flag(-Werror-return-type)      # warning: control reaches end of non-void function [-Wreturn-type]
-  add_flag(-Werror-non-virtual-dtor) # warn the user if a class with virtual functions has a non-virtual destructor. This helps catch hard to track down memory errors
+#  add_flag(-Werror-non-virtual-dtor) # warn the user if a class with virtual functions has a non-virtual destructor. This helps catch hard to track down memory errors
   add_flag(-Werror-sign-compare)     # warn the user if they compare a signed and unsigned numbers
   add_flag(-Werror-reorder)          # field '$1' will be initialized after field '$2'
 elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
   # using Visual Studio C++
   # TODO(warchant): add flags https://github.com/lefticus/cppbestpractices/blob/master/02-Use_the_Tools_Available.md#msvc
 endif ()
+
+SET(WIN_CRYPT_LIBRARY)
+if (NOT UNIX)
+    SET(WIN_CRYPT_LIBRARY crypt32)
+endif()
 
 if (COVERAGE)
   include(cmake/coverage.cmake)
@@ -89,10 +100,15 @@ include_directories(
     SYSTEM
     # project includes
     ${PROJECT_SOURCE_DIR}/include
+    ${PROJECT_SOURCE_DIR}/include/platform/${CMAKE_SYSTEM_NAME}
 )
 
 add_subdirectory(src)
-add_subdirectory(example)
+
+
+if (BUILD_EXAMPLES)
+  add_subdirectory(example)
+endif()
 
 if(TESTING)
   enable_testing()

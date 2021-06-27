@@ -2,19 +2,22 @@
  * Copyright Soramitsu Co., Ltd. All Rights Reserved.
  * SPDX-License-Identifier: Apache-2.0
  */
+#include <arpa/inet.h>
 
 #include <libp2p/security/secio/secio_connection.hpp>
 
 #include <algorithm>
 
-#include <arpa/inet.h>
+// #include <arpa/inet.h>
 #include <libp2p/common/byteutil.hpp>
 #include <libp2p/crypto/aes_ctr/aes_ctr_impl.hpp>
 #include <libp2p/crypto/error.hpp>
 #include <libp2p/crypto/hmac_provider.hpp>
 #include <libp2p/outcome/outcome.hpp>
 
-OUTCOME_CPP_DEFINE_CATEGORY(libp2p::connection, SecioConnection::Error, e) {
+// #include <arpa/inet.h>
+
+OUTCOME_CPP_DEFINE_CATEGORY_3(libp2p::connection, SecioConnection::Error, e) {
   using E = libp2p::connection::SecioConnection::Error;
   switch (e) {
     case E::CONN_NOT_INITIALIZED:
@@ -42,9 +45,9 @@ OUTCOME_CPP_DEFINE_CATEGORY(libp2p::connection, SecioConnection::Error, e) {
   }
 }
 
-#ifndef UNIQUE_NAME
-#define UNIQUE_NAME(base) base##__LINE__
-#endif  // UNIQUE_NAME
+#ifndef _UNIQUE_NAME_
+#define _UNIQUE_NAME_(base) base##__LINE__
+#endif  // _UNIQUE_NAME_
 
 #define IO_OUTCOME_TRY_NAME(var, val, res, cb) \
   auto && (var) = (res);                       \
@@ -55,7 +58,7 @@ OUTCOME_CPP_DEFINE_CATEGORY(libp2p::connection, SecioConnection::Error, e) {
   auto && (val) = (var).value();
 
 #define IO_OUTCOME_TRY(name, res, cb) \
-  IO_OUTCOME_TRY_NAME(UNIQUE_NAME(name), name, res, cb)
+  IO_OUTCOME_TRY_NAME(_UNIQUE_NAME_(name), name, res, cb)
 
 namespace {
   template <typename AesSecretType>
@@ -142,7 +145,8 @@ namespace libp2p::connection {
   }
 
   bool SecioConnection::isInitialized() const {
-    return local_encryptor_ and remote_decryptor_;
+    // return local_encryptor_ and remote_decryptor_;
+    return local_encryptor_ && remote_decryptor_;
   }
 
   outcome::result<peer::PeerId> SecioConnection::localPeer() const {
@@ -209,7 +213,8 @@ namespace libp2p::connection {
     ReadCallbackFunc cb_wrapper =
         [self{shared_from_this()}, user_cb{cb}, out,
          bytes](outcome::result<size_t> size_read_res) -> void {
-      if (not size_read_res) {
+      // if (not size_read_res) {
+      if (! size_read_res) {
         // in case of error, propagate it to the caller
         user_cb(size_read_res);
         return;
@@ -236,7 +241,8 @@ namespace libp2p::connection {
     size_t out_size{out.empty() ? 0 : static_cast<size_t>(out.size())};
     size_t read_limit{out_size < bytes ? out_size : bytes};
 
-    if (not user_data_buffer_.empty()) {
+    // if (not user_data_buffer_.empty()) {
+    if (! user_data_buffer_.empty()) {
       auto bytes_available{user_data_buffer_.size()};
       size_t to_read{bytes_available < read_limit ? bytes_available
                                                   : read_limit};
@@ -249,7 +255,8 @@ namespace libp2p::connection {
     ReadCallbackFunc cb_wrapper =
         [self{shared_from_this()}, user_cb{cb}, out,
          bytes](outcome::result<size_t> size_read_res) -> void {
-      if (not size_read_res) {
+      // if (not size_read_res) {
+      if (! size_read_res) {
         user_cb(size_read_res);
         return;
       }
@@ -346,7 +353,8 @@ namespace libp2p::connection {
     basic::Writer::WriteCallbackFunc cb_wrapper =
         [user_cb{std::move(cb)}, bytes,
          raw_bytes{frame_buffer.size()}](auto &&res) {
-          if (not res) {
+          // if (not res) {
+          if (! res) {
             return user_cb(res);  // pulling out the error occurred
           }
           if (res.value() != raw_bytes) {

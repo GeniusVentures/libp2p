@@ -7,7 +7,7 @@
 
 #include <numeric>
 
-OUTCOME_CPP_DEFINE_CATEGORY(libp2p::protocol::kademlia, RoutingTableImpl::Error,
+OUTCOME_CPP_DEFINE_CATEGORY_3(libp2p::protocol::kademlia, RoutingTableImpl::Error,
                             e) {
   using E = libp2p::protocol::kademlia::RoutingTableImpl::Error;
 

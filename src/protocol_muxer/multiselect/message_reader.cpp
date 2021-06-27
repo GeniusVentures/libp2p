@@ -38,7 +38,8 @@ namespace libp2p::protocol_muxer {
     state->read(1,
                 [connection_state = std::move(connection_state)](
                     const outcome::result<void> &res) mutable {
-                  if (not res) {
+//                  if (not res) {
+                  if (! res) {
                     auto multiselect = connection_state->multiselect;
                     multiselect->negotiationRoundFailed(
                         connection_state, MultiselectError::INTERNAL_ERROR);
@@ -75,7 +76,8 @@ namespace libp2p::protocol_muxer {
                 [connection_state = std::move(connection_state),
                  final_callback = std::move(final_callback)](
                     const outcome::result<void> &res) mutable {
-                  if (not res) {
+//                  if (not res) {
+                  if (! res) {
                     auto multiselect = connection_state->multiselect;
                     multiselect->negotiationRoundFailed(
                         connection_state, MultiselectError::INTERNAL_ERROR);

@@ -25,6 +25,6 @@ namespace libp2p::multi {
   };
 }  // namespace libp2p::multi
 
-OUTCOME_HPP_DECLARE_ERROR(libp2p::multi, MultibaseCodecImpl::Error)
+OUTCOME_HPP_DECLARE_ERROR_2(libp2p::multi, MultibaseCodecImpl::Error)
 
 #endif  // LIBP2P_MULTIBASE_IMPL_HPP

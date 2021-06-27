@@ -17,6 +17,6 @@ namespace libp2p::protocol_muxer {
   };
 }
 
-OUTCOME_HPP_DECLARE_ERROR(libp2p::protocol_muxer, MultiselectError)
+OUTCOME_HPP_DECLARE_ERROR_2(libp2p::protocol_muxer, MultiselectError)
 
 #endif  // LIBP2P_MULTISELECT_ERROR_HPP

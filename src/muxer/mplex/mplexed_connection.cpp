@@ -8,7 +8,7 @@
 #include <boost/assert.hpp>
 #include <libp2p/muxer/mplex/mplex_frame.hpp>
 
-OUTCOME_CPP_DEFINE_CATEGORY(libp2p::connection, MplexedConnection::Error, e) {
+OUTCOME_CPP_DEFINE_CATEGORY_3(libp2p::connection, MplexedConnection::Error, e) {
   using E = libp2p::connection::MplexedConnection::Error;
   switch (e) {
     case E::BAD_FRAME_FORMAT:

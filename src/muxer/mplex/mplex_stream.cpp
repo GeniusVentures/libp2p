@@ -10,7 +10,7 @@
 #include <boost/container_hash/hash.hpp>
 #include <libp2p/muxer/mplex/mplexed_connection.hpp>
 
-OUTCOME_CPP_DEFINE_CATEGORY(libp2p::connection, MplexStream::Error, e) {
+OUTCOME_CPP_DEFINE_CATEGORY_3(libp2p::connection, MplexStream::Error, e) {
   using E = libp2p::connection::MplexStream::Error;
   switch (e) {
     case E::CONNECTION_IS_DEAD:

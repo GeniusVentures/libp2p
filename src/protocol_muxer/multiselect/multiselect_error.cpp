@@ -5,7 +5,7 @@
 
 #include <libp2p/protocol_muxer/multiselect/multiselect_error.hpp>
 
-OUTCOME_CPP_DEFINE_CATEGORY(libp2p::protocol_muxer, MultiselectError, e) {
+OUTCOME_CPP_DEFINE_CATEGORY_3(libp2p::protocol_muxer, MultiselectError, e) {
   using Errors = libp2p::protocol_muxer::MultiselectError;
   switch (e) {
     case Errors::PROTOCOLS_LIST_EMPTY:

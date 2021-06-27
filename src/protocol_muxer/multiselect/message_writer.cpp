@@ -17,7 +17,8 @@ namespace libp2p::protocol_muxer {
     return [connection_state = std::move(connection_state), success_status](
                const outcome::result<size_t> written_bytes_res) mutable {
       auto multiselect = connection_state->multiselect;
-      if (not written_bytes_res) {
+//      if (not written_bytes_res) {
+      if (! written_bytes_res) {
         multiselect->negotiationRoundFailed(connection_state,
                                             written_bytes_res.error());
         return;
@@ -70,7 +71,8 @@ namespace libp2p::protocol_muxer {
     state->write([connection_state = std::move(connection_state), protocol](
                      const outcome::result<size_t> written_bytes_res) mutable {
       auto multiselect = connection_state->multiselect;
-      if (not written_bytes_res) {
+//      if (not written_bytes_res) {
+      if (! written_bytes_res) {
         multiselect->negotiationRoundFailed(connection_state,
                                             written_bytes_res.error());
         return;

@@ -11,7 +11,7 @@
 #include <string>
 
 #include <gsl/span>
-#include <libp2p/common/logger.hpp>
+// #include <libp2p/common/logger.hpp>
 #include <libp2p/connection/stream.hpp>
 #include <libp2p/crypto/key_marshaller.hpp>
 #include <libp2p/host/host.hpp>
@@ -21,7 +21,7 @@
 #include <libp2p/peer/peer_id.hpp>
 #include <libp2p/protocol/identify/observed_addresses.hpp>
 #include <libp2p/outcome/outcome.hpp>
-
+#include <libp2p/common/logger.hpp>
 namespace identify::pb {
   class Identify;
 }

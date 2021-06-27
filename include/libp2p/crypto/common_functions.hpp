@@ -10,6 +10,8 @@
 #include <vector>
 #include <array>
 
+#include <openssl/bn.h> ///\to fix building with openssl1.1.1g --------------------//
+
 #include <openssl/ec.h>
 #include <openssl/evp.h>
 #include <gsl/span>

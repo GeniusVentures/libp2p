@@ -183,14 +183,15 @@ namespace libp2p::network {
 
     // set onStream handler function
     conn->onStream(
-        [this](outcome::result<std::shared_ptr<connection::Stream>> rstream) {
+        // [this](outcome::result<std::shared_ptr<connection::Stream>> rstream) {
+        [this](std::shared_ptr<connection::Stream> rstream) {
           if (!rstream) {
             // can not accept a stream
             // TODO(Warchant): log error
             return;  // ignore
           }
-          auto &&stream = rstream.value();
-
+          // auto &&stream = rstream.value();
+          auto &&stream = rstream;
           // negotiate protocols
           this->multiselect_->selectOneOf(
               this->router_->getSupportedProtocols(), stream,
@@ -218,13 +219,17 @@ namespace libp2p::network {
 
   void ListenerManagerImpl::setProtocolHandler(const peer::Protocol &protocol,
                                                StreamResultFunc cb) {
-    this->router_->setProtocolHandler(protocol, std::move(cb));
+    // this->router_->setProtocolHandler(protocol, std::move(cb));
+    auto cb_move = std::move(cb);
+    this->router_->setProtocolHandler(protocol, *(libp2p::network::Router::ProtoHandler*)&cb_move);
   }
 
   void ListenerManagerImpl::setProtocolHandler(
       const peer::Protocol &protocol, StreamResultFunc cb,
       Router::ProtoPredicate predicate) {
-    this->router_->setProtocolHandler(protocol, std::move(cb), predicate);
+    // this->router_->setProtocolHandler(protocol, std::move(cb), predicate);
+    auto cb_move = std::move(cb);
+    this->router_->setProtocolHandler(protocol, *(libp2p::network::Router::ProtoHandler*)&cb_move, predicate);
   }
 
   Router &ListenerManagerImpl::getRouter() {

@@ -8,7 +8,7 @@
 
 #include <string_view>
 #include <vector>
-
+// #include <cctype>  //  std::isdigit error fix
 #include <gsl/span>
 
 #include <libp2p/outcome/outcome.hpp>
@@ -57,6 +57,6 @@ namespace libp2p::common {
 
 }  // namespace libp2p::common
 
-OUTCOME_HPP_DECLARE_ERROR(libp2p::common, UnhexError);
+OUTCOME_HPP_DECLARE_ERROR_2(libp2p::common, UnhexError);
 
 #endif  // LIBP2P_HEXUTIL_HPP

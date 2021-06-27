@@ -10,7 +10,7 @@
 
 #include <libp2p/injector/gossip_injector.hpp>
 
-#include "console_async_reader.hpp"
+//#include "console_async_reader.hpp"
 #include "utility.hpp"
 
 namespace {
@@ -112,10 +112,13 @@ int main(int argc, char *argv[]) {
   });
 
   // read lines from stdin in async manner and publish them into the chat
-  utility::ConsoleAsyncReader stdin_reader(
-      *io, [&gossip, &options](const std::string &msg) {
-        gossip->publish({options->topic}, utility::fromString(msg));
-      });
+  // utility::ConsoleAsyncReader stdin_reader(
+  //     *io, [&gossip, &options](const std::string &msg) {
+  //       gossip->publish({options->topic}, utility::fromString(msg));
+  //     });
+  //--- simple testing ----//
+  const std::string msg ="Testing Message";
+  gossip->publish({options->topic}, utility::fromString(msg));
 
   // gracefully shutdown on signal
   boost::asio::signal_set signals(*io, SIGINT, SIGTERM);

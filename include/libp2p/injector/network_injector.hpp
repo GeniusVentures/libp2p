@@ -6,6 +6,7 @@
 #ifndef LIBP2P_NETWORK_INJECTOR_HPP
 #define LIBP2P_NETWORK_INJECTOR_HPP
 
+#include "platform/platform.hpp"
 #include <boost/di.hpp>
 
 // implementations
@@ -140,8 +141,13 @@ namespace libp2p::injector {
    * );
    * @endcode
    */
+  // inline auto useKeyPair(const crypto::KeyPair &key_pair) {
+  //   return boost::di::bind<crypto::KeyPair>()./*template */to(
+  //       key_pair)[boost::di::override];
+  // }
+  //----------------------------------------------------------------
   inline auto useKeyPair(const crypto::KeyPair &key_pair) {
-    return boost::di::bind<crypto::KeyPair>().template to(
+    return boost::di::bind<crypto::KeyPair>.to(
         key_pair)[boost::di::override];
   }
 
@@ -172,7 +178,7 @@ namespace libp2p::injector {
    */
   template <typename C>
   auto useConfig(C &&c) {
-    return boost::di::bind<std::decay<C>>().template to(
+    return boost::di::bind<std::decay<C>>()./*template to*/TEMPLATE_TO(
         std::forward<C>(c))[boost::di::override];
   }
 
@@ -229,8 +235,8 @@ namespace libp2p::injector {
    * @param args injector bindings that override default bindings.
    * @return complete network injector
    */
-  template <typename InjectorConfig = BOOST_DI_CFG, typename... Ts>
-  auto makeNetworkInjector(Ts &&... args) {
+  template <typename InjectorConfig /*= BOOST_DI_CFG , typename... Ts*/>
+  auto makeNetworkInjector(/*Ts &&... args*/) {
     using namespace boost;  // NOLINT
 
     auto csprng = std::make_shared<crypto::random::BoostRandomGenerator>();
@@ -254,39 +260,39 @@ namespace libp2p::injector {
 
     // clang-format off
     return di::make_injector<InjectorConfig>(
-        di::bind<crypto::KeyPair>().template to(std::move(keypair)),
-        di::bind<crypto::random::CSPRNG>().template to(std::move(csprng)),
-        di::bind<crypto::ed25519::Ed25519Provider>().template to(std::move(ed25519_provider)),
-        di::bind<crypto::rsa::RsaProvider>().template to(std::move(rsa_provider)),
-        di::bind<crypto::ecdsa::EcdsaProvider>().template to(std::move(ecdsa_provider)),
-        di::bind<crypto::secp256k1::Secp256k1Provider>().template to(std::move(secp256k1_provider)),
-        di::bind<crypto::aes::AesCtr>().template to<crypto::aes::AesCtrImpl>(),
-        di::bind<crypto::hmac::HmacProvider>().template to<crypto::hmac::HmacProviderImpl>(),
-        di::bind<crypto::CryptoProvider>().template to<crypto::CryptoProviderImpl>(),
-        di::bind<crypto::marshaller::KeyMarshaller>().template to<crypto::marshaller::KeyMarshallerImpl>(),
-        di::bind<peer::IdentityManager>().template to<peer::IdentityManagerImpl>(),
-        di::bind<crypto::validator::KeyValidator>().template to<crypto::validator::KeyValidatorImpl>(),
-        di::bind<security::plaintext::ExchangeMessageMarshaller>().template to<security::plaintext::ExchangeMessageMarshallerImpl>(),
-        di::bind<security::secio::ProposeMessageMarshaller>().template to<security::secio::ProposeMessageMarshallerImpl>(),
-        di::bind<security::secio::ExchangeMessageMarshaller>().template to<security::secio::ExchangeMessageMarshallerImpl>(),
+        di::bind<crypto::KeyPair>().TEMPLATE_TO(std::move(keypair)),
+        di::bind<crypto::random::CSPRNG>().TEMPLATE_TO(std::move(csprng)),
+        di::bind<crypto::ed25519::Ed25519Provider>().TEMPLATE_TO(std::move(ed25519_provider)),
+        di::bind<crypto::rsa::RsaProvider>().TEMPLATE_TO(std::move(rsa_provider)),
+        di::bind<crypto::ecdsa::EcdsaProvider>()./*template to*/TEMPLATE_TO(std::move(ecdsa_provider)),
+        di::bind<crypto::secp256k1::Secp256k1Provider>()./*template to*/TEMPLATE_TO(std::move(secp256k1_provider)),
+        di::bind<crypto::aes::AesCtr>()./*template to*/TEMPLATE_TO<crypto::aes::AesCtrImpl>(),
+        di::bind<crypto::hmac::HmacProvider>()./*template to*/TEMPLATE_TO<crypto::hmac::HmacProviderImpl>(),
+        di::bind<crypto::CryptoProvider>()./*template to*/TEMPLATE_TO<crypto::CryptoProviderImpl>(),
+        di::bind<crypto::marshaller::KeyMarshaller>()./*template to*/TEMPLATE_TO<crypto::marshaller::KeyMarshallerImpl>(),
+        di::bind<peer::IdentityManager>()./*template to*/TEMPLATE_TO<peer::IdentityManagerImpl>(),
+        di::bind<crypto::validator::KeyValidator>()./*template to*/TEMPLATE_TO<crypto::validator::KeyValidatorImpl>(),
+        di::bind<security::plaintext::ExchangeMessageMarshaller>()./*template to*/TEMPLATE_TO<security::plaintext::ExchangeMessageMarshallerImpl>(),
+        di::bind<security::secio::ProposeMessageMarshaller>()./*template to*/TEMPLATE_TO<security::secio::ProposeMessageMarshallerImpl>(),
+        di::bind<security::secio::ExchangeMessageMarshaller>()./*template to*/TEMPLATE_TO<security::secio::ExchangeMessageMarshallerImpl>(),
 
         // internal
-        di::bind<network::Router>().template to<network::RouterImpl>(),
-        di::bind<network::ConnectionManager>().template to<network::ConnectionManagerImpl>(),
-        di::bind<network::ListenerManager>().template to<network::ListenerManagerImpl>(),
-        di::bind<network::Dialer>().template to<network::DialerImpl>(),
-        di::bind<network::Network>().template to<network::NetworkImpl>(),
-        di::bind<network::TransportManager>().template to<network::TransportManagerImpl>(),
-        di::bind<transport::Upgrader>().template to<transport::UpgraderImpl>(),
-        di::bind<protocol_muxer::ProtocolMuxer>().template to<protocol_muxer::Multiselect>(),
+        di::bind<network::Router>()./*template to*/TEMPLATE_TO<network::RouterImpl>(),
+        di::bind<network::ConnectionManager>()./*template to*/TEMPLATE_TO<network::ConnectionManagerImpl>(),
+        di::bind<network::ListenerManager>()./*template to*/TEMPLATE_TO<network::ListenerManagerImpl>(),
+        di::bind<network::Dialer>()./*template to*/TEMPLATE_TO<network::DialerImpl>(),
+        di::bind<network::Network>()./*template to*/TEMPLATE_TO<network::NetworkImpl>(),
+        di::bind<network::TransportManager>()./*template to*/TEMPLATE_TO<network::TransportManagerImpl>(),
+        di::bind<transport::Upgrader>()./*template to*/TEMPLATE_TO<transport::UpgraderImpl>(),
+        di::bind<protocol_muxer::ProtocolMuxer>()./*template to*/TEMPLATE_TO<protocol_muxer::Multiselect>(),
 
         // default adaptors
-        di::bind<security::SecurityAdaptor *[]>().template to<security::Plaintext, security::Secio>(),  // NOLINT
-        di::bind<muxer::MuxerAdaptor *[]>().template to<muxer::Yamux, muxer::Mplex>(),  // NOLINT
-        di::bind<transport::TransportAdaptor *[]>().template to<transport::TcpTransport>(),  // NOLINT
+        di::bind<security::SecurityAdaptor *[]>()./*template to*/TEMPLATE_TO<security::Plaintext, security::Secio>(),  // NOLINT
+        di::bind<muxer::MuxerAdaptor *[]>()./*template to*/TEMPLATE_TO<muxer::Yamux, muxer::Mplex>(),  // NOLINT
+        di::bind<transport::TransportAdaptor *[]>()./*template to*/TEMPLATE_TO<transport::TcpTransport>()/*, */ // NOLINT
 
         // user-defined overrides...
-        std::forward<decltype(args)>(args)...
+        // std::forward<decltype(args)>(args)...
     );
     // clang-format on
   }

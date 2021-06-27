@@ -7,7 +7,7 @@
 
 #include <generated/security/secio/protobuf/secio.pb.h>
 
-OUTCOME_CPP_DEFINE_CATEGORY(libp2p::security::secio,
+OUTCOME_CPP_DEFINE_CATEGORY_3(libp2p::security::secio,
                             ExchangeMessageMarshallerImpl::Error, e) {
   using E = libp2p::security::secio::ExchangeMessageMarshallerImpl::Error;
   switch (e) {
@@ -33,10 +33,14 @@ namespace libp2p::security::secio {
 
   ExchangeMessage ExchangeMessageMarshallerImpl::protoToHandy(
       const protobuf::Exchange &proto_msg) const {
+    // return ExchangeMessage{
+    //     .epubkey = {proto_msg.epubkey().begin(), proto_msg.epubkey().end()},
+    //     .signature = {proto_msg.signature().begin(),
+    //                   proto_msg.signature().end()}};
     return ExchangeMessage{
-        .epubkey = {proto_msg.epubkey().begin(), proto_msg.epubkey().end()},
-        .signature = {proto_msg.signature().begin(),
-                      proto_msg.signature().end()}};
+        {proto_msg.epubkey().begin(), proto_msg.epubkey().end()},
+        {proto_msg.signature().begin(),
+                proto_msg.signature().end()}};
   }
 
   outcome::result<std::vector<uint8_t>> ExchangeMessageMarshallerImpl::marshal(

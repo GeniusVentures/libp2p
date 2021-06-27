@@ -25,8 +25,10 @@ namespace libp2p::protocol {
 
     template <typename T>
     void setInstanceName(spdlog::string_view_t prefix, T instance = T{}) {
+      // if constexpr (std::is_pointer<T>::value
+      //               and not std::is_same<T, const char *>::value) {
       if constexpr (std::is_pointer<T>::value
-                    and not std::is_same<T, const char *>::value) {
+                    && (! std::is_same<T, const char *>::value)) {
         prefix_ = fmt::format("{} {}: ", prefix, (void *)instance);  // NOLINT;
       } else {
         prefix_ = fmt::format("{} {}: ", prefix, instance);

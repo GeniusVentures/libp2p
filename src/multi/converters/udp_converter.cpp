@@ -8,6 +8,7 @@
 #include <libp2p/common/hexutil.hpp>
 #include <libp2p/multi/converters/conversion_error.hpp>
 #include <libp2p/outcome/outcome.hpp>
+#include <cctype>
 
 namespace libp2p::multi::converters {
 

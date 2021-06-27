@@ -148,6 +148,6 @@ namespace std {
   };
 }  // namespace std
 
-OUTCOME_HPP_DECLARE_ERROR(libp2p::connection, MplexStream::Error)
+OUTCOME_HPP_DECLARE_ERROR_2(libp2p::connection, MplexStream::Error)
 
 #endif  // LIBP2P_MPLEX_STREAM_HPP

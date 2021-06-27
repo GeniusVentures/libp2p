@@ -12,7 +12,7 @@
 #include <libp2p/security/secio/exchange_message_marshaller.hpp>
 #include <libp2p/security/secio/propose_message_marshaller.hpp>
 
-OUTCOME_CPP_DEFINE_CATEGORY(libp2p::security::secio, Dialer::Error, e) {
+OUTCOME_CPP_DEFINE_CATEGORY_3(libp2p::security::secio, Dialer::Error, e) {
   using E = libp2p::security::secio::Dialer::Error;
   switch (e) {
     case E::INTERNAL_FAILURE:
@@ -157,7 +157,8 @@ namespace libp2p::security::secio {
 
   outcome::result<crypto::Buffer> Dialer::generateSharedSecret(
       crypto::Buffer remote_ephemeral_public_key) const {
-    if (not ekey_pair_) {
+    // if (not ekey_pair_) {
+    if (! ekey_pair_) {
       return Error::INTERNAL_FAILURE;
     }
     OUTCOME_TRY(shared_secret,
@@ -167,7 +168,8 @@ namespace libp2p::security::secio {
   }
 
   outcome::result<crypto::StretchedKey> Dialer::localStretchedKey() const {
-    if (local_peer_is_preferred_ and stretched_keys_) {
+    // if (local_peer_is_preferred_ and stretched_keys_) {
+    if (local_peer_is_preferred_ && stretched_keys_) {
       return (*local_peer_is_preferred_ ? stretched_keys_->first
                                         : stretched_keys_->second);
     }
@@ -175,7 +177,8 @@ namespace libp2p::security::secio {
   }
 
   outcome::result<crypto::StretchedKey> Dialer::remoteStretchedKey() const {
-    if (local_peer_is_preferred_ and stretched_keys_) {
+    // if (local_peer_is_preferred_ and stretched_keys_) {
+    if (local_peer_is_preferred_ && stretched_keys_) {
       return (*local_peer_is_preferred_ ? stretched_keys_->second
                                         : stretched_keys_->first);
     }

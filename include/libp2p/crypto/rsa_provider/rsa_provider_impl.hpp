@@ -7,7 +7,7 @@
 #define LIBP2P_CRYPTO_RSA_PROVIDER_IMPL_HPP
 
 #include <memory>
-
+#include <openssl/bn.h> ///\to fix building with openssl1.1.1g --------------------//
 #include <openssl/rsa.h>
 #include <libp2p/crypto/error.hpp>
 #include <libp2p/crypto/rsa_provider.hpp>

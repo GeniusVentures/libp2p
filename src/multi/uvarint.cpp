@@ -47,7 +47,7 @@ namespace libp2p::multi {
   }
 
   gsl::span<const uint8_t> UVarint::toBytes() const {
-    return gsl::span(bytes_.data(), bytes_.size());
+    return gsl::span<const uint8_t>(bytes_.data(), bytes_.size());   //---- fix for android----//
   }
 
   const std::vector<uint8_t> &UVarint::toVector() const {

@@ -12,7 +12,7 @@
 #define TRACE_ENABLED 0
 #include <libp2p/common/trace.hpp>
 
-OUTCOME_CPP_DEFINE_CATEGORY(libp2p::connection, YamuxedConnection::Error, e) {
+OUTCOME_CPP_DEFINE_CATEGORY_3(libp2p::connection, YamuxedConnection::Error, e) {
   using ErrorType = libp2p::connection::YamuxedConnection::Error;
   switch (e) {
     case ErrorType::NO_SUCH_STREAM:

@@ -11,7 +11,7 @@
 #include <libp2p/multi/multicodec_type.hpp>
 #include <libp2p/multi/uvarint.hpp>
 
-OUTCOME_CPP_DEFINE_CATEGORY(libp2p::multi, ContentIdentifierCodec::EncodeError,
+OUTCOME_CPP_DEFINE_CATEGORY_3(libp2p::multi, ContentIdentifierCodec::EncodeError,
                             e) {
   using E = libp2p::multi::ContentIdentifierCodec::EncodeError;
   switch (e) {
@@ -29,7 +29,7 @@ OUTCOME_CPP_DEFINE_CATEGORY(libp2p::multi, ContentIdentifierCodec::EncodeError,
   return "Unknown error";
 }
 
-OUTCOME_CPP_DEFINE_CATEGORY(libp2p::multi, ContentIdentifierCodec::DecodeError,
+OUTCOME_CPP_DEFINE_CATEGORY_3(libp2p::multi, ContentIdentifierCodec::DecodeError,
                             e) {
   using E = libp2p::multi::ContentIdentifierCodec::DecodeError;
   switch (e) {
@@ -91,7 +91,8 @@ namespace libp2p::multi {
 
   outcome::result<ContentIdentifier> ContentIdentifierCodec::decode(
       gsl::span<const uint8_t> bytes) {
-    if (bytes.size() == 34 and bytes[0] == 0x12 and bytes[1] == 0x20) {
+//    if (bytes.size() == 34 and bytes[0] == 0x12 and bytes[1] == 0x20) {
+    if (bytes.size() == 34 && bytes[0] == 0x12 && bytes[1] == 0x20) {
       OUTCOME_TRY(hash, Multihash::createFromBytes(bytes));
       return ContentIdentifier(ContentIdentifier::Version::V0,
                                MulticodecType::DAG_PB, std::move(hash));

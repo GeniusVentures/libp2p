@@ -21,14 +21,23 @@ namespace libp2p::protocol::kademlia {
         kad_(kad),
         protocol_(kad_.config().protocolId),
         log_("kad", "KadServer", &kad) {
-    host_.setProtocolHandler(protocol_,
+    // host_.setProtocolHandler(protocol_,
+    //                          [wptr = weak_from_this()](
+    //                              protocol::BaseProtocol::StreamResult rstream) {
+    //                            auto h = wptr.lock();
+    //                            if (h) {
+    //                              h->handle(std::move(rstream));
+    //                            }
+    //                          });
+        host_.setProtocolHandler(protocol_,
                              [wptr = weak_from_this()](
-                                 protocol::BaseProtocol::StreamResult rstream) {
+                                 std::shared_ptr<libp2p::connection::Stream> rstream) {
                                auto h = wptr.lock();
                                if (h) {
                                  h->handle(std::move(rstream));
                                }
                              });
+        
     log_.info("started");
   }
 
@@ -75,9 +84,12 @@ namespace libp2p::protocol::kademlia {
     log_.debug("request from '{}', type = {}",
                from->remoteMultiaddr().value().getStringAddress(), msg.type);
 
+    // bool close_session = (msg.type >= Message::kTableSize)
+    //     || (not(this->*(request_handlers_table[msg.type]))(msg))  // NOLINT
+    //     || (not session->write(msg));
     bool close_session = (msg.type >= Message::kTableSize)
-        || (not(this->*(request_handlers_table[msg.type]))(msg))  // NOLINT
-        || (not session->write(msg));
+        || (!(this->*(request_handlers_table[msg.type]))(msg))  // NOLINT
+        || (! session->write(msg));
 
     if (close_session) {
       closeSession(from);
