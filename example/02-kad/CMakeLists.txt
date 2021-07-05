@@ -10,7 +10,7 @@ add_executable(kad_peer_discovery_example
     )
 
 if(FORCE_MULTILE)
-    set_target_properties(kad_peer_discovery_example PROPERTIES LINK_FLAGS "/FORCE:MULTIPLE")
+    set_target_properties(kad_peer_discovery_example PROPERTIES LINK_FLAGS "${MULTIPLE_OPTION}")
 endif()
 target_link_libraries(kad_peer_discovery_example
     p2p_basic_host
