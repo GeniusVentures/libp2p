@@ -23,14 +23,14 @@ target_link_libraries(gossip_common
     p2p_inmem_protocol_repository
     p2p_gossip
     asio_scheduler
-    Boost::program_options    
+    Boost::program_options
     )
 
 add_executable(gossip_chat_example
     gossip_chat_example.cpp
     )
 
-set_target_properties(gossip_chat_example PROPERTIES LINK_FLAGS "/FORCE:MULTIPLE")
+set_target_properties(gossip_chat_example PROPERTIES LINK_FLAGS "${MULTIPLE_OPTION}")
 target_link_libraries(gossip_chat_example
-    gossip_common   
+    gossip_common
     )
