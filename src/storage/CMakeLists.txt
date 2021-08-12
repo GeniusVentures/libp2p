@@ -2,9 +2,11 @@
 # Copyright Soramitsu Co., Ltd. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0
 #
-
-libp2p_add_library(libp2p_sqlite sqlite.cpp)
-target_link_libraries(libp2p_sqlite
-    SQLiteModernCpp::SQLiteModernCpp
-    p2p_logger
-    )
+find_package(SQLiteModernCpp)
+if(SQLiteModernCpp_FOUND)
+    libp2p_add_library(libp2p_sqlite sqlite.cpp)
+    target_link_libraries(libp2p_sqlite
+        SQLiteModernCpp::SQLiteModernCpp
+        p2p_logger
+        )
+endif()
