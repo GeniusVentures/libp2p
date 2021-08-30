@@ -4,9 +4,9 @@
 #
 
 if (TESTING)
-  # https://docs.hunter.sh/en/latest/packages/pkg/GTest.html
+# https://docs.hunter.sh/en/latest/packages/pkg/GTest.html
   # hunter_add_package(GTest)
-  find_package(GTest CONFIG REQUIRED)
+find_package(GTest CONFIG REQUIRED)
   # find_package(GMock CONFIG REQUIRED)
 endif()
 
@@ -41,7 +41,7 @@ find_package(spdlog REQUIRED)
 find_package(tsl_hat_trie REQUIRED)
 
 # https://github.com/masterjedy/di
-# hunter_add_package(Boost.DI)
-# find_package(Boost.DI CONFIG REQUIRED)
+hunter_add_package(Boost.DI)
+find_package(Boost.DI CONFIG REQUIRED)
 
 find_package(Boost.DI REQUIRED)
