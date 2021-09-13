@@ -9,7 +9,7 @@
 
 #include <libp2p/security/noise/crypto/state.hpp>
 
-#include <gsl/span_ext>
+#include <gsl/span>
 
 OUTCOME_CPP_DEFINE_CATEGORY_3(libp2p::security::noise, Error, e) {
   using E = libp2p::security::noise::Error;
