@@ -120,6 +120,6 @@ namespace libp2p::network::c_ares {
 
 }  // namespace libp2p::network::c_ares
 
-OUTCOME_HPP_DECLARE_ERROR(libp2p::network::c_ares, Ares::Error);
+OUTCOME_HPP_DECLARE_ERROR_2(libp2p::network::c_ares, Ares::Error);
 
 #endif  // LIBP2P_INCLUDE_LIBP2P_NETWORK_CARES_CARES_HPP
