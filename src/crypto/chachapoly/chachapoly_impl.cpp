@@ -53,7 +53,7 @@ namespace libp2p::crypto::chachapoly {
 
     // does actual memory allocation
     result.resize(len + block_size_ + 16, 0u);
-    if (not aad.empty()) {
+    if (!aad.empty()) {
       IF1(EVP_EncryptUpdate(ctx, nullptr, &len, aad.data(), aad.size()),
           "Failed to apply additional authentication data during encryption.",
           OpenSslError::FAILED_ENCRYPT_UPDATE)
@@ -106,7 +106,7 @@ namespace libp2p::crypto::chachapoly {
         OpenSslError::FAILED_INITIALIZE_OPERATION)
 
     int len{0};
-    if (not aad.empty()) {
+    if (!aad.empty()) {
       IF1(EVP_DecryptUpdate(ctx, nullptr, &len, aad.data(), aad.size()),
           "Failed to apply additional authentication data during decryption.",
           OpenSslError::FAILED_DECRYPT_UPDATE)

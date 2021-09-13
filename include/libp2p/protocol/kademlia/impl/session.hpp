@@ -43,7 +43,7 @@ namespace libp2p::protocol::kademlia {
                const std::shared_ptr<ResponseHandler> &response_handler);
 
     bool canBeClosed() const {
-      return not closed_ && writing_ == 0 && reading_ == 0;
+      return !closed_ && writing_ == 0 && reading_ == 0;
     }
 
     void close(outcome::result<void> = outcome::success());

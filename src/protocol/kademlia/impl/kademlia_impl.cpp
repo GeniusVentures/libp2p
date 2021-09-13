@@ -56,7 +56,7 @@ namespace libp2p::protocol::kademlia {
   }
 
   void KademliaImpl::start() {
-    BOOST_ASSERT(not started_);
+    BOOST_ASSERT(!started_);
     if (started_) {
       return;
     }
@@ -115,7 +115,7 @@ namespace libp2p::protocol::kademlia {
     log_.debug("CALL: PutValue ({})", multi::detail::encodeBase58(key.data));
 
     if (auto res = storage_->putValue(key, std::move(value));
-        not res.has_value()) {
+        !res.has_value()) {
       return res.as_failure();
     }
 
@@ -148,7 +148,7 @@ namespace libp2p::protocol::kademlia {
 
     content_routing_table_->addProvider(key, self_id_);
 
-    if (not need_notify) {
+    if (!need_notify) {
       return outcome::success();
     }
 
@@ -164,7 +164,7 @@ namespace libp2p::protocol::kademlia {
 
     // Try to find locally
     auto providers = content_routing_table_->getProvidersFor(key, limit);
-    if (not providers.empty()) {
+    if (!providers.empty()) {
       if (limit > 0 && providers.size() > limit) {
         std::vector<PeerInfo> result;
         result.reserve(limit);
@@ -221,7 +221,7 @@ namespace libp2p::protocol::kademlia {
             peer_info.id,
             gsl::span(peer_info.addresses.data(), peer_info.addresses.size()),
             permanent ? peer::ttl::kPermanent : peer::ttl::kDay);
-    if (not upsert_res) {
+    if (!upsert_res) {
       log_.debug("{} was skipped at addind to peer routing table: {}",
                  peer_info.id.toBase58(), upsert_res.error().message());
       return;
@@ -229,7 +229,7 @@ namespace libp2p::protocol::kademlia {
 
     auto update_res =
         peer_routing_table_->update(peer_info.id, permanent, is_connected);
-    if (not update_res) {
+    if (!update_res) {
       log_.debug("{} was not added to peer routing table: {}",
                  peer_info.id.toBase58(), update_res.error().message());
       return;
@@ -250,7 +250,7 @@ namespace libp2p::protocol::kademlia {
 
     // Try to find locally
     auto peer_info = host_->getPeerRepository().getPeerInfo(peer_id);
-    if (not peer_info.addresses.empty()) {
+    if (!peer_info.addresses.empty()) {
       scheduler_
           ->schedule([handler = std::move(handler),
                       peer_info = std::move(peer_info)] { handler(peer_info); })
@@ -295,7 +295,7 @@ namespace libp2p::protocol::kademlia {
 
   void KademliaImpl::onPutValue(const std::shared_ptr<Session> &session,
                                 Message &&msg) {
-    if (not msg.record) {
+    if (!msg.record) {
       log_.warn("incoming PutValue failed: no record in message");
       return;
     }
@@ -304,7 +304,7 @@ namespace libp2p::protocol::kademlia {
     log_.debug("MSG: PutValue ({})", multi::detail::encodeBase58(key.data));
 
     auto validation_res = validator_->validate(key, value);
-    if (not validation_res) {
+    if (!validation_res) {
       log_.warn("incoming PutValue failed: {}",
                 validation_res.error().message());
       return;
@@ -334,7 +334,7 @@ namespace libp2p::protocol::kademlia {
     log_.debug("MSG: GetValue ({})", multi::detail::encodeBase58(cid.data));
 
     if (auto providers = content_routing_table_->getProvidersFor(cid);
-        not providers.empty()) {
+        !providers.empty()) {
       std::vector<Message::Peer> peers;
       peers.reserve(config_.closerPeerCount);
 
@@ -361,7 +361,7 @@ namespace libp2p::protocol::kademlia {
     }
 
     auto buffer = std::make_shared<std::vector<uint8_t>>();
-    if (not msg.serialize(*buffer)) {
+    if (!msg.serialize(*buffer)) {
       session->close(Error::MESSAGE_SERIALIZE_ERROR);
       BOOST_UNREACHABLE_RETURN();
     }
@@ -371,13 +371,13 @@ namespace libp2p::protocol::kademlia {
 
   void KademliaImpl::onAddProvider(const std::shared_ptr<Session> &session,
                                    Message &&msg) {
-    if (not msg.provider_peers) {
+    if (!msg.provider_peers) {
       log_.warn("AddProvider failed: no provider_peers im message");
       return;
     }
 
     auto cid_res = ContentId::fromWire(msg.key);
-    if (not cid_res) {
+    if (!cid_res) {
       log_.warn("AddProvider failed: invalid key in message");
       return;
     }
@@ -405,7 +405,7 @@ namespace libp2p::protocol::kademlia {
     }
 
     auto cid_res = ContentId::fromWire(msg.key);
-    if (not cid_res) {
+    if (!cid_res) {
       log_.warn("GetProviders failed: invalid key in message");
       return;
     }
@@ -416,7 +416,7 @@ namespace libp2p::protocol::kademlia {
     auto peer_ids = content_routing_table_->getProvidersFor(
         cid, config_.closerPeerCount * 2);
 
-    if (not peer_ids.empty()) {
+    if (!peer_ids.empty()) {
       std::vector<Message::Peer> peers;
       peers.reserve(config_.closerPeerCount);
 
@@ -432,7 +432,7 @@ namespace libp2p::protocol::kademlia {
         }
       }
 
-      if (not peers.empty()) {
+      if (!peers.empty()) {
         msg.provider_peers = std::move(peers);
       }
     }
@@ -440,7 +440,7 @@ namespace libp2p::protocol::kademlia {
     peer_ids = peer_routing_table_->getNearestPeers(
         NodeId(cid), config_.closerPeerCount * 2);
 
-    if (not peer_ids.empty()) {
+    if (!peer_ids.empty()) {
       std::vector<Message::Peer> peers;
       peers.reserve(config_.closerPeerCount);
 
@@ -456,13 +456,13 @@ namespace libp2p::protocol::kademlia {
         }
       }
 
-      if (not peers.empty()) {
+      if (!peers.empty()) {
         msg.closer_peers = std::move(peers);
       }
     }
 
     auto buffer = std::make_shared<std::vector<uint8_t>>();
-    if (not msg.serialize(*buffer)) {
+    if (!msg.serialize(*buffer)) {
       session->close(Error::MESSAGE_SERIALIZE_ERROR);
       BOOST_UNREACHABLE_RETURN();
     }
@@ -488,7 +488,7 @@ namespace libp2p::protocol::kademlia {
     }
 
     auto cid_res = ContentId::fromWire(msg.key);
-    if (not cid_res) {
+    if (!cid_res) {
       log_.warn("FindNode failed: invalid key in message");
       return;
     }
@@ -514,12 +514,12 @@ namespace libp2p::protocol::kademlia {
       }
     }
 
-    if (not peers.empty()) {
+    if (!peers.empty()) {
       msg.closer_peers = std::move(peers);
     }
 
     auto buffer = std::make_shared<std::vector<uint8_t>>();
-    if (not msg.serialize(*buffer)) {
+    if (!msg.serialize(*buffer)) {
       session->close(Error::MESSAGE_SERIALIZE_ERROR);
       BOOST_UNREACHABLE_RETURN();
     }
@@ -532,7 +532,7 @@ namespace libp2p::protocol::kademlia {
     msg.clear();
 
     auto buffer = std::make_shared<std::vector<uint8_t>>();
-    if (not msg.serialize(*buffer)) {
+    if (!msg.serialize(*buffer)) {
       session->close(Error::MESSAGE_SERIALIZE_ERROR);
       BOOST_UNREACHABLE_RETURN();
     }

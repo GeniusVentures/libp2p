@@ -10,7 +10,7 @@
 #include <generated/protocol/kademlia/protobuf/kademlia.pb.h>
 #include <libp2p/multi/uvarint.hpp>
 
-OUTCOME_CPP_DEFINE_CATEGORY(libp2p::protocol::kademlia, Message::Error, e) {
+OUTCOME_CPP_DEFINE_CATEGORY_3(libp2p::protocol::kademlia, Message::Error, e) {
   using E = libp2p::protocol::kademlia::Message::Error;
   switch (e) {
     case E::INVALID_CONNECTEDNESS:
@@ -126,18 +126,18 @@ namespace libp2p::protocol::kademlia {
     if (pb_msg.has_record()) {
       record.emplace();
       auto res = assign_record(record.value(), pb_msg.record());
-      if (not res.has_value()) {
+      if (!res.has_value()) {
         error_message_ = "Bad record: " + res.error().message();
         return false;
       }
     }
     auto closer_res = assign_peers(closer_peers, pb_msg.closerpeers());
-    if (not closer_res) {
+    if (!closer_res) {
       error_message_ = "Bad closer peers: " + closer_res.error().message();
       return false;
     }
     auto provider_res = assign_peers(provider_peers, pb_msg.providerpeers());
-    if (not provider_res) {
+    if (!provider_res) {
       error_message_ = "Bad provider peers: " + provider_res.error().message();
       return false;
     }

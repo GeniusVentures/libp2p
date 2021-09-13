@@ -120,6 +120,6 @@ namespace libp2p::connection {
   };
 }  // namespace libp2p::connection
 
-OUTCOME_HPP_DECLARE_ERROR(libp2p::connection, Stream::Error)
+OUTCOME_HPP_DECLARE_ERROR_2(libp2p::connection, Stream::Error)
 
 #endif  // LIBP2P_CONNECTION_STREAM_HPP

@@ -45,6 +45,6 @@ namespace libp2p::connection {
 
 }  // namespace libp2p::connection
 
-OUTCOME_HPP_DECLARE_ERROR(libp2p::connection, RawConnection::Error)
+OUTCOME_HPP_DECLARE_ERROR_2(libp2p::connection, RawConnection::Error)
 
 #endif  // LIBP2P_RAW_CONNECTION_HPP

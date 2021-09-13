@@ -234,6 +234,6 @@ namespace libp2p::basic {
   };
 }  // namespace libp2p::basic
 
-OUTCOME_HPP_DECLARE_ERROR(libp2p::basic, Scheduler::Error)
+OUTCOME_HPP_DECLARE_ERROR_2(libp2p::basic, Scheduler::Error)
 
 #endif  // LIBP2P_BASIC_SCHEDULER_HPP

@@ -20,7 +20,7 @@ namespace libp2p::crypto {
   }
 
   outcome::result<void> Sha512::write(gsl::span<const uint8_t> data) {
-    if (not initialized_) {
+    if (!initialized_) {
       return HmacProviderError::FAILED_INITIALIZE_CONTEXT;
     }
     if (1 != SHA512_Update(&ctx_, data.data(), data.size())) {
@@ -30,7 +30,7 @@ namespace libp2p::crypto {
   }
 
   outcome::result<std::vector<uint8_t>> Sha512::digest() {
-    if (not initialized_) {
+    if (!initialized_) {
       return HmacProviderError::FAILED_INITIALIZE_CONTEXT;
     }
     SHA512_CTX ctx = ctx_;

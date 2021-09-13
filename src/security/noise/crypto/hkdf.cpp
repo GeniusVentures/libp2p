@@ -6,7 +6,7 @@
 #include <libp2p/crypto/hmac_provider/hmac_provider_ctr_impl.hpp>
 #include <libp2p/security/noise/crypto/interfaces.hpp>
 
-OUTCOME_CPP_DEFINE_CATEGORY(libp2p::security::noise, HKDFError, e) {
+OUTCOME_CPP_DEFINE_CATEGORY_3(libp2p::security::noise, HKDFError, e) {
   using E = libp2p::security::noise::HKDFError;
   switch (e) {
     case E::ILLEGAL_OUTPUTS_NUMBER:
@@ -22,7 +22,7 @@ namespace libp2p::security::noise {
   outcome::result<HKDFResult> hkdf(
       HashType hash_type, size_t outputs, gsl::span<const uint8_t> chaining_key,
       gsl::span<const uint8_t> input_key_material) {
-    if (0 == outputs or outputs > 3) {
+    if (0 == outputs || outputs > 3) {
       return HKDFError::ILLEGAL_OUTPUTS_NUMBER;
     }
     HKDFResult result;

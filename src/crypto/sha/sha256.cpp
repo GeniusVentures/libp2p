@@ -35,7 +35,7 @@ namespace libp2p::crypto {
   }
 
   outcome::result<void> Sha256::write(gsl::span<const uint8_t> data) {
-    if (not initialized_) {
+    if (!initialized_) {
       return HmacProviderError::FAILED_INITIALIZE_CONTEXT;
     }
     if (1 != SHA256_Update(&ctx_, data.data(), data.size())) {
@@ -45,7 +45,7 @@ namespace libp2p::crypto {
   }
 
   outcome::result<std::vector<uint8_t>> Sha256::digest() {
-    if (not initialized_) {
+    if (!initialized_) {
       return HmacProviderError::FAILED_INITIALIZE_CONTEXT;
     }
     SHA256_CTX ctx = ctx_;

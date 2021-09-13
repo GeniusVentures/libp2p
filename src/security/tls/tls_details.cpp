@@ -131,7 +131,8 @@ namespace libp2p::security::tls_details {
       constexpr size_t prefix_size = sign_prefix.size();
       size_t msg_len = prefix_size + cert_pub_key.size();
 
-      uint8_t buf[msg_len];  // NOLINT
+      std::vector<uint8_t> vBuf(msg_len);
+      auto buf(vBuf.data());  // NOLINT
       memcpy(buf, sign_prefix.data(), sign_prefix.size());
       memcpy(buf + sign_prefix.size(),  // NOLINT
              cert_pub_key.data(), cert_pub_key.size());
@@ -351,7 +352,8 @@ namespace libp2p::security::tls_details {
       constexpr size_t prefix_size = sign_prefix.size();
 
       size_t msg_len = prefix_size + len;
-      uint8_t buf[msg_len];  // NOLINT
+      std::vector<uint8_t> vBuf(msg_len);
+      auto buf(vBuf.data());  // NOLINT
       memcpy(buf, sign_prefix.data(), prefix_size);
       uint8_t *b = buf + prefix_size;  // NOLINT
       i2d_PUBKEY(cert_pubkey, &b);
@@ -503,7 +505,7 @@ namespace libp2p::security::tls_details {
 
 }  // namespace libp2p::security::tls_details
 
-OUTCOME_CPP_DEFINE_CATEGORY(libp2p::security, TlsError, e) {
+OUTCOME_CPP_DEFINE_CATEGORY_3(libp2p::security, TlsError, e) {
   using E = libp2p::security::TlsError;
   switch (e) {
     case E::TLS_CTX_INIT_FAILED:

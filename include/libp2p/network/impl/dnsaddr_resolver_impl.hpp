@@ -43,6 +43,6 @@ namespace libp2p::network {
 
 }  // namespace libp2p::network
 
-OUTCOME_HPP_DECLARE_ERROR(libp2p::network, DnsaddrResolverImpl::Error);
+OUTCOME_HPP_DECLARE_ERROR_2(libp2p::network, DnsaddrResolverImpl::Error);
 
 #endif  // LIBP2P_INCLUDE_LIBP2P_NETWORK_IMPL_DNSADDR_RESOLVER_IMPL_HPP

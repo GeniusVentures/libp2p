@@ -107,6 +107,6 @@ namespace std {
   };
 }  // namespace std
 
-OUTCOME_HPP_DECLARE_ERROR(libp2p::peer, PeerId::FactoryError)
+OUTCOME_HPP_DECLARE_ERROR_2(libp2p::peer, PeerId::FactoryError)
 
 #endif  // LIBP2P_PEER_ID_HPP

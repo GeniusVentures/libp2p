@@ -5,7 +5,7 @@
 
 #include <libp2p/connection/stream.hpp>
 
-OUTCOME_CPP_DEFINE_CATEGORY(libp2p::connection, RawConnection::Error, e) {
+OUTCOME_CPP_DEFINE_CATEGORY_3(libp2p::connection, RawConnection::Error, e) {
   using E = libp2p::connection::RawConnection::Error;
   switch (e) {
     case E::CONNECTION_INTERNAL_ERROR:
@@ -30,7 +30,7 @@ OUTCOME_CPP_DEFINE_CATEGORY(libp2p::connection, RawConnection::Error, e) {
   return "Connection: unknown error";
 }
 
-OUTCOME_CPP_DEFINE_CATEGORY(libp2p::connection, Stream::Error, e) {
+OUTCOME_CPP_DEFINE_CATEGORY_3(libp2p::connection, Stream::Error, e) {
   using E = libp2p::connection::Stream::Error;
   switch (e) {
     case E::STREAM_INTERNAL_ERROR:

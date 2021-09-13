@@ -17,7 +17,7 @@ namespace libp2p::connection {
       boost::asio::post(
           ctx,
           [wptr{std::move(wptr)}, cb{std::move(cb)}, arg{std::move(arg)}]() {
-            if (not wptr.expired()) {
+            if (!wptr.expired()) {
               cb(arg);
             }
           });
@@ -166,7 +166,7 @@ namespace libp2p::connection {
     }
 
     // subscribe to new data updates
-    if (not data_notifyee_) {
+    if (!data_notifyee_) {
       data_notifyee_ = std::move(read_lambda);
     }
   }

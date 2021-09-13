@@ -5,7 +5,7 @@
 
 #include <libp2p/multi/converters/conversion_error.hpp>
 
-OUTCOME_CPP_DEFINE_CATEGORY(libp2p::multi::converters, ConversionError, e) {
+OUTCOME_CPP_DEFINE_CATEGORY_3(libp2p::multi::converters, ConversionError, e) {
   using libp2p::multi::converters::ConversionError;
 
   switch (e) {

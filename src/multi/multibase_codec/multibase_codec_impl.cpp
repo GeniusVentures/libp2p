@@ -64,7 +64,7 @@ namespace {
       {MultibaseCodec::Encoding::BASE64, {&encodeBase64, &decodeBase64}}};
 }  // namespace
 
-OUTCOME_CPP_DEFINE_CATEGORY(libp2p::multi, MultibaseCodecImpl::Error, e) {
+OUTCOME_CPP_DEFINE_CATEGORY_3(libp2p::multi, MultibaseCodecImpl::Error, e) {
   using E = libp2p::multi::MultibaseCodecImpl::Error;
   switch (e) {
     case E::INPUT_TOO_SHORT:

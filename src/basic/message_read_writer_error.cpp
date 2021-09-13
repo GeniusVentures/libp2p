@@ -5,7 +5,7 @@
 
 #include "libp2p/basic/message_read_writer_error.hpp"
 
-OUTCOME_CPP_DEFINE_CATEGORY(libp2p::basic, MessageReadWriterError, e) {
+OUTCOME_CPP_DEFINE_CATEGORY_3(libp2p::basic, MessageReadWriterError, e) {
   using E = libp2p::basic::MessageReadWriterError;
   switch (e) {
     case E::SUCCESS:

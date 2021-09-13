@@ -132,7 +132,7 @@ namespace libp2p::protocol::kademlia {
       return;
     }
 
-    if (not res) {
+    if (!res) {
       close(res.as_failure());
       return;
     }
@@ -188,14 +188,14 @@ namespace libp2p::protocol::kademlia {
     }
 
     // Propogate to session host
-    if (not pocessed) {
+    if (!pocessed) {
       if (auto session_host = session_host_.lock()) {
         session_host->onMessage(shared_from_this(), std::move(msg));
       }
     }
 
     // Continue to wait some response
-    if (not response_handlers_.empty()) {
+    if (!response_handlers_.empty()) {
       read();
     }
 
@@ -207,14 +207,14 @@ namespace libp2p::protocol::kademlia {
   void Session::onMessageWritten(
       outcome::result<size_t> res,
       const std::shared_ptr<ResponseHandler> &response_handler) {
-    if (not res) {
+    if (!res) {
       close(res.as_failure());
       return;
     }
 
     --writing_;
 
-    if (not response_handlers_.empty()) {
+    if (!response_handlers_.empty()) {
       read();
     }
 
@@ -229,7 +229,7 @@ namespace libp2p::protocol::kademlia {
     }
 
     auto scheduler = scheduler_.lock();
-    if (not scheduler) {
+    if (!scheduler) {
       close(Error::INTERNAL_ERROR);
       return;
     }
@@ -248,7 +248,7 @@ namespace libp2p::protocol::kademlia {
 
   void Session::setResponseTimeout(
       const std::shared_ptr<ResponseHandler> &response_handler) {
-    if (not response_handler) {
+    if (!response_handler) {
       return;
     }
 
@@ -257,7 +257,7 @@ namespace libp2p::protocol::kademlia {
     }
 
     auto scheduler = scheduler_.lock();
-    if (not scheduler) {
+    if (!scheduler) {
       close(Error::INTERNAL_ERROR);
       return;
     }
@@ -279,7 +279,7 @@ namespace libp2p::protocol::kademlia {
 
   void Session::cancelResponseTimeout(
       const std::shared_ptr<ResponseHandler> &response_handler) {
-    if (not response_handler) {
+    if (!response_handler) {
       return;
     }
 

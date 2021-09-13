@@ -53,7 +53,7 @@ namespace libp2p::network {
             if (connection_result) {
               // lets close the redundant connection if so
               auto &&conn = connection_result.value();
-              if (not conn->isClosed()) {
+              if (!conn->isClosed()) {
                 auto close_res = conn->close();
                 BOOST_ASSERT(close_res);
               }
@@ -100,7 +100,7 @@ namespace libp2p::network {
       }
     }
 
-    if (not dialled) {
+    if (!dialled) {
       // we did not find supported transport
       scheduler_->schedule([cb{std::move(cb)}] {
         cb(std::errc::address_family_not_supported);

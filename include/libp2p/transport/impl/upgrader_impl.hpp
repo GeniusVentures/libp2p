@@ -59,6 +59,6 @@ namespace libp2p::transport {
   };
 }  // namespace libp2p::transport
 
-OUTCOME_HPP_DECLARE_ERROR(libp2p::transport, UpgraderImpl::Error)
+OUTCOME_HPP_DECLARE_ERROR_2(libp2p::transport, UpgraderImpl::Error)
 
 #endif  // LIBP2P_UPGRADER_IMPL_HPP

@@ -67,6 +67,6 @@ namespace libp2p::protocol_muxer {
   };
 }  // namespace libp2p::protocol_muxer
 
-OUTCOME_HPP_DECLARE_ERROR(libp2p::protocol_muxer, ProtocolMuxer::Error)
+OUTCOME_HPP_DECLARE_ERROR_2(libp2p::protocol_muxer, ProtocolMuxer::Error)
 
 #endif  // LIBP2P_PROTOCOL_MUXER_HPP

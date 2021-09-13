@@ -17,7 +17,7 @@ namespace libp2p::peer {
 
   void InmemAddressRepository::bootstrap(const multi::Multiaddress &ma,
                                          std::function<BootstrapCallback> cb) {
-    if (not isNewDnsAddr(ma)) {
+    if (!isNewDnsAddr(ma)) {
       return;  // just skip silently circular references among dnsaddrs
     }
     dnsaddr_resolver_->load(

@@ -77,7 +77,7 @@ namespace libp2p::multi {
 
 }  // namespace libp2p::multi
 
-OUTCOME_HPP_DECLARE_ERROR(libp2p::multi, ContentIdentifierCodec::EncodeError);
-OUTCOME_HPP_DECLARE_ERROR(libp2p::multi, ContentIdentifierCodec::DecodeError);
+OUTCOME_HPP_DECLARE_ERROR_2(libp2p::multi, ContentIdentifierCodec::EncodeError);
+OUTCOME_HPP_DECLARE_ERROR_2(libp2p::multi, ContentIdentifierCodec::DecodeError);
 
 #endif  // LIBP2P_CONTENT_IDENTIFIER_CODEC_HPP

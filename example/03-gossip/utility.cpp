@@ -32,7 +32,7 @@ namespace libp2p::protocol::example::utility {
   void setupLoggers(char level) {
     switch (level) {
       case 'e':
-        libp2p::log::setLevelOfGroup("main", libp2p::log::Level::ERROR);
+        libp2p::log::setLevelOfGroup("main", libp2p::log::Level::ERROR_);
         break;
       case 'w':
         libp2p::log::setLevelOfGroup("main", libp2p::log::Level::WARN);

@@ -81,7 +81,7 @@ namespace libp2p::connection {
 
   void NoiseConnection::readSome(gsl::span<uint8_t> out, size_t bytes,
                                  libp2p::basic::Reader::ReadCallbackFunc cb) {
-    if (not frame_buffer_->empty()) {
+    if (!frame_buffer_->empty()) {
       auto n{std::min(bytes, frame_buffer_->size())};
       auto begin{frame_buffer_->begin()};
       auto end{begin + n};

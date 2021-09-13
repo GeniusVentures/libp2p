@@ -10,8 +10,8 @@
 #include <libp2p/common/byteutil.hpp>
 #include <libp2p/security/noise/crypto/state.hpp>
 
-#ifndef UNIQUE_NAME
-#define UNIQUE_NAME(base) base##__LINE__
+#ifndef _UNIQUE_NAME_
+#define _UNIQUE_NAME_(base) base##__LINE__
 #endif  // UNIQUE_NAME
 
 #define IO_OUTCOME_TRY_NAME(var, val, res, cb) \
@@ -23,7 +23,7 @@
   auto && (val) = (var).value();
 
 #define IO_OUTCOME_TRY(name, res, cb) \
-  IO_OUTCOME_TRY_NAME(UNIQUE_NAME(name), name, res, cb)
+  IO_OUTCOME_TRY_NAME(_UNIQUE_NAME_(name), name, res, cb)
 
 namespace libp2p::security::noise {
   InsecureReadWriter::InsecureReadWriter(

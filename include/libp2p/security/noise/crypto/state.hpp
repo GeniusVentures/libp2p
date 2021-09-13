@@ -215,6 +215,6 @@ namespace libp2p::security::noise {
 
 }  // namespace libp2p::security::noise
 
-OUTCOME_HPP_DECLARE_ERROR(libp2p::security::noise, Error);
+OUTCOME_HPP_DECLARE_ERROR_2(libp2p::security::noise, Error);
 
 #endif  // LIBP2P_INCLUDE_LIBP2P_SECURITY_NOISE_STATE_HPP

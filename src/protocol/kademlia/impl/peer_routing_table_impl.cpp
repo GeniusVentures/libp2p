@@ -7,7 +7,7 @@
 
 #include <numeric>
 
-OUTCOME_CPP_DEFINE_CATEGORY(libp2p::protocol::kademlia,
+OUTCOME_CPP_DEFINE_CATEGORY_3(libp2p::protocol::kademlia,
                             PeerRoutingTableImpl::Error, e) {
   using E = libp2p::protocol::kademlia::PeerRoutingTableImpl::Error;
 
@@ -29,7 +29,7 @@ namespace {
   using libp2p::protocol::kademlia::Bucket;
 
   size_t getBucketId(const std::vector<Bucket> &buckets, size_t cpl) {
-    BOOST_ASSERT(not buckets.empty());
+    BOOST_ASSERT(!buckets.empty());
     return cpl >= buckets.size() ? buckets.size() - 1 : cpl;
   }
 }  // namespace

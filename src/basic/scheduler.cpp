@@ -51,7 +51,7 @@ namespace libp2p::basic {
 
 }  // namespace libp2p::basic
 
-OUTCOME_CPP_DEFINE_CATEGORY(libp2p::basic, Scheduler::Error, e) {
+OUTCOME_CPP_DEFINE_CATEGORY_3(libp2p::basic, Scheduler::Error, e) {
   using E = libp2p::basic::Scheduler::Error;
   switch (e) {
     case E::kInvalidArgument:
