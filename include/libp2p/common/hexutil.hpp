@@ -13,6 +13,8 @@
 
 #include <libp2p/outcome/outcome.hpp>
 
+#include "platform/platform.hpp"
+
 namespace libp2p::common {
 
   /**

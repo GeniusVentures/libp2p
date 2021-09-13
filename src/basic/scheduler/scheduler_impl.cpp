@@ -7,6 +7,8 @@
 
 #include <cassert>
 
+#include "platform/platform.hpp"
+
 namespace libp2p::basic {
 
   SchedulerImpl::SchedulerImpl(std::shared_ptr<SchedulerBackend> backend,

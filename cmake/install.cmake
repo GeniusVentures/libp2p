@@ -16,6 +16,10 @@ install(
     DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
 )
 install(
+    DIRECTORY ${CMAKE_SOURCE_DIR}/include/platform
+    DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+)
+install(
     EXPORT libp2pConfig
     DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/libp2p
     NAMESPACE p2p::

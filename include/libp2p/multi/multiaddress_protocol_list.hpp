@@ -11,6 +11,8 @@
 #include <map>
 #include <string_view>
 
+#include "platform/platform.hpp"
+
 namespace libp2p::multi {
 
   /**
