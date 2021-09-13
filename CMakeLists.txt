@@ -98,6 +98,7 @@ include_directories(
     SYSTEM
     # project includes
     ${PROJECT_SOURCE_DIR}/include
+    ${PROJECT_SOURCE_DIR}/include/platform/${CMAKE_SYSTEM_NAME}
 )
 
 add_subdirectory(src)
