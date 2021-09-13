@@ -15,4 +15,7 @@ target_link_libraries(example_ares_resolver
     p2p_inmem_protocol_repository
     p2p_default_network
     p2p_cares
+    Boost::date_time
+    Boost::regex
+    ${WIN_CRYPT_LIBRARY}
     )
