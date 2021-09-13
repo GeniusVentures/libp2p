@@ -9,6 +9,8 @@
 #include <stdexcept>
 #include <thread>
 
+#include <arpa/nameser.h>
+
 OUTCOME_CPP_DEFINE_CATEGORY_3(libp2p::network::c_ares, Ares::Error, e) {
   using E = libp2p::network::c_ares::Ares::Error;
   switch (e) {

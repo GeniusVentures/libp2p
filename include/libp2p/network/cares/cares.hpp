@@ -14,7 +14,6 @@
 #include <string>
 #include <vector>
 
-#include <arpa/nameser.h>
 //#include <sys/select.h>
 #include <boost/asio.hpp>
 #include <boost/optional.hpp>
