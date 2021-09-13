@@ -11,8 +11,8 @@ if (TESTING)
 endif()
 
 # https://docs.hunter.sh/en/latest/packages/pkg/Boost.html
-hunter_add_package(Boost COMPONENTS random filesystem program_options)
-find_package(Boost CONFIG REQUIRED random filesystem program_options)
+hunter_add_package(Boost COMPONENTS random filesystem program_options date_time regex)
+find_package(Boost CONFIG REQUIRED random filesystem program_options date_time regex)
 
 # added from hunter_config
 hunter_add_package(Microsoft.GSL)
