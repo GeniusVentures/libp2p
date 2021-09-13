@@ -72,7 +72,7 @@ namespace libp2p::log {
 
     template <typename... Args>
     void error(std::string_view fmt, const Args &... args) {
-      log(Level::ERROR, fmt, args...);
+      log(Level::ERROR_, fmt, args...);
     }
 
     template <typename... Args>
