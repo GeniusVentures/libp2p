@@ -35,6 +35,7 @@ find_package(fmt CONFIG REQUIRED)
 
 hunter_add_package(yaml-cpp)
 find_package(yaml-cpp CONFIG REQUIRED)
+set_target_properties(yaml-cpp PROPERTIES IMPORTED_GLOBAL TRUE)
 add_library(yaml-cpp::yaml-cpp ALIAS yaml-cpp)
 
 hunter_add_package(soralog)
