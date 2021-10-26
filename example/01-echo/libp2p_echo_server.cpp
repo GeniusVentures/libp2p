@@ -38,7 +38,7 @@ groups:
 bool isInsecure(int argc, char **argv) {
   if (2 == argc) {
     const std::string insecure{"-insecure"};
-    auto args = gsl::multi_span<char *>(argv, argc);
+    auto args = gsl::span<char *>{argv, argc};
     if (insecure == args[1]) {
       return true;
     }
