@@ -12,6 +12,7 @@
 #include <openssl/rand.h>
 #include <openssl/rsa.h>
 #include <openssl/x509.h>
+#include <openssl/bn.h>
 #include <gsl/gsl_util>
 #include <gsl/pointers>
 #include <gsl/span>

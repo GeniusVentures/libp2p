@@ -10,6 +10,7 @@
 #include <openssl/err.h>
 #include <openssl/rsa.h>
 #include <openssl/x509.h>
+#include <openssl/bn.h>
 #include <libp2p/crypto/sha/sha256.hpp>
 
 using Hash256 = libp2p::common::Hash256;
