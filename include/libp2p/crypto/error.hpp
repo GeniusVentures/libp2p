@@ -75,11 +75,11 @@ namespace libp2p::crypto {
   };
 }  // namespace libp2p::crypto
 
-OUTCOME_HPP_DECLARE_ERROR(libp2p::crypto, CryptoProviderError)
-OUTCOME_HPP_DECLARE_ERROR(libp2p::crypto, OpenSslError)
-OUTCOME_HPP_DECLARE_ERROR(libp2p::crypto, HmacProviderError)
-OUTCOME_HPP_DECLARE_ERROR(libp2p::crypto, RandomProviderError)
-OUTCOME_HPP_DECLARE_ERROR(libp2p::crypto, KeyGeneratorError)
-OUTCOME_HPP_DECLARE_ERROR(libp2p::crypto, KeyValidatorError)
+OUTCOME_HPP_DECLARE_ERROR_2(libp2p::crypto, CryptoProviderError)
+OUTCOME_HPP_DECLARE_ERROR_2(libp2p::crypto, OpenSslError)
+OUTCOME_HPP_DECLARE_ERROR_2(libp2p::crypto, HmacProviderError)
+OUTCOME_HPP_DECLARE_ERROR_2(libp2p::crypto, RandomProviderError)
+OUTCOME_HPP_DECLARE_ERROR_2(libp2p::crypto, KeyGeneratorError)
+OUTCOME_HPP_DECLARE_ERROR_2(libp2p::crypto, KeyValidatorError)
 
 #endif  // LIBP2P_CRYPTO_ERROR_HPP

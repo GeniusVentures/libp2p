@@ -15,7 +15,7 @@ namespace {
       "/" + std::string{ProtocolList::get(Protocol::Code::P2P)->name} + "/";
 }  // namespace
 
-OUTCOME_CPP_DEFINE_CATEGORY(libp2p::peer, PeerAddress::FactoryError, e) {
+OUTCOME_CPP_DEFINE_CATEGORY_3(libp2p::peer, PeerAddress::FactoryError, e) {
   using E = libp2p::peer::PeerAddress::FactoryError;
   switch (e) {
     case E::ID_EXPECTED:

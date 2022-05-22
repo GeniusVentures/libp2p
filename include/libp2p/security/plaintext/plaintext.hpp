@@ -85,6 +85,6 @@ namespace libp2p::security {
   };
 }  // namespace libp2p::security
 
-OUTCOME_HPP_DECLARE_ERROR(libp2p::security, Plaintext::Error);
+OUTCOME_HPP_DECLARE_ERROR_2(libp2p::security, Plaintext::Error);
 
 #endif  // LIBP2P_PLAINTEXT_ADAPTOR_HPP

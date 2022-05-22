@@ -13,6 +13,7 @@
 
 #include <openssl/ec.h>
 #include <openssl/evp.h>
+#include <openssl/bn.h>
 #include <gsl/span>
 #include <libp2p/outcome/outcome.hpp>
 

@@ -51,7 +51,7 @@ namespace libp2p::security::plaintext {
 
 }  // namespace libp2p::security::plaintext
 
-OUTCOME_HPP_DECLARE_ERROR(libp2p::security::plaintext,
+OUTCOME_HPP_DECLARE_ERROR_2(libp2p::security::plaintext,
                           ExchangeMessageMarshallerImpl::Error);
 
 #endif  // LIBP2P_PLAINTEXT_EXCHANGE_MESSAGE_MARSHALLER_IMPL_HPP

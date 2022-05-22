@@ -79,7 +79,7 @@ namespace libp2p::protocol::kademlia {
 
   void AddProviderExecutor::done() {
     bool x = false;
-    if (not done_.compare_exchange_strong(x, true)) {
+    if (!done_.compare_exchange_strong(x, true)) {
       return;
     }
 
@@ -93,9 +93,9 @@ namespace libp2p::protocol::kademlia {
 
     auto self_peer_id = host_->getId();
 
-    while (started_ and not done_ and not queue_.empty()
-           and requests_in_progress_ < config_.requestConcurency
-           and requests_succeed_ < config_.closerPeerCount) {
+    while (started_ && !done_ && !queue_.empty()
+           && requests_in_progress_ < config_.requestConcurency
+           && requests_succeed_ < config_.closerPeerCount) {
       auto peer_id = *queue_.top();
       queue_.pop();
 
@@ -156,7 +156,7 @@ namespace libp2p::protocol::kademlia {
 
   void AddProviderExecutor::onConnected(
       outcome::result<std::shared_ptr<connection::Stream>> stream_res) {
-    if (not stream_res) {
+    if (!stream_res) {
       --requests_in_progress_;
 
       log_.debug("cannot connect to peer: {}; done {}, active {}, in queue {}",

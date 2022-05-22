@@ -50,7 +50,7 @@ namespace libp2p::crypto::hmac {
 
   outcome::result<void> HmacProviderCtrImpl::write(
       gsl::span<const uint8_t> data) {
-    if (not initialized_) {
+    if (!initialized_) {
       return HmacProviderError::FAILED_INITIALIZE_CONTEXT;
     }
     if (1 != HMAC_Update(hmac_ctx_, data.data(), data.size())) {
@@ -61,7 +61,7 @@ namespace libp2p::crypto::hmac {
 
   outcome::result<void> HmacProviderCtrImpl::digestOut(
       gsl::span<uint8_t> out) const {
-    if (not initialized_) {
+    if (!initialized_) {
       return HmacProviderError::FAILED_INITIALIZE_CONTEXT;
     }
     if (out.size() != static_cast<ptrdiff_t>(digestSize())) {
@@ -89,7 +89,7 @@ namespace libp2p::crypto::hmac {
     sinkCtx(digestSize());
     hmac_ctx_ = HMAC_CTX_new();
     if (nullptr == hmac_ctx_
-        or 1
+        || 1
             != HMAC_Init_ex(hmac_ctx_, key_.data(),
                             static_cast<int>(key_.size()), hash_st_, nullptr)) {
       return HmacProviderError::FAILED_INITIALIZE_CONTEXT;

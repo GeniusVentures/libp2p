@@ -32,7 +32,7 @@ namespace libp2p::protocol::example::utility {
   void setupLoggers(char level) {
     switch (level) {
       case 'e':
-        libp2p::log::setLevelOfGroup("main", libp2p::log::Level::ERROR);
+        libp2p::log::setLevelOfGroup("main", libp2p::log::Level::ERROR_);
         break;
       case 'w':
         libp2p::log::setLevelOfGroup("main", libp2p::log::Level::WARN);
@@ -52,8 +52,7 @@ namespace libp2p::protocol::example::utility {
     boost::asio::ip::tcp::resolver resolver(io);
     boost::asio::ip::tcp::resolver::query query(boost::asio::ip::host_name(),
                                                 "");
-    boost::system::error_code ec;
-    boost::asio::ip::tcp::resolver::iterator it = resolver.resolve(query, ec);
+    boost::asio::ip::tcp::resolver::iterator it = resolver.resolve(query);
     boost::asio::ip::tcp::resolver::iterator end;
     std::string addr("127.0.0.1");
     while (it != end) {

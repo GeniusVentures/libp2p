@@ -12,10 +12,10 @@
 #include <queue>
 #include <unordered_set>
 
-#include <libp2p/basic/scheduler.hpp>
 #include <libp2p/common/types.hpp>
 #include <libp2p/host/host.hpp>
 #include <libp2p/log/sublogger.hpp>
+#include <libp2p/protocol/common/scheduler.hpp>
 #include <libp2p/protocol/kademlia/common.hpp>
 #include <libp2p/protocol/kademlia/config.hpp>
 #include <libp2p/protocol/kademlia/impl/peer_id_with_distance.hpp>

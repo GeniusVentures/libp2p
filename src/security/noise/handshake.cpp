@@ -100,9 +100,9 @@ namespace libp2p::security::noise {
     OUTCOME_TRY(signed_payload,
                 crypto_provider_->sign(to_sign, local_key_.privateKey));
     security::noise::HandshakeMessage payload{
-        .identity_key = local_key_.publicKey,
-        .identity_sig = std::move(signed_payload),
-        .data = {}};
+        /*.identity_key =*/ local_key_.publicKey,
+        /*.identity_sig =*/ std::move(signed_payload),
+        /*.data =*/ {}};
     return noise_marshaller_->marshal(payload);
   }
 
@@ -113,7 +113,7 @@ namespace libp2p::security::noise {
     auto write_cb = [self{shared_from_this()}, cb{std::move(cb)},
                      wr{write_result}](outcome::result<size_t> result) {
       IO_OUTCOME_TRY(bytes_written, result, cb);
-      if (wr.cs1 and wr.cs2) {
+      if (wr.cs1 && wr.cs2) {
         self->setCipherStates(wr.cs1, wr.cs2);
       }
       cb(bytes_written);
@@ -126,7 +126,7 @@ namespace libp2p::security::noise {
     auto read_cb = [self{shared_from_this()}, cb{std::move(cb)}](auto result) {
       IO_OUTCOME_TRY(buffer, result, cb);
       IO_OUTCOME_TRY(rr, self->handshake_state_->readMessage({}, *buffer), cb);
-      if (rr.cs1 and rr.cs2) {
+      if (rr.cs1 && rr.cs2) {
         self->setCipherStates(rr.cs1, rr.cs2);
       }
       auto shared_data = std::make_shared<ByteArray>();
@@ -141,7 +141,7 @@ namespace libp2p::security::noise {
     OUTCOME_TRY(remote_payload, noise_marshaller_->unmarshal(payload));
     OUTCOME_TRY(remote_id, peer::PeerId::fromPublicKey(remote_payload.second));
     auto &&handy_payload = remote_payload.first;
-    if (initiator_ and remote_peer_id_ != remote_id) {
+    if (initiator_ && remote_peer_id_ != remote_id) {
       SL_DEBUG(log_,
           "Remote peer id mismatches already known, expected {}, got {}",
           remote_peer_id_->toHex(), remote_id.toHex());
@@ -158,7 +158,7 @@ namespace libp2p::security::noise {
     OUTCOME_TRY(signature_correct,
                 crypto_provider_->verify(to_verify, handy_payload.identity_sig,
                                          handy_payload.identity_key));
-    if (not signature_correct) {
+    if (!signature_correct) {
       SL_TRACE(log_, "Remote peer's payload signature verification failed");
       return std::errc::owner_dead;
     }
@@ -261,11 +261,11 @@ namespace libp2p::security::noise {
       log_->error("handshake failed, {}", secured.error().message());
       return connection_cb_(secured.error());
     }
-    if (not secured.value()) {
+    if (!secured.value()) {
       log_->error("handshake failed for unknown reason");
       return connection_cb_(std::errc::io_error);
     }
-    if (not remote_peer_pubkey_) {
+    if (!remote_peer_pubkey_) {
       log_->error("Remote peer static pubkey remains unknown");
       return connection_cb_(std::errc::connection_aborted);
     }

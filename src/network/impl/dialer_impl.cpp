@@ -47,8 +47,8 @@ namespace libp2p::network {
       return;
     }
 
-    DialCtx new_ctx{.addresses = {p.addresses.begin(), p.addresses.end()},
-                    .timeout = timeout};
+    DialCtx new_ctx{/* .addresses =*/ {p.addresses.begin(), p.addresses.end()},
+                    /*.timeout =*/ timeout};
     new_ctx.callbacks.emplace_back(std::move(cb));
     bool scheduled = dialing_peers_.emplace(p.id, std::move(new_ctx)).second;
     BOOST_ASSERT(scheduled);
@@ -64,11 +64,11 @@ namespace libp2p::network {
     }
     auto &&ctx = ctx_found->second;
 
-    if (ctx.addresses.empty() and not ctx.dialled) {
+    if (ctx.addresses.empty() && !ctx.dialled) {
       completeDial(peer_id, std::errc::address_family_not_supported);
       return;
     }
-    if (ctx.addresses.empty() and ctx.result.has_value()) {
+    if (ctx.addresses.empty() && ctx.result.has_value()) {
       completeDial(peer_id, ctx.result.value());
       return;
     }
@@ -89,18 +89,18 @@ namespace libp2p::network {
                   self->log_,
                   "State inconsistency - uninteresting dial result for peer {}",
                   peer_id.toBase58());
-              if (result.has_value() and not result.value()->isClosed()) {
+              if (result.has_value() && !result.value()->isClosed()) {
                 auto close_res = result.value()->close();
                 BOOST_ASSERT(close_res);
               }
-              return;
-            }
+            return;
+          }
 
             if (result.has_value()) {
               self->listener_->onConnection(result);
               self->completeDial(peer_id, result);
-              return;
-            }
+            return;
+          }
 
             // store an error otherwise and reschedule one more rotate
             ctx_found->second.result = std::move(result);
@@ -113,7 +113,7 @@ namespace libp2p::network {
           }
           // closing the connection when dialer and connection requester
           // callback no more exist
-          if (result.has_value() and not result.value()->isClosed()) {
+          if (result.has_value() && !result.value()->isClosed()) {
             auto close_res = result.value()->close();
             BOOST_ASSERT(close_res);
           }
@@ -134,8 +134,8 @@ namespace libp2p::network {
           self->rotate(peer_id);
         }
       });
+      }
     }
-  }
 
   void DialerImpl::completeDial(const peer::PeerId &peer_id,
                                 const DialResult &result) {
@@ -171,7 +171,7 @@ namespace libp2p::network {
             self->scheduler_->schedule(
                 [cb{std::move(cb)}, result] { cb(result); });
             return;
-          }
+                }
           self->multiselect_->simpleStreamNegotiate(result.value(), protocol,
                                                     std::move(cb));
         },

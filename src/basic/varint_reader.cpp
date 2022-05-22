@@ -11,7 +11,7 @@ namespace {
   constexpr uint8_t kMaximumVarintLength = 9;  // taken from Go
 }
 
-OUTCOME_CPP_DEFINE_CATEGORY(libp2p::basic, VarintReader::Error, e) {
+OUTCOME_CPP_DEFINE_CATEGORY_3(libp2p::basic, VarintReader::Error, e) {
   using E = libp2p::basic::VarintReader::Error;
   switch (e) {
     case E::NO_VARINT:
@@ -44,7 +44,7 @@ namespace libp2p::basic {
     conn->read(gsl::make_span(varint_buf->data() + current_length, 1), 1,
                [c = std::move(conn), cb = std::move(cb), current_length,
                 varint_buf](auto &&res) mutable {
-                 if (not res.has_value()) {
+                 if (!res.has_value()) {
                    return cb(res.error());
                  }
 

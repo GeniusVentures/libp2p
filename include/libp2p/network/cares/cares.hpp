@@ -14,13 +14,13 @@
 #include <string>
 #include <vector>
 
-#include <ares.h>
-#include <arpa/nameser.h>
-#include <sys/select.h>
+//#include <sys/select.h>
 #include <boost/asio.hpp>
 #include <boost/optional.hpp>
 #include <libp2p/log/logger.hpp>
 #include <libp2p/outcome/outcome.hpp>
+
+#include <ares.h>
 
 namespace libp2p::network::c_ares {
 
@@ -120,6 +120,6 @@ namespace libp2p::network::c_ares {
 
 }  // namespace libp2p::network::c_ares
 
-OUTCOME_HPP_DECLARE_ERROR(libp2p::network::c_ares, Ares::Error);
+OUTCOME_HPP_DECLARE_ERROR_2(libp2p::network::c_ares, Ares::Error);
 
 #endif  // LIBP2P_INCLUDE_LIBP2P_NETWORK_CARES_CARES_HPP

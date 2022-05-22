@@ -16,6 +16,9 @@ target_link_libraries(libp2p_echo_server
     p2p_inmem_protocol_repository
     p2p_protocol_echo
     p2p_literals
+    Boost::date_time
+    Boost::regex
+    ${WIN_CRYPT_LIBRARY}
     )
 
 add_executable(libp2p_echo_client
@@ -32,4 +35,7 @@ target_link_libraries(libp2p_echo_client
     p2p_inmem_protocol_repository
     p2p_protocol_echo
     p2p_literals
+    Boost::date_time
+    Boost::regex
+    ${WIN_CRYPT_LIBRARY}
     )

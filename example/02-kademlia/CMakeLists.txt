@@ -18,4 +18,8 @@ target_link_libraries(rendezvous_chat
     p2p_kademlia
     asio_scheduler
     p2p_multiaddress
+    Boost::date_time
+    Boost::regex
+    fmt::fmt
+    ${WIN_CRYPT_LIBRARY}
     )

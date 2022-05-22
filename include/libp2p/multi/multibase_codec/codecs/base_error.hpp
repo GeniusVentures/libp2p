@@ -20,6 +20,6 @@ namespace libp2p::multi::detail {
 
 }
 
-OUTCOME_HPP_DECLARE_ERROR(libp2p::multi::detail, BaseError);
+OUTCOME_HPP_DECLARE_ERROR_2(libp2p::multi::detail, BaseError);
 
 #endif  // LIBP2P_BASE_ERROR_HPP

@@ -9,7 +9,7 @@
 #include <libp2p/crypto/sha/sha256.hpp>
 #include <libp2p/multi/multibase_codec/codecs/base58.hpp>
 
-OUTCOME_CPP_DEFINE_CATEGORY(libp2p::peer, PeerId::FactoryError, e) {
+OUTCOME_CPP_DEFINE_CATEGORY_3(libp2p::peer, PeerId::FactoryError, e) {
   using E = libp2p::peer::PeerId::FactoryError;
   switch (e) {
     case E::SUCCESS:
@@ -81,7 +81,7 @@ namespace libp2p::peer {
     return encodeBase58(hash_.toBuffer());
   }
 
-  const std::vector<uint8_t> &PeerId::toVector() const {
+  const std::vector<uint8_t>& PeerId::toVector() const {
     return hash_.toBuffer();
   }
 

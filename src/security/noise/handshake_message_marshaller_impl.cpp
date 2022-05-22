@@ -6,7 +6,7 @@
 #include <libp2p/security/noise/handshake_message_marshaller_impl.hpp>
 
 #include <generated/security/noise/protobuf/noise.pb.h>
-OUTCOME_CPP_DEFINE_CATEGORY(libp2p::security::noise,
+OUTCOME_CPP_DEFINE_CATEGORY_3(libp2p::security::noise,
                             HandshakeMessageMarshallerImpl::Error, e) {
   using E = libp2p::security::noise::HandshakeMessageMarshallerImpl::Error;
   switch (e) {
@@ -46,21 +46,29 @@ namespace libp2p::security::noise {
     crypto::ProtobufKey proto_key{std::move(key_bytes)};
     OUTCOME_TRY(pubkey, marshaller_->unmarshalPublicKey(proto_key));
 
+    //return std::make_pair(
+    //    HandshakeMessage{
+    //        .identity_key = std::move(pubkey),
+    //        .identity_sig = {proto_msg.identity_sig().begin(),
+    //                         proto_msg.identity_sig().end()},
+    //        .data = {proto_msg.data().begin(), proto_msg.data().end()}},
+    //    std::move(proto_key));
+    HandshakeMessage msg;
+    msg.identity_key = std::move(pubkey),
+    msg.identity_sig = {proto_msg.identity_sig().begin(),
+                        proto_msg.identity_sig().end()},
+    msg.data = {proto_msg.data().begin(), proto_msg.data().end()};
     return std::make_pair(
-        HandshakeMessage{
-            .identity_key = std::move(pubkey),
-            .identity_sig = {proto_msg.identity_sig().begin(),
-                             proto_msg.identity_sig().end()},
-            .data = {proto_msg.data().begin(), proto_msg.data().end()}},
+        std::move(msg),
         std::move(proto_key));
+  
   }
 
   outcome::result<common::ByteArray> HandshakeMessageMarshallerImpl::marshal(
       const HandshakeMessage &msg) const {
     OUTCOME_TRY(proto_msg, handyToProto(msg));
     common::ByteArray out_msg(proto_msg.ByteSizeLong());
-    if (not proto_msg.SerializeToArray(out_msg.data(),
-                                       static_cast<int>(out_msg.size()))) {
+    if (!proto_msg.SerializeToArray(out_msg.data(), out_msg.size())) {
       return Error::MESSAGE_SERIALIZING_ERROR;
     }
     return out_msg;
@@ -70,8 +78,7 @@ namespace libp2p::security::noise {
   HandshakeMessageMarshallerImpl::unmarshal(
       gsl::span<const uint8_t> msg_bytes) const {
     protobuf::NoiseHandshakePayload proto_msg;
-    if (not proto_msg.ParseFromArray(msg_bytes.data(),
-                                     static_cast<int>(msg_bytes.size()))) {
+    if (!proto_msg.ParseFromArray(msg_bytes.data(), msg_bytes.size())) {
       return Error::MESSAGE_DESERIALIZING_ERROR;
     }
     return protoToHandy(proto_msg);

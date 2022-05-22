@@ -9,6 +9,8 @@
 
 #include <libp2p/log/logger.hpp>
 
+#include <platform/platform.hpp>
+
 namespace libp2p::connection {
 
   namespace {

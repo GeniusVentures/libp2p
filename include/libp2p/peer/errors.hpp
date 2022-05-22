@@ -14,6 +14,6 @@ namespace libp2p::peer {
 
 }
 
-OUTCOME_HPP_DECLARE_ERROR(libp2p::peer, PeerError)
+OUTCOME_HPP_DECLARE_ERROR_2(libp2p::peer, PeerError)
 
 #endif  // LIBP2P_PEER_ERRORS_HPP

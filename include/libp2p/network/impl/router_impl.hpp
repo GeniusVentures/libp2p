@@ -44,6 +44,6 @@ namespace libp2p::network {
 
 }  // namespace libp2p::network
 
-OUTCOME_HPP_DECLARE_ERROR(libp2p::network, RouterImpl::Error)
+OUTCOME_HPP_DECLARE_ERROR_2(libp2p::network, RouterImpl::Error)
 
 #endif  // LIBP2P_ROUTER_IMPL_HPP

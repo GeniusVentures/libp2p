@@ -6,8 +6,8 @@
 #ifndef LIBP2P_PROTOCOL_GOSSIP_REMOTE_SUBSCRIPTIONS_HPP
 #define LIBP2P_PROTOCOL_GOSSIP_REMOTE_SUBSCRIPTIONS_HPP
 
-#include <libp2p/basic/scheduler.hpp>
 #include <libp2p/log/sublogger.hpp>
+#include <libp2p/basic/scheduler.hpp>
 
 #include "topic_subscriptions.hpp"
 

@@ -201,6 +201,6 @@ namespace std {
   };
 }  // namespace std
 
-OUTCOME_HPP_DECLARE_ERROR(libp2p::multi, Multiaddress::Error)
+OUTCOME_HPP_DECLARE_ERROR_2(libp2p::multi, Multiaddress::Error)
 
 #endif  // LIBP2P_MULTIADDRESS_HPP

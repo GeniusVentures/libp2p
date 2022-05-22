@@ -5,7 +5,7 @@
 
 #include <libp2p/peer/errors.hpp>
 
-OUTCOME_CPP_DEFINE_CATEGORY(libp2p::peer, PeerError, e) {
+OUTCOME_CPP_DEFINE_CATEGORY_3(libp2p::peer, PeerError, e) {
   using libp2p::peer::PeerError;
 
   switch (e) {

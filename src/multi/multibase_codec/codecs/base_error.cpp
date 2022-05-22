@@ -5,7 +5,7 @@
 
 #include <libp2p/multi/multibase_codec/codecs/base_error.hpp>
 
-OUTCOME_CPP_DEFINE_CATEGORY(libp2p::multi::detail, BaseError, e) {
+OUTCOME_CPP_DEFINE_CATEGORY_3(libp2p::multi::detail, BaseError, e) {
   using E = libp2p::multi::detail::BaseError;
   switch (e) {
     case E::INVALID_BASE64_INPUT:

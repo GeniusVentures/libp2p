@@ -7,7 +7,7 @@
 
 #include <generated/security/plaintext/protobuf/plaintext.pb.h>
 
-OUTCOME_CPP_DEFINE_CATEGORY(libp2p::security::plaintext,
+OUTCOME_CPP_DEFINE_CATEGORY_3(libp2p::security::plaintext,
                             ExchangeMessageMarshallerImpl::Error, e) {
   using E = libp2p::security::plaintext::ExchangeMessageMarshallerImpl::Error;
   switch (e) {
@@ -64,7 +64,7 @@ namespace libp2p::security::plaintext {
                                        proto_msg.id().end());
     OUTCOME_TRY(peer_id, peer::PeerId::fromBytes(peer_id_bytes));
 
-    return {ExchangeMessage{.pubkey = pubkey, .peer_id = peer_id},
+    return {ExchangeMessage{/*.pubkey =*/ pubkey, /*.peer_id =*/ peer_id},
             proto_pubkey};
   }
 

@@ -3,14 +3,12 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include <ios>
-
 #include <libp2p/common/hexutil.hpp>
 
 #include <boost/algorithm/hex.hpp>
 #include <gsl/span>
 
-OUTCOME_CPP_DEFINE_CATEGORY(libp2p::common, UnhexError, e) {
+OUTCOME_CPP_DEFINE_CATEGORY_3(libp2p::common, UnhexError, e) {
   using libp2p::common::UnhexError;
   switch (e) {
     case UnhexError::NON_HEX_INPUT:

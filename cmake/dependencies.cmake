@@ -7,11 +7,12 @@ if (TESTING)
   # https://docs.hunter.sh/en/latest/packages/pkg/GTest.html
   hunter_add_package(GTest)
   find_package(GTest CONFIG REQUIRED)
+  find_package(GMock CONFIG REQUIRED)
 endif()
 
 # https://docs.hunter.sh/en/latest/packages/pkg/Boost.html
-hunter_add_package(Boost COMPONENTS random filesystem program_options)
-find_package(Boost CONFIG REQUIRED random filesystem program_options)
+hunter_add_package(Boost COMPONENTS random filesystem program_options date_time regex)
+find_package(Boost CONFIG REQUIRED random filesystem program_options date_time regex)
 
 # added from hunter_config
 hunter_add_package(Microsoft.GSL)
@@ -34,6 +35,8 @@ find_package(fmt CONFIG REQUIRED)
 
 hunter_add_package(yaml-cpp)
 find_package(yaml-cpp CONFIG REQUIRED)
+set_target_properties(yaml-cpp PROPERTIES IMPORTED_GLOBAL TRUE)
+add_library(yaml-cpp::yaml-cpp ALIAS yaml-cpp)
 
 hunter_add_package(soralog)
 find_package(soralog CONFIG REQUIRED)

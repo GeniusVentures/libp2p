@@ -39,6 +39,6 @@ namespace libp2p::basic {
   };
 }  // namespace libp2p::basic
 
-OUTCOME_HPP_DECLARE_ERROR(libp2p::basic, VarintReader::Error);
+OUTCOME_HPP_DECLARE_ERROR_2(libp2p::basic, VarintReader::Error);
 
 #endif  // LIBP2P_VARINT_READER_HPP

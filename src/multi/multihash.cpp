@@ -15,7 +15,7 @@ using libp2p::common::ByteArray;
 using libp2p::common::hex_upper;
 using libp2p::common::unhex;
 
-OUTCOME_CPP_DEFINE_CATEGORY(libp2p::multi, Multihash::Error, e) {
+OUTCOME_CPP_DEFINE_CATEGORY_3(libp2p::multi, Multihash::Error, e) {
   using E = libp2p::multi::Multihash::Error;
   switch (e) {
     case E::ZERO_INPUT_LENGTH:

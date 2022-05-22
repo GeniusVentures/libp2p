@@ -142,6 +142,6 @@ namespace libp2p::security::secio {
   };
 }  // namespace libp2p::security::secio
 
-OUTCOME_HPP_DECLARE_ERROR(libp2p::security::secio, Dialer::Error);
+OUTCOME_HPP_DECLARE_ERROR_2(libp2p::security::secio, Dialer::Error);
 
 #endif  // LIBP2P_SECIO_DIALER_HPP

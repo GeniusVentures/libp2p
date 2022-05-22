@@ -22,6 +22,6 @@ namespace libp2p::security {
   };
 }  // namespace libp2p::security
 
-OUTCOME_HPP_DECLARE_ERROR(libp2p::security, TlsError);
+OUTCOME_HPP_DECLARE_ERROR_2(libp2p::security, TlsError);
 
 #endif  // LIBP2P_SECURITY_TLS_ERRORS_HPP

@@ -8,9 +8,9 @@
 #include <string>
 #include <unordered_set>
 
-#include <generated/protocol/identify/protobuf/identify.pb.h>
 #include <libp2p/basic/protobuf_message_read_writer.hpp>
 #include <libp2p/protocol/identify/utils.hpp>
+#include <generated/protocol/identify/protobuf/identify.pb.h>
 
 namespace {
   const std::string kIdentifyDeltaProtocol = "/p2p/id/delta/1.0.0";

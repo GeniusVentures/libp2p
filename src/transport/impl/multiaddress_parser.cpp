@@ -8,7 +8,7 @@
 #include <boost/asio/ip/address.hpp>
 #include <boost/lexical_cast.hpp>
 
-OUTCOME_CPP_DEFINE_CATEGORY(libp2p::transport, MultiaddressParser::Error, e) {
+OUTCOME_CPP_DEFINE_CATEGORY_3(libp2p::transport, MultiaddressParser::Error, e) {
   using E = libp2p::transport::MultiaddressParser::Error;
   switch (e) {
     case E::PROTOCOLS_UNSUPPORTED:

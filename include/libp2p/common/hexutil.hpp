@@ -13,6 +13,8 @@
 
 #include <libp2p/outcome/outcome.hpp>
 
+#include "platform/platform.hpp"
+
 namespace libp2p::common {
 
   /**
@@ -104,6 +106,6 @@ namespace libp2p::common {
 
 }  // namespace libp2p::common
 
-OUTCOME_HPP_DECLARE_ERROR(libp2p::common, UnhexError);
+OUTCOME_HPP_DECLARE_ERROR_2(libp2p::common, UnhexError);
 
 #endif  // LIBP2P_HEXUTIL_HPP

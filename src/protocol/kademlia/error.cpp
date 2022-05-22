@@ -5,7 +5,7 @@
 
 #include <libp2p/protocol/kademlia/error.hpp>
 
-OUTCOME_CPP_DEFINE_CATEGORY(libp2p::protocol::kademlia, Error, e) {
+OUTCOME_CPP_DEFINE_CATEGORY_3(libp2p::protocol::kademlia, Error, e) {
   using E = libp2p::protocol::kademlia::Error;
   switch (e) {
     case E::NO_PEERS:

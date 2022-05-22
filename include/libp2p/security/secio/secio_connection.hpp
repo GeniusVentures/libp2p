@@ -179,6 +179,6 @@ namespace libp2p::connection {
   };
 }  // namespace libp2p::connection
 
-OUTCOME_HPP_DECLARE_ERROR(libp2p::connection, SecioConnection::Error);
+OUTCOME_HPP_DECLARE_ERROR_2(libp2p::connection, SecioConnection::Error);
 
 #endif  // LIBP2P_SECIO_CONNECTION_HPP

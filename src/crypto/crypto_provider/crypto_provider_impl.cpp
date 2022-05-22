@@ -12,6 +12,7 @@
 #include <openssl/rand.h>
 #include <openssl/rsa.h>
 #include <openssl/x509.h>
+#include <openssl/bn.h>
 #include <gsl/gsl_util>
 #include <gsl/pointers>
 #include <gsl/span>
@@ -23,7 +24,7 @@
 #include <libp2p/crypto/rsa_provider.hpp>
 #include <libp2p/crypto/secp256k1_provider.hpp>
 
-OUTCOME_CPP_DEFINE_CATEGORY(libp2p::crypto, CryptoProviderImpl::Error, e) {
+OUTCOME_CPP_DEFINE_CATEGORY_3(libp2p::crypto, CryptoProviderImpl::Error, e) {
   using E = libp2p::crypto::CryptoProviderImpl::Error;
   switch (e) {
     case E::UNKNOWN_CIPHER_TYPE:
@@ -87,10 +88,10 @@ namespace libp2p::crypto {
 
     auto &&pub = rsa.public_key;
     auto &&priv = rsa.private_key;
-    return KeyPair{.publicKey = {{.type = Key::Type::RSA,
-                                  .data = {pub.begin(), pub.end()}}},
-                   .privateKey = {{.type = Key::Type::RSA,
-                                   .data = {priv.begin(), priv.end()}}}};
+    return KeyPair{/*.publicKey =*/ {{/*.type =*/ Key::Type::RSA,
+                                  /*.data =*/ {pub.begin(), pub.end()}}},
+                   /*.privateKey =*/ {{/*.type =*/ Key::Type::RSA,
+                                   /*.data =*/ {priv.begin(), priv.end()}}}};
   }
 
   outcome::result<KeyPair> CryptoProviderImpl::generateEd25519() const {
@@ -98,10 +99,10 @@ namespace libp2p::crypto {
 
     auto &&pub = ed.public_key;
     auto &&priv = ed.private_key;
-    return KeyPair{.publicKey = {{.type = Key::Type::Ed25519,
-                                  .data = {pub.begin(), pub.end()}}},
-                   .privateKey = {{.type = Key::Type::Ed25519,
-                                   .data = {priv.begin(), priv.end()}}}};
+    return KeyPair{/*.publicKey =*/{{/*.type =*/ Key::Type::Ed25519,
+                                  /*.data =*/ {pub.begin(), pub.end()}}},
+                   /*.privateKey =*/ {{/*.type =*/ Key::Type::Ed25519,
+                                   /*.data =*/ {priv.begin(), priv.end()}}}};
   }
 
   outcome::result<KeyPair> CryptoProviderImpl::generateSecp256k1() const {
@@ -109,10 +110,10 @@ namespace libp2p::crypto {
 
     auto &&pub = secp.public_key;
     auto &&priv = secp.private_key;
-    return KeyPair{.publicKey = {{.type = Key::Type::Secp256k1,
-                                  .data = {pub.begin(), pub.end()}}},
-                   .privateKey = {{.type = Key::Type::Secp256k1,
-                                   .data = {priv.begin(), priv.end()}}}};
+    return KeyPair{/*.publicKey =*/ {{/*.type =*/ Key::Type::Secp256k1,
+                                  /*.data =*/ {pub.begin(), pub.end()}}},
+                   /*.privateKey =*/ {{/*.type =*/ Key::Type::Secp256k1,
+                                   /*.data =*/ {priv.begin(), priv.end()}}}};
   }
 
   outcome::result<KeyPair> CryptoProviderImpl::generateEcdsa() const {
@@ -120,10 +121,10 @@ namespace libp2p::crypto {
 
     auto &&pub = ecdsa.public_key;
     auto &&priv = ecdsa.private_key;
-    return KeyPair{.publicKey = {{.type = Key::Type::ECDSA,
-                                  .data = {pub.begin(), pub.end()}}},
-                   .privateKey = {{.type = Key::Type::ECDSA,
-                                   .data = {priv.begin(), priv.end()}}}};
+    return KeyPair{/*.publicKey =*/ {{/*.type =*/ Key::Type::ECDSA,
+                                  /*.data =*/ {pub.begin(), pub.end()}}},
+                   /*.privateKey =*/ {{/*.type =*/ Key::Type::ECDSA,
+                                   /*.data =*/ {priv.begin(), priv.end()}}}};
   }
 
   /* ###################################################################
@@ -428,8 +429,8 @@ namespace libp2p::crypto {
     Buffer pubkey_buffer(pubkey_span.begin(), pubkey_span.end());
 
     return EphemeralKeyPair{
-        .ephemeral_public_key = std::move(pubkey_buffer),
-        .shared_secret_generator =
+        /*.ephemeral_public_key =*/ std::move(pubkey_buffer),
+        /*.shared_secret_generator =*/
             prepareSharedSecretGenerator(nid, std::move(private_bytes))};
   }
 
@@ -590,12 +591,12 @@ namespace libp2p::crypto {
     iter += cipher_key_size;
     Buffer k2_mac_key{iter, iter + hmac_key_size};
 
-    return std::make_pair(StretchedKey{.iv = std::move(k1_iv),
-                                       .cipher_key = std::move(k1_cipher_key),
-                                       .mac_key = std::move(k1_mac_key)},
-                          StretchedKey{.iv = std::move(k2_iv),
-                                       .cipher_key = std::move(k2_cipher_key),
-                                       .mac_key = std::move(k2_mac_key)});
+    return std::make_pair(StretchedKey{/*.iv =*/ std::move(k1_iv),
+                                       /*.cipher_key =*/ std::move(k1_cipher_key),
+                                       /*.mac_key =*/ std::move(k1_mac_key)},
+                          StretchedKey{/*.iv =*/ std::move(k2_iv),
+                                       /*.cipher_key =*/ std::move(k2_cipher_key),
+                                       /*.mac_key =*/ std::move(k2_mac_key)});
   }
 
 }  // namespace libp2p::crypto

@@ -1,11 +1,14 @@
 cmake_minimum_required(VERSION 3.12)
 
-find_program(CCACHE_FOUND ccache)
-if (CCACHE_FOUND)
-  set_property(GLOBAL PROPERTY RULE_LAUNCH_COMPILE ccache)
-  set_property(GLOBAL PROPERTY RULE_LAUNCH_LINK ccache)
-endif (CCACHE_FOUND)
+#find_program(CCACHE_FOUND ccache)
 
+#if (CCACHE_FOUND)
+#  set_property(GLOBAL PROPERTY RULE_LAUNCH_COMPILE ccache)
+#  set_property(GLOBAL PROPERTY RULE_LAUNCH_LINK ccache)
+#endif (CCACHE_FOUND)
+
+set (Boost_NO_SYSTEM_PATHS ON)
+message("---${CMAKE_TOOLCHAIN_FILE}--")
 set(CMAKE_TOOLCHAIN_FILE
     "${CMAKE_SOURCE_DIR}/cmake/toolchain/cxx17.cmake"
     CACHE
@@ -15,7 +18,6 @@ set(CMAKE_TOOLCHAIN_FILE
 
 include("cmake/Hunter/init.cmake")
 cmake_policy(SET CMP0048 NEW)
-
 project(libp2p VERSION 0.0.1 LANGUAGES C CXX)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
@@ -31,7 +33,7 @@ option(LSAN "Enable leak sanitizer" OFF)
 option(MSAN "Enable memory sanitizer" OFF)
 option(TSAN "Enable thread sanitizer" OFF)
 option(UBSAN "Enable UB sanitizer" OFF)
-option(EXPOSE_MOCKS "Make mocks header files visible for child projects" ON)
+option(EXPOSE_MOCKS "Make mocks header files visible for child projects" OFF)
 option(METRICS_ENABLED "Enable libp2p metrics" OFF)
 
 include(cmake/print.cmake)
@@ -80,13 +82,18 @@ if ("${CMAKE_CXX_COMPILER_ID}" MATCHES "^(AppleClang|Clang|GNU)$")
   # promote to errors
   add_flag(-Werror-unused-lambda-capture)  # error if lambda capture is unused
   add_flag(-Werror-return-type)      # warning: control reaches end of non-void function [-Wreturn-type]
-  add_flag(-Werror-non-virtual-dtor) # warn the user if a class with virtual functions has a non-virtual destructor. This helps catch hard to track down memory errors
+#  add_flag(-Werror-non-virtual-dtor) # warn the user if a class with virtual functions has a non-virtual destructor. This helps catch hard to track down memory errors
   add_flag(-Werror-sign-compare)     # warn the user if they compare a signed and unsigned numbers
   add_flag(-Werror-reorder)          # field '$1' will be initialized after field '$2'
 elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
   # using Visual Studio C++
   # TODO(warchant): add flags https://github.com/lefticus/cppbestpractices/blob/master/02-Use_the_Tools_Available.md#msvc
 endif ()
+
+SET(WIN_CRYPT_LIBRARY)
+if (NOT UNIX)
+    SET(WIN_CRYPT_LIBRARY crypt32)
+endif()
 
 if (CLANG_TIDY)
   include(cmake/clang-tidy.cmake)
@@ -99,6 +106,7 @@ include_directories(
     SYSTEM
     # project includes
     ${PROJECT_SOURCE_DIR}/include
+    ${PROJECT_SOURCE_DIR}/include/platform/${CMAKE_SYSTEM_NAME}
 )
 
 add_subdirectory(src)

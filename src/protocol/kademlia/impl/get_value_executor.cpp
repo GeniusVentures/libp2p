@@ -79,7 +79,7 @@ namespace libp2p::protocol::kademlia {
     serialized_request_ = std::make_shared<std::vector<uint8_t>>();
 
     boost::optional<peer::PeerInfo> self_announce;
-    if (not config_.passiveMode) {
+    if (!config_.passiveMode) {
       self_announce = host_->getPeerInfo();
     }
 
@@ -102,8 +102,8 @@ namespace libp2p::protocol::kademlia {
 
     auto self_peer_id = host_->getId();
 
-    while (started_ and not done_ and not queue_.empty()
-           and requests_in_progress_ < config_.requestConcurency) {
+    while (started_ && !done_ && !queue_.empty()
+           && requests_in_progress_ < config_.requestConcurency) {
       auto peer_id = *queue_.top();
       queue_.pop();
 
@@ -165,7 +165,7 @@ namespace libp2p::protocol::kademlia {
 
   void GetValueExecutor::onConnected(
       outcome::result<std::shared_ptr<connection::Stream>> stream_res) {
-    if (not stream_res) {
+    if (!stream_res) {
       --requests_in_progress_;
 
       log_.debug("cannot connect to peer: {}; active {}, in queue {}",
@@ -219,7 +219,7 @@ namespace libp2p::protocol::kademlia {
     });
 
     // Check if gotten some message
-    if (not msg_res) {
+    if (!msg_res) {
       log_.warn("Result from {} failed: {}; active {}, in queue {}",
                 session->stream()->remotePeerId().value().toBase58(),
                 msg_res.error().message(), requests_in_progress_,
@@ -229,7 +229,7 @@ namespace libp2p::protocol::kademlia {
     auto &msg = msg_res.value();
 
     // Skip inappropriate messages
-    if (not match(msg)) {
+    if (!match(msg)) {
       BOOST_UNREACHABLE_RETURN();
     }
 
@@ -259,7 +259,7 @@ namespace libp2p::protocol::kademlia {
                               gsl::span<const multi::Multiaddress>::index_type>(
                               peer.info.addresses.size())),
                 peer::ttl::kDay);
-        if (not add_addr_res) {
+        if (!add_addr_res) {
           continue;
         }
 
@@ -284,7 +284,7 @@ namespace libp2p::protocol::kademlia {
       auto &value = msg.record.value().value;
 
       auto validation_res = validator_->validate(key_, value);
-      if (not validation_res.has_value()) {
+      if (!validation_res.has_value()) {
         log_.debug("Result from {} is invalid", remote_peer_id.toBase58());
         return;
       }
@@ -298,7 +298,7 @@ namespace libp2p::protocol::kademlia {
                        [](auto &record) { return record.value; });
 
         auto index_res = validator_->select(key_, values);
-        if (not index_res.has_value()) {
+        if (!index_res.has_value()) {
           log_.debug("Can't select best value of {} provided", values.size());
           return;
         }
@@ -320,7 +320,7 @@ namespace libp2p::protocol::kademlia {
           }
         }
 
-        if (not addressees.empty()) {
+        if (!addressees.empty()) {
           auto put_value_executor = executor_factory_->createPutValueExecutor(
               key_, std::move(value), std::move(addressees));
           [[maybe_unused]] auto res = put_value_executor->start();

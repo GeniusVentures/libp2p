@@ -99,6 +99,6 @@ namespace libp2p::protocol::gossip {
                             const ByteArray &data);
 }  // namespace libp2p::protocol::gossip
 
-OUTCOME_HPP_DECLARE_ERROR(libp2p::protocol::gossip, Error);
+OUTCOME_HPP_DECLARE_ERROR_2(libp2p::protocol::gossip, Error);
 
 #endif  // LIBP2P_PROTOCOL_GOSSIP_COMMON_HPP

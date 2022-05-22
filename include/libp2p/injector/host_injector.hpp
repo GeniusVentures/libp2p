@@ -27,15 +27,15 @@ namespace libp2p::injector {
         makeNetworkInjector<InjectorConfig>(),
 
         // repositories
-        di::bind<peer::PeerRepository>.template to<peer::PeerRepositoryImpl>(),
-        di::bind<peer::AddressRepository>.template to<peer::InmemAddressRepository>(),
-        di::bind<peer::KeyRepository>.template to<peer::InmemKeyRepository>(),
-        di::bind<peer::ProtocolRepository>.template to<peer::InmemProtocolRepository>(),
+        di::bind<peer::PeerRepository>.TEMPLATE_TO<peer::PeerRepositoryImpl>(),
+        di::bind<peer::AddressRepository>.TEMPLATE_TO<peer::InmemAddressRepository>(),
+        di::bind<peer::KeyRepository>.TEMPLATE_TO<peer::InmemKeyRepository>(),
+        di::bind<peer::ProtocolRepository>.TEMPLATE_TO<peer::InmemProtocolRepository>(),
 
-        di::bind<protocol::SchedulerConfig>.template to(protocol::SchedulerConfig {}),
-        di::bind<protocol::Scheduler>.template to<protocol::AsioScheduler>(),
+        di::bind<protocol::SchedulerConfig>.TEMPLATE_TO(protocol::SchedulerConfig {}),
+        di::bind<protocol::Scheduler>.TEMPLATE_TO<protocol::AsioScheduler>(),
 
-        di::bind<Host>.template to<host::BasicHost>(),
+        di::bind<Host>.TEMPLATE_TO<host::BasicHost>(),
 
         // user-defined overrides...
         std::forward<decltype(args)>(args)...

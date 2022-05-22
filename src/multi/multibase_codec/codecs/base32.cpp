@@ -72,13 +72,13 @@ namespace libp2p::multi::detail {
       int byte = get_byte(block);
       int bit = get_bit(block);
 
-      if (byte >= plain.size()) {
+      if (byte >= (int)plain.size()) {
         return block;
       }
 
       unsigned char c = shift_right(plain[byte], bit);
 
-      if (bit < 0 && byte < plain.size() - 1) {
+      if (bit < 0 && byte < (int)plain.size() - 1) {
         c |= shift_right(plain[byte + 1], 8 + bit);
       }
       coded[block] = encode_char(c, mode);
@@ -138,7 +138,7 @@ namespace libp2p::multi::detail {
       int bit = get_bit(block);
       int byte = get_byte(block);
 
-      if (block >= coded.size()) {
+      if (block >= (int)coded.size()) {
         return byte;
       }
       int c = decode_char(coded[block], mode);

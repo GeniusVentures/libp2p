@@ -66,7 +66,7 @@ int main(int argc, char *argv[]) {
           // Additional logging config for application
           logger_config));
   auto r = logging_system->configure();
-  if (not r.message.empty()) {
+  if (!r.message.empty()) {
     (r.has_error ? std::cerr : std::cout) << r.message << std::endl;
   }
   if (r.has_error) {
@@ -77,7 +77,7 @@ int main(int argc, char *argv[]) {
   if (std::getenv("TRACE_DEBUG") != nullptr) {
     libp2p::log::setLevelOfGroup("main", soralog::Level::TRACE);
   } else {
-    libp2p::log::setLevelOfGroup("main", soralog::Level::ERROR);
+    libp2p::log::setLevelOfGroup("main", soralog::Level::ERROR_);
   }
 
   // overriding default config to see local messages as well (echo mode)
@@ -113,17 +113,13 @@ int main(int argc, char *argv[]) {
   // create gossip node
   auto gossip = libp2p::protocol::gossip::create(
       injector.create<std::shared_ptr<libp2p::basic::Scheduler>>(), host,
-      injector.create<std::shared_ptr<libp2p::peer::IdentityManager>>(),
-      injector.create<std::shared_ptr<libp2p::crypto::CryptoProvider>>(),
-      injector
-          .create<std::shared_ptr<libp2p::crypto::marshaller::KeyMarshaller>>(),
       std::move(config));
 
   using Message = libp2p::protocol::gossip::Gossip::Message;
 
   // subscribe to chat topic, print messages to the console
   auto subscription = gossip->subscribe(
-      {options->topic}, [](const boost::optional<const Message &> &m) {
+      {options->topic}, [](boost::optional<const Message &> m) {
         if (!m) {
           // message with no value means EOS, this occurs when the node has
           // stopped
@@ -155,7 +151,7 @@ int main(int argc, char *argv[]) {
   });
 
   // read lines from stdin in async manner and publish them into the chat
-  utility::ConsoleAsyncReader stdin_reader(
+  libp2p::protocol::example::utility::ConsoleAsyncReader stdin_reader(
       *io, [&gossip, &options](const std::string &msg) {
         gossip->publish({options->topic}, utility::fromString(msg));
       });

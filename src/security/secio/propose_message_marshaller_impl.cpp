@@ -7,7 +7,7 @@
 
 #include <generated/security/secio/protobuf/secio.pb.h>
 
-OUTCOME_CPP_DEFINE_CATEGORY(libp2p::security::secio,
+OUTCOME_CPP_DEFINE_CATEGORY_3(libp2p::security::secio,
                             ProposeMessageMarshallerImpl::Error, e) {
   using E = libp2p::security::secio::ProposeMessageMarshallerImpl::Error;
   switch (e) {
@@ -37,11 +37,11 @@ namespace libp2p::security::secio {
   ProposeMessage ProposeMessageMarshallerImpl::protoToHandy(
       const protobuf::Propose &proto_msg) const {
     return ProposeMessage{
-        .rand = {proto_msg.rand().begin(), proto_msg.rand().end()}, // NOLINT
-        .pubkey = {proto_msg.pubkey().begin(), proto_msg.pubkey().end()},
-        .exchanges = proto_msg.exchanges(),
-        .ciphers = proto_msg.ciphers(),
-        .hashes = proto_msg.hashes()};
+        /*.rand =*/ {proto_msg.rand().begin(), proto_msg.rand().end()}, // NOLINT
+        /*.pubkey =*/ {proto_msg.pubkey().begin(), proto_msg.pubkey().end()},
+        /*.exchanges =*/ proto_msg.exchanges(),
+        /*.ciphers =*/ proto_msg.ciphers(),
+        /*.hashes =*/ proto_msg.hashes()};
   }
 
   outcome::result<std::vector<uint8_t>> ProposeMessageMarshallerImpl::marshal(

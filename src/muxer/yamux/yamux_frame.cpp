@@ -3,13 +3,14 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include <arpa/inet.h>
 #include <cstring>
 #include <libp2p/common/byteutil.hpp>
 #include <libp2p/muxer/yamux/yamux_frame.hpp>
 
 #define TRACE_ENABLED 0
 #include <libp2p/common/trace.hpp>
+
+#include <arpa/inet.h>
 
 namespace libp2p::connection {
   YamuxFrame::ByteArray YamuxFrame::frameBytes(uint8_t version, FrameType type,

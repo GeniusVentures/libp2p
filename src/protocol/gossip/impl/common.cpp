@@ -7,7 +7,7 @@
 
 #include <boost/endian/conversion.hpp>
 
-OUTCOME_CPP_DEFINE_CATEGORY(libp2p::protocol::gossip, Error, e) {
+OUTCOME_CPP_DEFINE_CATEGORY_3(libp2p::protocol::gossip, Error, e) {
   using E = libp2p::protocol::gossip::Error;
   switch (e) {
     case E::MESSAGE_PARSE_ERROR:

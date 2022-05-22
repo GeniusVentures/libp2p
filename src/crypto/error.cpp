@@ -5,7 +5,7 @@
 
 #include <libp2p/crypto/error.hpp>
 
-OUTCOME_CPP_DEFINE_CATEGORY(libp2p::crypto, CryptoProviderError, e) {
+OUTCOME_CPP_DEFINE_CATEGORY_3(libp2p::crypto, CryptoProviderError, e) {
   using libp2p::crypto::CryptoProviderError;
   switch (e) {
     case CryptoProviderError::INVALID_KEY_TYPE:
@@ -22,7 +22,7 @@ OUTCOME_CPP_DEFINE_CATEGORY(libp2p::crypto, CryptoProviderError, e) {
   return "unknown CryptoProviderError code";
 }
 
-OUTCOME_CPP_DEFINE_CATEGORY(libp2p::crypto, OpenSslError, e) {
+OUTCOME_CPP_DEFINE_CATEGORY_3(libp2p::crypto, OpenSslError, e) {
   using libp2p::crypto::OpenSslError;
   switch (e) {
     case OpenSslError::FAILED_INITIALIZE_CONTEXT:
@@ -47,7 +47,7 @@ OUTCOME_CPP_DEFINE_CATEGORY(libp2p::crypto, OpenSslError, e) {
   return "unknown CryptoProviderError code";
 }
 
-OUTCOME_CPP_DEFINE_CATEGORY(libp2p::crypto, HmacProviderError, e) {
+OUTCOME_CPP_DEFINE_CATEGORY_3(libp2p::crypto, HmacProviderError, e) {
   using libp2p::crypto::HmacProviderError;
   switch (e) {
     case HmacProviderError::UNSUPPORTED_HASH_METHOD:
@@ -66,7 +66,7 @@ OUTCOME_CPP_DEFINE_CATEGORY(libp2p::crypto, HmacProviderError, e) {
   return "unknown HmacProviderError code";
 }
 
-OUTCOME_CPP_DEFINE_CATEGORY(libp2p::crypto, RandomProviderError, e) {
+OUTCOME_CPP_DEFINE_CATEGORY_3(libp2p::crypto, RandomProviderError, e) {
   using libp2p::crypto::RandomProviderError;
   switch (e) {
     case RandomProviderError::FAILED_OPEN_FILE:
@@ -81,7 +81,7 @@ OUTCOME_CPP_DEFINE_CATEGORY(libp2p::crypto, RandomProviderError, e) {
   return "unknown RandomProviderError code";
 }
 
-OUTCOME_CPP_DEFINE_CATEGORY(libp2p::crypto, KeyGeneratorError, e) {
+OUTCOME_CPP_DEFINE_CATEGORY_3(libp2p::crypto, KeyGeneratorError, e) {
   using libp2p::crypto::KeyGeneratorError;
   switch (e) {
     case KeyGeneratorError::CANNOT_GENERATE_UNSPECIFIED:
@@ -116,7 +116,7 @@ OUTCOME_CPP_DEFINE_CATEGORY(libp2p::crypto, KeyGeneratorError, e) {
   return "unknown key generation error";
 }
 
-OUTCOME_CPP_DEFINE_CATEGORY(libp2p::crypto, KeyValidatorError, e) {
+OUTCOME_CPP_DEFINE_CATEGORY_3(libp2p::crypto, KeyValidatorError, e) {
   using libp2p::crypto::KeyValidatorError;
   switch (e) {
     case KeyValidatorError::WRONG_PUBLIC_KEY_SIZE:

@@ -17,6 +17,6 @@ namespace libp2p::basic {
   };
 }
 
-OUTCOME_HPP_DECLARE_ERROR(libp2p::basic, MessageReadWriterError)
+OUTCOME_HPP_DECLARE_ERROR_2(libp2p::basic, MessageReadWriterError)
 
 #endif  // LIBP2P_MESSAGE_READ_WRITER_ERROR_HPP

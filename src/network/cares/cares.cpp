@@ -9,7 +9,9 @@
 #include <stdexcept>
 #include <thread>
 
-OUTCOME_CPP_DEFINE_CATEGORY(libp2p::network::c_ares, Ares::Error, e) {
+#include <arpa/nameser.h>
+
+OUTCOME_CPP_DEFINE_CATEGORY_3(libp2p::network::c_ares, Ares::Error, e) {
   using E = libp2p::network::c_ares::Ares::Error;
   switch (e) {
     case E::NOT_INITIALIZED:
@@ -71,7 +73,7 @@ namespace libp2p::network::c_ares {
   Ares::Ares() {
     bool expected{false};
     bool first_init = initialized_.compare_exchange_strong(expected, true);
-    if (not first_init) {
+    if (!first_init) {
       // atomic change failed, thus it was already initialized
       SL_DEBUG(log(), "C-ares library got initialized more than once");
     } else if (auto status = ::ares_library_init(ARES_LIB_INIT_ALL);
@@ -96,7 +98,7 @@ namespace libp2p::network::c_ares {
       const std::string &uri,
       const std::weak_ptr<boost::asio::io_context> &io_context,
       Ares::TxtCallback callback) {
-    if (not initialized_.load()) {
+    if (!initialized_.load()) {
       SL_DEBUG(
           log(),
           "Unable to execute DNS TXT request to {} due to c-ares library is "

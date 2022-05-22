@@ -34,7 +34,7 @@ namespace libp2p::security::secio {
 
 }  // namespace libp2p::security::secio
 
-OUTCOME_HPP_DECLARE_ERROR(libp2p::security::secio,
+OUTCOME_HPP_DECLARE_ERROR_2(libp2p::security::secio,
                           ExchangeMessageMarshallerImpl::Error);
 
 #endif  // LIBP2P_SECIO_EXCHANGE_MESSAGE_MARSHALLER_IMPL_HPP

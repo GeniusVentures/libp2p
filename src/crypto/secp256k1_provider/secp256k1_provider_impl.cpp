@@ -14,6 +14,8 @@
 #include "libp2p/crypto/error.hpp"
 #include "libp2p/crypto/sha/sha256.hpp"
 
+#include "platform/platform.hpp"
+
 namespace libp2p::crypto::secp256k1 {
   outcome::result<KeyPair> Secp256k1ProviderImpl::generate() const {
     PublicKey public_key{};

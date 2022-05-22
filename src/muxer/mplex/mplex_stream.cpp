@@ -137,7 +137,7 @@ namespace libp2p::connection {
           std::lock_guard<std::mutex> lock(self->write_queue_mutex_);
           // check if new write messages were received while stream was writing
           // and propagate these messages
-          if (not self->write_queue_.empty()) {
+          if (!self->write_queue_.empty()) {
             auto [in, bytes, cb] = self->write_queue_.front();
             self->write_queue_.pop_front();
             self->write(in, bytes, cb);

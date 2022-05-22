@@ -103,7 +103,7 @@ namespace libp2p::protocol::kademlia {
         std::shared_ptr<event::Bus> bus);
 
     outcome::result<bool> update(const peer::PeerId &pid, bool is_permanent,
-                                 bool is_connected = false) override;
+                                 bool is_connected=false) override;
 
     void remove(const peer::PeerId &peer_id) override;
 
@@ -130,7 +130,7 @@ namespace libp2p::protocol::kademlia {
 
 }  // namespace libp2p::protocol::kademlia
 
-OUTCOME_HPP_DECLARE_ERROR(libp2p::protocol::kademlia,
+OUTCOME_HPP_DECLARE_ERROR_2(libp2p::protocol::kademlia,
                           PeerRoutingTableImpl::Error);
 
 #endif  // LIBP2P_PROTOCOL_KADEMLIA_PEERROUTINGTABLEIMPL

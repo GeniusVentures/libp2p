@@ -115,6 +115,6 @@ namespace libp2p::crypto {
   };
 }  // namespace libp2p::crypto
 
-OUTCOME_HPP_DECLARE_ERROR(libp2p::crypto, CryptoProviderImpl::Error)
+OUTCOME_HPP_DECLARE_ERROR_2(libp2p::crypto, CryptoProviderImpl::Error)
 
 #endif  // LIBP2P_CRYPTO_PROVIDER_CRYPTO_PROVIDER_IMPL_HPP

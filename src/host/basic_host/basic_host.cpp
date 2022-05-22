@@ -70,7 +70,7 @@ namespace libp2p::host {
           }
         }
       }
-      if (not is_good_addr) {
+      if (!is_good_addr) {
         i = unique_addresses.erase(i);
       } else {
         ++i;
@@ -178,8 +178,9 @@ namespace libp2p::host {
   event::Handle BasicHost::setOnNewConnectionHandler(
       const NewConnectionHandler &h) const {
     return bus_->getChannel<event::network::OnNewConnectionChannel>().subscribe(
-        [h{std::move(h)}](auto &&conn) {
-          if (auto connection = conn.lock()) {
+        [h{std::move(h)}](const std::weak_ptr<connection::CapableConnection>& conn) {
+          auto connection = conn.lock();
+          if (connection) {
             auto remote_peer_res = connection->remotePeer();
             if (!remote_peer_res)
               return;

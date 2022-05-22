@@ -38,7 +38,7 @@ namespace libp2p::protocol::kademlia {
     auto [begin, end] = idx.equal_range(key);
     for (auto it = begin; it != end; ++it) {
       result.push_back(it->peer);
-      if (limit > 0 and result.size() >= limit) {
+      if (limit > 0 && result.size() >= limit) {
         break;
       }
     }

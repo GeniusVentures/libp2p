@@ -148,6 +148,6 @@ namespace std {
   };
 }  // namespace std
 
-OUTCOME_HPP_DECLARE_ERROR(libp2p::multi, Multihash::Error);
+OUTCOME_HPP_DECLARE_ERROR_2(libp2p::multi, Multihash::Error);
 
 #endif  // LIBP2P_MULTIHASH_HPP

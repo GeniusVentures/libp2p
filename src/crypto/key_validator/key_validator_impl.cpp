@@ -6,6 +6,7 @@
 #include <libp2p/crypto/key_validator/key_validator_impl.hpp>
 
 #include <openssl/x509.h>
+#include <openssl/rsa.h>
 #include <gsl/gsl_util>
 #include <libp2p/common/hexutil.hpp>
 #include <libp2p/crypto/error.hpp>

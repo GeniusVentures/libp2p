@@ -39,7 +39,7 @@ namespace libp2p::security::noise {
   };
 }  // namespace libp2p::security::noise
 
-OUTCOME_HPP_DECLARE_ERROR(libp2p::security::noise,
+OUTCOME_HPP_DECLARE_ERROR_2(libp2p::security::noise,
                           HandshakeMessageMarshallerImpl::Error);
 
 #endif  // LIBP2P_INCLUDE_LIBP2P_SECURITY_NOISE_HANDSHAKE_MESSAGE_MARSHALLER_IMPL_HPP

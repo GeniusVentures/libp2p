@@ -45,7 +45,7 @@ class Session : public std::enable_shared_from_this<Session> {
         gsl::span(incoming_->data(), static_cast<ssize_t>(incoming_->size())),
         incoming_->size(),
         [self = shared_from_this()](libp2p::outcome::result<size_t> result) {
-          if (not result) {
+          if (!result) {
             self->close();
             std::cout << self->stream_->remotePeerId().value().toBase58()
                       << " - closed at reading" << std::endl;
@@ -72,7 +72,7 @@ class Session : public std::enable_shared_from_this<Session> {
         buffer->size(),
         [self = shared_from_this(),
          buffer](libp2p::outcome::result<size_t> result) {
-          if (not result) {
+          if (!result) {
             self->close();
             std::cout << self->stream_->remotePeerId().value().toBase58()
                       << " - closed at writting" << std::endl;
@@ -109,7 +109,7 @@ bool Cmp::operator()(const std::shared_ptr<Session> &lhs,
 
 void handleIncomingStream(
     libp2p::protocol::BaseProtocol::StreamResult stream_res) {
-  if (not stream_res) {
+  if (!stream_res) {
     std::cerr << " ! incoming connection failed: "
               << stream_res.error().message() << std::endl;
     return;
@@ -135,7 +135,7 @@ void handleIncomingStream(
 
 void handleOutgoingStream(
     libp2p::protocol::BaseProtocol::StreamResult stream_res) {
-  if (not stream_res) {
+  if (!stream_res) {
     std::cerr << " ! outgoing connection failed: "
               << stream_res.error().message() << std::endl;
     return;
@@ -185,7 +185,7 @@ int main(int argc, char *argv[]) {
           // Additional logging config for application
           logger_config));
   auto r = logging_system->configure();
-  if (not r.message.empty()) {
+  if (!r.message.empty()) {
     (r.has_error ? std::cerr : std::cout) << r.message << std::endl;
   }
   if (r.has_error) {
@@ -196,20 +196,20 @@ int main(int argc, char *argv[]) {
   if (std::getenv("TRACE_DEBUG") != nullptr) {
     libp2p::log::setLevelOfGroup("main", soralog::Level::TRACE);
   } else {
-    libp2p::log::setLevelOfGroup("main", soralog::Level::ERROR);
+    libp2p::log::setLevelOfGroup("main", soralog::Level::ERROR_);
   }
 
   // resulting PeerId should be
   // 12D3KooWEgUjBV5FJAuBSoNMRYFRHjV7PjZwRQ7b43EKX9g7D6xV
   libp2p::crypto::KeyPair kp = {
       // clang-format off
-      .publicKey = {{
-        .type = libp2p::crypto::Key::Type::Ed25519,
-        .data = libp2p::common::unhex("48453469c62f4885373099421a7365520b5ffb0d93726c124166be4b81d852e6").value()
+      /*.publicKey =*/ {{
+        /*.type =*/ libp2p::crypto::Key::Type::Ed25519,
+        /*.data =*/ libp2p::common::unhex("48453469c62f4885373099421a7365520b5ffb0d93726c124166be4b81d852e6").value()
       }},
-      .privateKey = {{
-        .type = libp2p::crypto::Key::Type::Ed25519,
-        .data = libp2p::common::unhex("4a9361c525840f7086b893d584ebbe475b4ec7069951d2e897e8bceb0a3f35ce").value()
+      /*.privateKey =*/ {{
+        /*.type =*/ libp2p::crypto::Key::Type::Ed25519,
+        /*.data =*/ libp2p::common::unhex("4a9361c525840f7086b893d584ebbe475b4ec7069951d2e897e8bceb0a3f35ce").value()
       }},
       // clang-format on
   };
@@ -265,7 +265,7 @@ int main(int argc, char *argv[]) {
       v.reserve(addresses_by_peer_id.size());
       for (auto &i : addresses_by_peer_id) {
         v.emplace_back(libp2p::peer::PeerInfo{
-            .id = i.first, .addresses = {std::move(i.second)}});
+        /*.id =*/ i.first, /*.addresses =*/ {std::move(i.second)}});
       }
 
       return v;
@@ -305,7 +305,7 @@ int main(int argc, char *argv[]) {
                           find_providers)
                 .detach();
 
-            if (not res) {
+            if (!res) {
               std::cerr << "Cannot find providers: " << res.error().message()
                         << std::endl;
               return;
@@ -320,7 +320,7 @@ int main(int argc, char *argv[]) {
 
     std::function<void()> provide = [&, content_id] {
       [[maybe_unused]] auto res =
-          kademlia->provide(content_id, not kademlia_config.passiveMode);
+          kademlia->provide(content_id, !kademlia_config.passiveMode);
 
       scheduler
           .schedule(libp2p::protocol::scheduler::toTicks(
@@ -331,7 +331,7 @@ int main(int argc, char *argv[]) {
 
     io->post([&] {
       auto listen = host->listen(ma);
-      if (not listen) {
+      if (!listen) {
         std::cerr << "Cannot listen address " << ma.getStringAddress().data()
                   << ". Error: " << listen.error().message() << std::endl;
         std::exit(EXIT_FAILURE);

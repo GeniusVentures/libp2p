@@ -8,7 +8,10 @@ endfunction()
 function(addtest test_name)
   add_executable(${test_name} ${ARGN})
   addtest_part(${test_name} ${ARGN})
-  target_link_libraries(${test_name} GTest::gmock_main)
+  target_link_libraries(${test_name}
+      GTest::main
+      GMock::main
+      )
   add_test(
       NAME ${test_name}
       COMMAND $<TARGET_FILE:${test_name}>
@@ -46,27 +49,19 @@ function(compile_proto_to_cpp PROTO_LIBRARY_NAME PB_H PB_CC PROTO)
   if (NOT Protobuf_INCLUDE_DIR)
     get_target_property(Protobuf_INCLUDE_DIR protobuf::libprotobuf INTERFACE_INCLUDE_DIRECTORIES)
   endif()
-  if (NOT Protobuf_INCLUDE_DIR)
-    message(FATAL_ERROR "Protobuf_INCLUDE_DIR is empty")
-  endif ()
-
   if (NOT Protobuf_PROTOC_EXECUTABLE)
     get_target_property(Protobuf_PROTOC_EXECUTABLE protobuf::protoc IMPORTED_LOCATION_RELEASE)
     set(PROTOBUF_DEPENDS protobuf::protoc)
   endif()
-  if (NOT Protobuf_PROTOC_EXECUTABLE)
-    get_target_property(Protobuf_PROTOC_EXECUTABLE protobuf::protoc IMPORTED_LOCATION_DEBUG)
-    set(PROTOBUF_DEPENDS protobuf::protoc)
-  endif()
-  if (NOT Protobuf_PROTOC_EXECUTABLE)
-    get_target_property(Protobuf_PROTOC_EXECUTABLE protobuf::protoc IMPORTED_LOCATION)
-    set(PROTOBUF_DEPENDS protobuf::protoc)
-  endif()
+
   if (NOT Protobuf_PROTOC_EXECUTABLE)
     message(FATAL_ERROR "Protobuf_PROTOC_EXECUTABLE is empty")
   endif ()
+  if (NOT Protobuf_INCLUDE_DIR)
+    message(FATAL_ERROR "Protobuf_INCLUDE_DIR is empty")
+  endif ()
 
-  get_filename_component(PROTO_ABS "${PROTO}" ABSOLUTE)
+  get_filename_component(PROTO_ABS "${PROTO}" REALPATH)
   # get relative (to CMAKE_BINARY_DIR) path of current proto file
   file(RELATIVE_PATH SCHEMA_REL "${CMAKE_BINARY_DIR}/src" "${CMAKE_CURRENT_BINARY_DIR}")
 
@@ -89,7 +84,7 @@ function(compile_proto_to_cpp PROTO_LIBRARY_NAME PB_H PB_CC PROTO)
       COMMAND ${GEN_COMMAND}
       ARGS -I${PROJECT_SOURCE_DIR}/src -I${GEN_ARGS} --cpp_out=${SCHEMA_OUT_DIR} ${PROTO_ABS}
       WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
-      DEPENDS ${PROTOBUF_DEPENDS} ${PROTO_ABS}
+      DEPENDS ${PROTOBUF_DEPENDS}
       VERBATIM
   )
 

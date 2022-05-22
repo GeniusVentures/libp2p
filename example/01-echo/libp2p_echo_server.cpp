@@ -38,7 +38,7 @@ groups:
 bool isInsecure(int argc, char **argv) {
   if (2 == argc) {
     const std::string insecure{"-insecure"};
-    auto args = gsl::multi_span<char *>(argv, argc);
+    auto args = gsl::span<char *>{argv, argc};
     if (insecure == args[1]) {
       return true;
     }
@@ -57,7 +57,7 @@ ServerContext initSecureServer(const libp2p::crypto::KeyPair &keypair) {
       libp2p::injector::useSecurityAdaptors<libp2p::security::Noise>());
   auto host = injector.create<std::shared_ptr<libp2p::Host>>();
   auto context = injector.create<std::shared_ptr<boost::asio::io_context>>();
-  return {.host = host, .io_context = context};
+  return {/*.host =*/ host, /*.io_context =*/ context};
 }
 
 ServerContext initInsecureServer(const libp2p::crypto::KeyPair &keypair) {
@@ -66,7 +66,7 @@ ServerContext initInsecureServer(const libp2p::crypto::KeyPair &keypair) {
       libp2p::injector::useSecurityAdaptors<libp2p::security::Plaintext>());
   auto host = injector.create<std::shared_ptr<libp2p::Host>>();
   auto context = injector.create<std::shared_ptr<boost::asio::io_context>>();
-  return {.host = host, .io_context = context};
+  return {/*.host =*/ host, /*.io_context =*/ context};
 }
 
 int main(int argc, char **argv) {
@@ -84,7 +84,7 @@ int main(int argc, char **argv) {
           // Additional logging config for application
           logger_config));
   auto r = logging_system->configure();
-  if (not r.message.empty()) {
+  if (!r.message.empty()) {
     (r.has_error ? std::cerr : std::cout) << r.message << std::endl;
   }
   if (r.has_error) {
@@ -95,7 +95,7 @@ int main(int argc, char **argv) {
   if (std::getenv("TRACE_DEBUG") != nullptr) {
     libp2p::log::setLevelOfGroup("main", soralog::Level::TRACE);
   } else {
-    libp2p::log::setLevelOfGroup("main", soralog::Level::ERROR);
+    libp2p::log::setLevelOfGroup("main", soralog::Level::ERROR_);
   }
 
   // resulting PeerId should be
@@ -121,9 +121,9 @@ int main(int argc, char **argv) {
 
   // set a handler for Echo protocol
   libp2p::protocol::Echo echo{libp2p::protocol::EchoConfig{
-      .max_server_repeats =
+      /*.max_server_repeats =*/
           libp2p::protocol::EchoConfig::kInfiniteNumberOfRepeats,
-      .max_recv_size =
+      /*.max_recv_size =*/
           libp2p::muxer::MuxedConnectionConfig::kDefaultMaxWindowSize}};
   server.host->setProtocolHandler(
       echo.getProtocolId(),
