@@ -183,8 +183,8 @@ namespace libp2p::security::tls_details {
     }
 
     void assignIssuer(X509 *cert) {
-      X509_gmtime_adj(X509_get_notBefore(cert), 0);
-      X509_gmtime_adj(X509_get_notAfter(cert), 10LL * 60 * 60 * 24 * 365);
+      X509_gmtime_adj(X509_getm_notBefore(cert), 0);
+      X509_gmtime_adj(X509_getm_notAfter(cert), 10LL * 60 * 60 * 24 * 365);
       X509_NAME *name = X509_get_subject_name(cert);
       if (name == nullptr) {
         throw std::runtime_error("cannot get certificate subject name");
