@@ -108,9 +108,9 @@ namespace libp2p::security::secio {
 
   outcome::result<Dialer::Algorithm> Dialer::determineCommonAlgorithm(
       const ProposeMessage &local, const ProposeMessage &remote) {
-    OUTCOME_TRY(local_peer_is_preferred, determineRoles(local, remote));
+    OUTCOME_TRY((auto &&, local_peer_is_preferred), determineRoles(local, remote));
     local_peer_is_preferred_ = local_peer_is_preferred;
-    OUTCOME_TRY(chosen_algorithm,
+    OUTCOME_TRY((auto &&, chosen_algorithm),
                 findCommonAlgo(local, remote, local_peer_is_preferred));
     chosen_algorithm_ = chosen_algorithm;
     return chosen_algorithm;
@@ -145,10 +145,10 @@ namespace libp2p::security::secio {
       return Error::INTERNAL_FAILURE;
     }
 
-    OUTCOME_TRY(remote_propose,
+    OUTCOME_TRY((auto &&, remote_propose),
                 propose_marshaller->unmarshal(*remote_peer_proposal_bytes_));
     crypto::ProtobufKey proto_public_key{remote_propose.pubkey};
-    OUTCOME_TRY(public_key,
+    OUTCOME_TRY((auto &&, public_key),
                 key_marshaller->unmarshalPublicKey(proto_public_key));
 
     return std::move(public_key);  // looks like it is legal to move here due to
@@ -160,7 +160,7 @@ namespace libp2p::security::secio {
     if (!ekey_pair_) {
       return Error::INTERNAL_FAILURE;
     }
-    OUTCOME_TRY(shared_secret,
+    OUTCOME_TRY((auto &&, shared_secret),
                 ekey_pair_.get().shared_secret_generator(
                     std::move(remote_ephemeral_public_key)));
     return std::move(shared_secret);
@@ -193,8 +193,8 @@ namespace libp2p::security::secio {
     std::copy(remote.rand.begin(), remote.rand.end(),
               std::back_inserter(corpus2));
 
-    OUTCOME_TRY(oh1, crypto::sha256(corpus1));
-    OUTCOME_TRY(oh2, crypto::sha256(corpus2));
+    OUTCOME_TRY((auto &&, oh1), crypto::sha256(corpus1));
+    OUTCOME_TRY((auto &&, oh2), crypto::sha256(corpus2));
 
     if (oh1 == oh2) {
       return Error::PEER_COMMUNICATING_ITSELF;

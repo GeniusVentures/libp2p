@@ -64,7 +64,7 @@ namespace libp2p::multi::converters {
           return ConversionError::NO_SUCH_PROTOCOL;
         }
       } else {
-        OUTCOME_TRY(val, addressToHex(*protx, word));
+        OUTCOME_TRY((auto &&, val), addressToHex(*protx, word));
         processed += val;
         protx = nullptr;  // Since right now it doesn't need that
         // assignment anymore.
@@ -155,13 +155,13 @@ namespace libp2p::multi::converters {
             case Protocol::Code::DNS_ADDR: {
               // fetch the size of the address based on the varint prefix
               auto prefixedvarint = hex.substr(lastpos, 2);
-              OUTCOME_TRY(prefixBytes, unhex(prefixedvarint));
+              OUTCOME_TRY((auto &&, prefixBytes), unhex(prefixedvarint));
 
               auto addrsize = UVarint(prefixBytes).toUInt64();
 
               // get the ipfs address as hex values
               auto hex_domain_name = hex.substr(lastpos + 2, addrsize * 2);
-              OUTCOME_TRY(domain_name, unhex(hex_domain_name));
+              OUTCOME_TRY((auto &&, domain_name), unhex(hex_domain_name));
 
               lastpos += addrsize * 2 + 2;
 
@@ -190,7 +190,7 @@ namespace libp2p::multi::converters {
 
             case Protocol::Code::IP6: {
               // Add IP
-              OUTCOME_TRY(addr_bytes, unhex(address));
+              OUTCOME_TRY((auto &&, addr_bytes), unhex(address));
               std::array<uint8_t, 16> arr{};
               std::copy_n(addr_bytes.begin(), 16, arr.begin());
               results += "/";
@@ -223,7 +223,7 @@ namespace libp2p::multi::converters {
         lastpos = lastpos + 4;
         // fetch the size of the address based on the varint prefix
         auto prefixedvarint = hex.substr(lastpos, 2);
-        OUTCOME_TRY(prefixBytes, unhex(prefixedvarint));
+        OUTCOME_TRY((auto &&, prefixBytes), unhex(prefixedvarint));
 
         auto addrsize = UVarint(prefixBytes).toUInt64();
 
@@ -231,7 +231,7 @@ namespace libp2p::multi::converters {
         auto ipfsAddr = hex.substr(lastpos + 2, addrsize * 2);
 
         // convert the address from hex values to a binary array
-        OUTCOME_TRY(addrbuf, unhex(ipfsAddr));
+        OUTCOME_TRY((auto &&, addrbuf), unhex(ipfsAddr));
         auto encode_res = MultibaseCodecImpl{}.encode(
             addrbuf, MultibaseCodecImpl::Encoding::BASE58);
         encode_res.erase(0, 1);  // because multibase contains a char that

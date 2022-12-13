@@ -29,7 +29,7 @@ namespace libp2p::security::noise {
       const HandshakeMessage &msg) const {
     protobuf::NoiseHandshakePayload proto_msg;
 
-    OUTCOME_TRY(proto_pubkey_bytes, marshaller_->marshal(msg.identity_key));
+    OUTCOME_TRY((auto &&, proto_pubkey_bytes), marshaller_->marshal(msg.identity_key));
     proto_msg.set_identity_key(proto_pubkey_bytes.key.data(),
                                proto_pubkey_bytes.key.size());
     proto_msg.set_identity_sig(msg.identity_sig.data(),
@@ -44,7 +44,7 @@ namespace libp2p::security::noise {
     common::ByteArray key_bytes{proto_msg.identity_key().begin(),
                                 proto_msg.identity_key().end()};
     crypto::ProtobufKey proto_key{std::move(key_bytes)};
-    OUTCOME_TRY(pubkey, marshaller_->unmarshalPublicKey(proto_key));
+    OUTCOME_TRY((auto &&, pubkey), marshaller_->unmarshalPublicKey(proto_key));
 
     //return std::make_pair(
     //    HandshakeMessage{
@@ -66,7 +66,7 @@ namespace libp2p::security::noise {
 
   outcome::result<common::ByteArray> HandshakeMessageMarshallerImpl::marshal(
       const HandshakeMessage &msg) const {
-    OUTCOME_TRY(proto_msg, handyToProto(msg));
+    OUTCOME_TRY((auto &&, proto_msg), handyToProto(msg));
     common::ByteArray out_msg(proto_msg.ByteSizeLong());
     if (!proto_msg.SerializeToArray(out_msg.data(), out_msg.size())) {
       return Error::MESSAGE_SERIALIZING_ERROR;

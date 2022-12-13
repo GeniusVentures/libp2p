@@ -177,12 +177,12 @@ namespace libp2p::connection {
   }
 
   outcome::result<libp2p::peer::PeerId> NoiseConnection::localPeer() const {
-    OUTCOME_TRY(proto_local_key, key_marshaller_->marshal(local_));
+    OUTCOME_TRY((auto &&, proto_local_key), key_marshaller_->marshal(local_));
     return peer::PeerId::fromPublicKey(proto_local_key);
   }
 
   outcome::result<libp2p::peer::PeerId> NoiseConnection::remotePeer() const {
-    OUTCOME_TRY(proto_remote_key, key_marshaller_->marshal(remote_));
+    OUTCOME_TRY((auto &&, proto_remote_key), key_marshaller_->marshal(remote_));
     return peer::PeerId::fromPublicKey(proto_remote_key);
   }
 

@@ -77,9 +77,9 @@ outcome::result<int> divide(int a, int b) {
 
 outcome::result<int> convert_and_divide(const std::string &a,
                                         const std::string &b) {
-  OUTCOME_TRY(valA, convert(a));
-  OUTCOME_TRY(valB, convert(b));
-  OUTCOME_TRY(valDiv, divide(valA, valB));
+  OUTCOME_TRY((auto &&, valA), convert(a));
+  OUTCOME_TRY((auto &&, valB), convert(b));
+  OUTCOME_TRY((auto &&, valDiv), divide(valA, valB));
   return valDiv;
 }
 

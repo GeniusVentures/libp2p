@@ -61,7 +61,7 @@ namespace libp2p::crypto::marshaller {
   outcome::result<ProtobufKey> KeyMarshallerImpl::marshal(
       const PublicKey &key) const {
     protobuf::PublicKey protobuf_key;
-    OUTCOME_TRY(type, marshalKeyType(key.type));
+    OUTCOME_TRY((auto &&, type), marshalKeyType(key.type));
     protobuf_key.set_type(type);
     protobuf_key.set_data(key.data.data(), key.data.size());
 
@@ -72,7 +72,7 @@ namespace libp2p::crypto::marshaller {
   outcome::result<ProtobufKey> KeyMarshallerImpl::marshal(
       const PrivateKey &key) const {
     protobuf::PrivateKey protobuf_key;
-    OUTCOME_TRY(type, marshalKeyType(key.type));
+    OUTCOME_TRY((auto &&, type), marshalKeyType(key.type));
     protobuf_key.set_type(type);
     protobuf_key.set_data(key.data.data(), key.data.size());
 
@@ -88,7 +88,7 @@ namespace libp2p::crypto::marshaller {
       return CryptoProviderError::FAILED_UNMARSHAL_DATA;
     }
 
-    OUTCOME_TRY(type, unmarshalKeyType(protobuf_key.type()));
+    OUTCOME_TRY((auto &&, type), unmarshalKeyType(protobuf_key.type()));
     auto key = PublicKey{
         {type, {protobuf_key.data().begin(), protobuf_key.data().end()}}};
 
@@ -105,7 +105,7 @@ namespace libp2p::crypto::marshaller {
       return CryptoProviderError::FAILED_UNMARSHAL_DATA;
     }
 
-    OUTCOME_TRY(type, unmarshalKeyType(protobuf_key.type()));
+    OUTCOME_TRY((auto &&, type), unmarshalKeyType(protobuf_key.type()));
     auto key = PrivateKey{
         {type, {protobuf_key.data().begin(), protobuf_key.data().end()}}};
 

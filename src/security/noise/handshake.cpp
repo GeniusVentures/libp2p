@@ -97,7 +97,7 @@ namespace libp2p::security::noise {
     std::copy(prefix.begin(), prefix.end(), std::back_inserter(to_sign));
     std::copy(pubkey.begin(), pubkey.end(), std::back_inserter(to_sign));
 
-    OUTCOME_TRY(signed_payload,
+    OUTCOME_TRY((auto &&, signed_payload),
                 crypto_provider_->sign(to_sign, local_key_.privateKey));
     security::noise::HandshakeMessage payload{
         /*.identity_key =*/ local_key_.publicKey,
@@ -138,8 +138,8 @@ namespace libp2p::security::noise {
 
   outcome::result<void> Handshake::handleRemoteHandshakePayload(
       gsl::span<const uint8_t> payload) {
-    OUTCOME_TRY(remote_payload, noise_marshaller_->unmarshal(payload));
-    OUTCOME_TRY(remote_id, peer::PeerId::fromPublicKey(remote_payload.second));
+    OUTCOME_TRY((auto &&, remote_payload), noise_marshaller_->unmarshal(payload));
+    OUTCOME_TRY((auto &&, remote_id), peer::PeerId::fromPublicKey(remote_payload.second));
     auto &&handy_payload = remote_payload.first;
     if (initiator_ && remote_peer_id_ != remote_id) {
       SL_DEBUG(log_,
@@ -152,10 +152,10 @@ namespace libp2p::security::noise {
                       + handy_payload.identity_key.data.size());
     std::copy(kPayloadPrefix.begin(), kPayloadPrefix.end(),
               std::back_inserter(to_verify));
-    OUTCOME_TRY(remote_static, handshake_state_->remotePeerStaticPubkey());
+    OUTCOME_TRY((auto &&, remote_static), handshake_state_->remotePeerStaticPubkey());
     std::copy(remote_static.begin(), remote_static.end(),
               std::back_inserter(to_verify));
-    OUTCOME_TRY(signature_correct,
+    OUTCOME_TRY((auto &&, signature_correct),
                 crypto_provider_->verify(to_verify, handy_payload.identity_sig,
                                          handy_payload.identity_key));
     if (!signature_correct) {
@@ -169,11 +169,11 @@ namespace libp2p::security::noise {
 
   outcome::result<void> Handshake::runHandshake() {
     auto cipher_suite = defaultCipherSuite();
-    OUTCOME_TRY(keypair, cipher_suite->generate());
+    OUTCOME_TRY((auto &&, keypair), cipher_suite->generate());
     HandshakeStateConfig config(defaultCipherSuite(), handshakeXX, initiator_,
                                 keypair);
     OUTCOME_TRY(handshake_state_->init(std::move(config)));
-    OUTCOME_TRY(payload, generateHandshakePayload(keypair));
+    OUTCOME_TRY((auto &&, payload), generateHandshakePayload(keypair));
     const size_t dh25519_len = 32;
     const size_t poly1305_tag_size = 16;
     const size_t length_prefix_size = 2;

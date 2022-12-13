@@ -72,12 +72,12 @@ namespace libp2p::protocol::gossip {
 
   outcome::result<void> GossipCore::addBootstrapPeer(
       const std::string &address) {
-    OUTCOME_TRY(ma, libp2p::multi::Multiaddress::create(address));
+    OUTCOME_TRY((auto &&, ma), libp2p::multi::Multiaddress::create(address));
     auto peer_id_str = ma.getPeerId();
     if (!peer_id_str) {
       return multi::Multiaddress::Error::INVALID_INPUT;
     }
-    OUTCOME_TRY(peer_id, peer::PeerId::fromBase58(*peer_id_str));
+    OUTCOME_TRY((auto &&, peer_id), peer::PeerId::fromBase58(*peer_id_str));
     addBootstrapPeer(peer_id, {std::move(ma)});
     return outcome::success();
   }
@@ -188,12 +188,12 @@ namespace libp2p::protocol::gossip {
 
   outcome::result<void> GossipCore::signMessage(TopicMessage &msg) const {
     const auto &keypair = idmgr_->getKeyPair();
-    OUTCOME_TRY(signable, MessageBuilder::signableMessage(msg));
-    OUTCOME_TRY(signature,
+    OUTCOME_TRY((auto &&, signable), MessageBuilder::signableMessage(msg));
+    OUTCOME_TRY((auto &&, signature),
                 crypto_provider_->sign(signable, keypair.privateKey));
     msg.signature = std::move(signature);
     if (idmgr_->getId().toMultihash().getType() != multi::HashType::identity) {
-      OUTCOME_TRY(key, key_marshaller_->marshal(keypair.publicKey));
+      OUTCOME_TRY((auto &&, key), key_marshaller_->marshal(keypair.publicKey));
       msg.key = std::move(key.key);
     }
     return outcome::success();

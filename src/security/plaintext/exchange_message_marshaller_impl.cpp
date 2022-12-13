@@ -36,7 +36,7 @@ namespace libp2p::security::plaintext {
       const ExchangeMessage &msg) const {
     plaintext::protobuf::Exchange exchange_msg;
 
-    OUTCOME_TRY(proto_pubkey_bytes, marshaller_->marshal(msg.pubkey));
+    OUTCOME_TRY((auto &&, proto_pubkey_bytes), marshaller_->marshal(msg.pubkey));
     if (!exchange_msg.mutable_pubkey()->ParseFromArray(
             proto_pubkey_bytes.key.data(), proto_pubkey_bytes.key.size())) {
       return Error::PUBLIC_KEY_SERIALIZING_ERROR;
@@ -58,11 +58,11 @@ namespace libp2p::security::plaintext {
       return Error::PUBLIC_KEY_SERIALIZING_ERROR;
     }
     crypto::ProtobufKey proto_pubkey{pubkey_message_bytes};
-    OUTCOME_TRY(pubkey, marshaller_->unmarshalPublicKey(proto_pubkey));
+    OUTCOME_TRY((auto &&, pubkey), marshaller_->unmarshalPublicKey(proto_pubkey));
 
     std::vector<uint8_t> peer_id_bytes(proto_msg.id().begin(),
                                        proto_msg.id().end());
-    OUTCOME_TRY(peer_id, peer::PeerId::fromBytes(peer_id_bytes));
+    OUTCOME_TRY((auto &&, peer_id), peer::PeerId::fromBytes(peer_id_bytes));
 
     return {ExchangeMessage{/*.pubkey =*/ pubkey, /*.peer_id =*/ peer_id},
             proto_pubkey};
@@ -70,7 +70,7 @@ namespace libp2p::security::plaintext {
 
   outcome::result<std::vector<uint8_t>> ExchangeMessageMarshallerImpl::marshal(
       const ExchangeMessage &msg) const {
-    OUTCOME_TRY(exchange_msg, handyToProto(msg));
+    OUTCOME_TRY((auto &&, exchange_msg), handyToProto(msg));
 
     std::vector<uint8_t> out_msg(exchange_msg.ByteSizeLong());
     if (!exchange_msg.SerializeToArray(out_msg.data(), out_msg.size())) {

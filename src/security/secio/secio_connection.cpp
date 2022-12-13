@@ -111,11 +111,11 @@ namespace libp2p::connection {
     using AesCtrMode = crypto::aes::AesCtrImpl::Mode;
     if (cipher_type_ == CT::AES128) {
       OUTCOME_TRY(
-          local_128,
+              (auto &&, local_128),
           initAesSecret<crypto::common::Aes128Secret>(
               local_stretched_key_.cipher_key, local_stretched_key_.iv));
       OUTCOME_TRY(
-          remote_128,
+              (auto &&, remote_128),
           initAesSecret<crypto::common::Aes128Secret>(
               remote_stretched_key_.cipher_key, remote_stretched_key_.iv));
       local_encryptor_ = std::make_unique<crypto::aes::AesCtrImpl>(
@@ -124,11 +124,11 @@ namespace libp2p::connection {
           remote_128, AesCtrMode::DECRYPT);
     } else if (cipher_type_ == CT::AES256) {
       OUTCOME_TRY(
-          local_256,
+              (auto &&, local_256),
           initAesSecret<crypto::common::Aes256Secret>(
               local_stretched_key_.cipher_key, local_stretched_key_.iv));
       OUTCOME_TRY(
-          remote_256,
+              (auto &&, remote_256),
           initAesSecret<crypto::common::Aes256Secret>(
               remote_stretched_key_.cipher_key, remote_stretched_key_.iv));
       local_encryptor_ = std::make_unique<crypto::aes::AesCtrImpl>(
@@ -149,12 +149,12 @@ namespace libp2p::connection {
   }
 
   outcome::result<peer::PeerId> SecioConnection::localPeer() const {
-    OUTCOME_TRY(proto_local_key, key_marshaller_->marshal(local_));
+    OUTCOME_TRY((auto &&, proto_local_key), key_marshaller_->marshal(local_));
     return peer::PeerId::fromPublicKey(proto_local_key);
   }
 
   outcome::result<peer::PeerId> SecioConnection::remotePeer() const {
-    OUTCOME_TRY(proto_remote_key, key_marshaller_->marshal(remote_));
+    OUTCOME_TRY((auto &&, proto_remote_key), key_marshaller_->marshal(remote_));
     return peer::PeerId::fromPublicKey(proto_remote_key);
   }
 

@@ -21,7 +21,7 @@ namespace libp2p::peer {
 
   outcome::result<void> InmemProtocolRepository::removeProtocols(
       const PeerId &p, gsl::span<const Protocol> ms) {
-    OUTCOME_TRY(s, getProtocolSet(p));
+    OUTCOME_TRY((auto &&, s), getProtocolSet(p));
 
     for (const auto &m : ms) {
       s->erase(m);
@@ -32,14 +32,14 @@ namespace libp2p::peer {
 
   outcome::result<std::vector<Protocol>> InmemProtocolRepository::getProtocols(
       const PeerId &p) const {
-    OUTCOME_TRY(s, getProtocolSet(p));
+    OUTCOME_TRY((auto &&, s), getProtocolSet(p));
     return std::vector<Protocol>(s->begin(), s->end());
   }
 
   outcome::result<std::vector<Protocol>>
   InmemProtocolRepository::supportsProtocols(
       const PeerId &p, const std::set<Protocol> &protocols) const {
-    OUTCOME_TRY(s, getProtocolSet(p));
+    OUTCOME_TRY((auto &&, s), getProtocolSet(p));
 
     size_t size = std::min(protocols.size(), s->size());
     std::vector<Protocol> ret;

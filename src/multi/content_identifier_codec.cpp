@@ -107,7 +107,7 @@ namespace libp2p::multi {
   outcome::result<ContentIdentifier> ContentIdentifierCodec::decode(
       gsl::span<const uint8_t> bytes) {
     if (bytes.size() == 34 && bytes[0] == 0x12 && bytes[1] == 0x20) {
-      OUTCOME_TRY(hash, Multihash::createFromBytes(bytes));
+      OUTCOME_TRY((auto &&, hash), Multihash::createFromBytes(bytes));
       return ContentIdentifier(ContentIdentifier::Version::V0,
                                MulticodecType::Code::DAG_PB, std::move(hash));
     }
@@ -125,7 +125,7 @@ namespace libp2p::multi {
       }
       auto multicodec_length = UVarint::calculateSize(
           bytes.subspan(static_cast<ptrdiff_t>(version_length)));
-      OUTCOME_TRY(hash,
+      OUTCOME_TRY((auto &&, hash),
                   Multihash::createFromBytes(
                       bytes.subspan(version_length + multicodec_length)));
       return ContentIdentifier(
@@ -142,7 +142,7 @@ namespace libp2p::multi {
   outcome::result<std::string> ContentIdentifierCodec::toString(
       const ContentIdentifier &cid) {
     std::string result;
-    OUTCOME_TRY(cid_bytes, encode(cid));
+    OUTCOME_TRY((auto &&, cid_bytes), encode(cid));
     switch (cid.version) {
       case ContentIdentifier::Version::V0:
         result = detail::encodeBase58(cid_bytes);
@@ -160,7 +160,7 @@ namespace libp2p::multi {
   outcome::result<std::string> ContentIdentifierCodec::toStringOfBase(
       const ContentIdentifier &cid, MultibaseCodec::Encoding base) {
     std::string result;
-    OUTCOME_TRY(cid_bytes, encode(cid));
+    OUTCOME_TRY((auto &&, cid_bytes), encode(cid));
     switch (cid.version) {
       case ContentIdentifier::Version::V0:
         if (base != MultibaseCodec::Encoding::BASE58)
@@ -183,11 +183,11 @@ namespace libp2p::multi {
     }
 
     if (str.size() == 46 && str.substr(0, 2) == "Qm") {
-      OUTCOME_TRY(hash, detail::decodeBase58(str));
+      OUTCOME_TRY((auto &&, hash), detail::decodeBase58(str));
       return decode(hash);
     }
 
-    OUTCOME_TRY(bytes, MultibaseCodecImpl().decode(str));
+    OUTCOME_TRY((auto &&, bytes), MultibaseCodecImpl().decode(str));
 
     return decode(bytes);
   }

@@ -48,7 +48,7 @@ namespace libp2p::crypto::x25519 {
 
   outcome::result<PublicKey> X25519ProviderImpl::derive(
       const PrivateKey &private_key) const {
-    OUTCOME_TRY(evp_pkey,
+    OUTCOME_TRY((auto &&, evp_pkey),
                 NewEvpPkeyFromBytes(EVP_PKEY_X25519, private_key,
                                     EVP_PKEY_new_raw_private_key));
     PublicKey public_key{0};
@@ -65,10 +65,10 @@ namespace libp2p::crypto::x25519 {
   outcome::result<std::vector<uint8_t>> X25519ProviderImpl::dh(
       const PrivateKey &private_key, const PublicKey &public_key) const {
     constexpr auto FAILED{KeyGeneratorError::KEY_GENERATION_FAILED};
-    OUTCOME_TRY(evp_pkey,
+    OUTCOME_TRY((auto &&, evp_pkey),
                 NewEvpPkeyFromBytes(EVP_PKEY_X25519, private_key,
                                     EVP_PKEY_new_raw_private_key));
-    OUTCOME_TRY(evp_peerkey,
+    OUTCOME_TRY((auto &&, evp_peerkey),
                 NewEvpPkeyFromBytes(EVP_PKEY_X25519, public_key,
                                     EVP_PKEY_new_raw_public_key));
     EVP_PKEY_CTX *pctx = EVP_PKEY_CTX_new(evp_pkey.get(), nullptr);

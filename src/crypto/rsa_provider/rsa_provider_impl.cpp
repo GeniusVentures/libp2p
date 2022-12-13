@@ -96,8 +96,8 @@ namespace libp2p::crypto::rsa {
       return KeyGeneratorError::KEY_GENERATION_FAILED;
     }
 
-    OUTCOME_TRY(private_bytes, encodeKeyDer(rsa, i2d_RSAPrivateKey));
-    OUTCOME_TRY(public_bytes, encodeKeyDer(rsa, i2d_RSA_PUBKEY));
+    OUTCOME_TRY((auto &&, private_bytes), encodeKeyDer(rsa, i2d_RSAPrivateKey));
+    OUTCOME_TRY((auto &&, public_bytes), encodeKeyDer(rsa, i2d_RSA_PUBKEY));
 
     return KeyPair{/*.private_key =*/ private_bytes, /*.public_key =*/ public_bytes};
   }
@@ -112,7 +112,7 @@ namespace libp2p::crypto::rsa {
     }
     auto cleanup_rsa = gsl::finally([rsa]() { RSA_free(rsa); });
 
-    OUTCOME_TRY(public_bytes, encodeKeyDer(rsa, i2d_RSA_PUBKEY));
+    OUTCOME_TRY((auto &&, public_bytes), encodeKeyDer(rsa, i2d_RSA_PUBKEY));
 
     return std::move(public_bytes);
   }
@@ -132,8 +132,8 @@ namespace libp2p::crypto::rsa {
 
   outcome::result<Signature> RsaProviderImpl::sign(
       gsl::span<const uint8_t> message, const PrivateKey &private_key) const {
-    OUTCOME_TRY(rsa, rsaFromPrivateKey(private_key));
-    OUTCOME_TRY(digest, sha256(message));
+    OUTCOME_TRY((auto &&, rsa), rsaFromPrivateKey(private_key));
+    OUTCOME_TRY((auto &&, digest), sha256(message));
     Signature signature(RSA_size(rsa.get()));
     unsigned int signature_size = 0;
     if (1
@@ -148,10 +148,10 @@ namespace libp2p::crypto::rsa {
   outcome::result<bool> RsaProviderImpl::verify(
       gsl::span<const uint8_t> message, const Signature &signature,
       const PublicKey &public_key) const {
-    OUTCOME_TRY(x509_key, RsaProviderImpl::getPublicKeyFromBytes(public_key));
+    OUTCOME_TRY((auto &&, x509_key), RsaProviderImpl::getPublicKeyFromBytes(public_key));
     EVP_PKEY *key = X509_PUBKEY_get0(x509_key.get());
     std::unique_ptr<RSA, void (*)(RSA *)> rsa{EVP_PKEY_get1_RSA(key), RSA_free};
-    OUTCOME_TRY(digest, sha256(message));
+    OUTCOME_TRY((auto &&, digest), sha256(message));
     int result = RSA_verify(NID_sha256, digest.data(), digest.size(),
                             signature.data(), signature.size(), rsa.get());
     return 1 == result;

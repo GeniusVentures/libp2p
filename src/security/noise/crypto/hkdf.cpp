@@ -29,12 +29,12 @@ namespace libp2p::security::noise {
 
     HMAC temp_mac{hash_type, spanToVec(chaining_key)};
     OUTCOME_TRY(temp_mac.write(input_key_material));
-    OUTCOME_TRY(temp_key, temp_mac.digest());
+    OUTCOME_TRY((auto &&, temp_key), temp_mac.digest());
 
     HMAC out1_mac{hash_type, temp_key};
     ByteArray one(1, 0x01);
     OUTCOME_TRY(out1_mac.write(one));
-    OUTCOME_TRY(out1, out1_mac.digest());
+    OUTCOME_TRY((auto &&, out1), out1_mac.digest());
     result.one = out1;
     if (1 == outputs) {
       return result;
@@ -44,7 +44,7 @@ namespace libp2p::security::noise {
     OUTCOME_TRY(out2_mac.write(out1));
     ByteArray two(1, 0x02);
     OUTCOME_TRY(out2_mac.write(two));
-    OUTCOME_TRY(out2, out2_mac.digest());
+    OUTCOME_TRY((auto &&, out2), out2_mac.digest());
     result.two = out2;
     if (2 == outputs) {
       return result;
@@ -54,7 +54,7 @@ namespace libp2p::security::noise {
     OUTCOME_TRY(out3_mac.write(out2));
     ByteArray three(1, 0x03);
     OUTCOME_TRY(out3_mac.write(three));
-    OUTCOME_TRY(out3, out3_mac.digest());
+    OUTCOME_TRY((auto &&, out3), out3_mac.digest());
     result.three = out3;
 
     return result;

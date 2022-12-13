@@ -82,7 +82,7 @@ namespace libp2p::crypto::validator {
     OUTCOME_TRY(validate(keys.privateKey));
     OUTCOME_TRY(validate(keys.publicKey));
 
-    OUTCOME_TRY(public_key, crypto_provider_->derivePublicKey(keys.privateKey));
+    OUTCOME_TRY((auto &&, public_key), crypto_provider_->derivePublicKey(keys.privateKey));
     if (public_key != keys.publicKey) {
       return KeyValidatorError::KEYS_DONT_MATCH;
     }

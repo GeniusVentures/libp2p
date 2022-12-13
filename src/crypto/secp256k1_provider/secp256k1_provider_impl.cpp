@@ -43,7 +43,7 @@ namespace libp2p::crypto::secp256k1 {
 
   outcome::result<PublicKey> Secp256k1ProviderImpl::derive(
       const PrivateKey &key) const {
-    OUTCOME_TRY(private_key, bytesToPrivateKey(key));
+    OUTCOME_TRY((auto &&, private_key), bytesToPrivateKey(key));
     PublicKey public_key{};
     uint8_t *public_key_ptr = public_key.data();
     ssize_t generated_length = i2o_ECPublicKey(private_key.get(), nullptr);
@@ -56,18 +56,18 @@ namespace libp2p::crypto::secp256k1 {
 
   outcome::result<Signature> Secp256k1ProviderImpl::sign(
       gsl::span<const uint8_t> message, const PrivateKey &key) const {
-    OUTCOME_TRY(digest, sha256(message));
-    OUTCOME_TRY(private_key, bytesToPrivateKey(key));
-    OUTCOME_TRY(signature, GenerateEcSignature(digest, private_key));
+    OUTCOME_TRY((auto &&, digest), sha256(message));
+    OUTCOME_TRY((auto &&, private_key), bytesToPrivateKey(key));
+    OUTCOME_TRY((auto &&, signature), GenerateEcSignature(digest, private_key));
     return std::move(signature);
   }
 
   outcome::result<bool> Secp256k1ProviderImpl::verify(
       gsl::span<const uint8_t> message, const Signature &signature,
       const PublicKey &key) const {
-    OUTCOME_TRY(digest, sha256(message));
-    OUTCOME_TRY(public_key, bytesToPublicKey(key));
-    OUTCOME_TRY(result, VerifyEcSignature(digest, signature, public_key));
+    OUTCOME_TRY((auto &&, digest), sha256(message));
+    OUTCOME_TRY((auto &&, public_key), bytesToPublicKey(key));
+    OUTCOME_TRY((auto &&, result), VerifyEcSignature(digest, signature, public_key));
     return result;
   }
 

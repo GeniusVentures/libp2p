@@ -36,17 +36,17 @@ namespace libp2p::peer {
       algo = multi::identity;
       hash = key.key;
     } else {
-      OUTCOME_TRY(shash, crypto::sha256(key.key));
+      OUTCOME_TRY((auto &&, shash), crypto::sha256(key.key));
       hash = std::vector<uint8_t>{shash.begin(), shash.end()};
     }
 
-    OUTCOME_TRY(multihash, Multihash::create(algo, hash));
+    OUTCOME_TRY((auto &&, multihash), Multihash::create(algo, hash));
     return PeerId{std::move(multihash)};
   }
 
   PeerId::FactoryResult PeerId::fromBase58(std::string_view id) {
-    OUTCOME_TRY(decoded_id, decodeBase58(id));
-    OUTCOME_TRY(hash, Multihash::createFromBytes(decoded_id));
+    OUTCOME_TRY((auto &&, decoded_id), decodeBase58(id));
+    OUTCOME_TRY((auto &&, hash), Multihash::createFromBytes(decoded_id));
 
     if (hash.getType() != multi::HashType::sha256
         && hash.toBuffer().size() > kMaxInlineKeyLength) {
@@ -94,7 +94,7 @@ namespace libp2p::peer {
   }
 
   PeerId::FactoryResult PeerId::fromBytes(gsl::span<const uint8_t> v) {
-    OUTCOME_TRY(mh, Multihash::createFromBytes(v));
+    OUTCOME_TRY((auto &&, mh), Multihash::createFromBytes(v));
     return fromHash(mh);
   }
 }  // namespace libp2p::peer

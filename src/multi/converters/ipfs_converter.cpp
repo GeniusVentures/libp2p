@@ -25,7 +25,7 @@ namespace libp2p::multi::converters {
         + static_cast<char>(MultibaseCodecImpl::Encoding::BASE58)
         + std::string(addr);
 
-    OUTCOME_TRY(buf, codec.decode(encodingStr));
+    OUTCOME_TRY((auto &&, buf), codec.decode(encodingStr));
 
     // throw everything in a hex string so we can debug the results
     std::string addr_encoded;

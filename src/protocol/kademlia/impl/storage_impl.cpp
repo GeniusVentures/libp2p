@@ -59,7 +59,7 @@ namespace libp2p::protocol::kademlia {
     if (it == idx.end()) {
       return Error::VALUE_NOT_FOUND;
     }
-    OUTCOME_TRY(value, backend_->getValue(key));
+    OUTCOME_TRY((auto &&, value), backend_->getValue(key));
     return {value, it->updated_at};
   }
 

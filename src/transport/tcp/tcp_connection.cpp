@@ -280,14 +280,14 @@ namespace libp2p::transport {
       if (!local_multiaddress_) {
         auto endpoint(socket_.local_endpoint(ec));
         if (!ec) {
-          OUTCOME_TRY(addr, detail::makeAddress(endpoint));
+          OUTCOME_TRY((auto &&, addr), detail::makeAddress(endpoint));
           local_multiaddress_ = std::move(addr);
         }
       }
       if (!remote_multiaddress_) {
         auto endpoint(socket_.remote_endpoint(ec));
         if (!ec) {
-          OUTCOME_TRY(addr, detail::makeAddress(endpoint));
+          OUTCOME_TRY((auto &&, addr), detail::makeAddress(endpoint));
           remote_multiaddress_ = std::move(addr);
         }
       }

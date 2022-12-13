@@ -61,9 +61,9 @@ namespace libp2p::transport {
       case 0:
       case 1: {
         auto it = pvs.begin();
-        OUTCOME_TRY(addr, parseIp(it->second));
+        OUTCOME_TRY((auto &&, addr), parseIp(it->second));
         it++;
-        OUTCOME_TRY(port, parseTcp(it->second));
+        OUTCOME_TRY((auto &&, port), parseTcp(it->second));
         if (entry_idx == 0) { // ipv4
           return ParseResult{*entry, std::make_pair(addr.to_v4(), port)};
         }

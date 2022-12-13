@@ -84,7 +84,7 @@ namespace libp2p::crypto {
 
   outcome::result<KeyPair> CryptoProviderImpl::generateRsa(
       common::RSAKeyType rsa_bitness) const {
-    OUTCOME_TRY(rsa, rsa_provider_->generate(rsa_bitness));
+    OUTCOME_TRY((auto &&, rsa), rsa_provider_->generate(rsa_bitness));
 
     auto &&pub = rsa.public_key;
     auto &&priv = rsa.private_key;
@@ -95,7 +95,7 @@ namespace libp2p::crypto {
   }
 
   outcome::result<KeyPair> CryptoProviderImpl::generateEd25519() const {
-    OUTCOME_TRY(ed, ed25519_provider_->generate());
+    OUTCOME_TRY((auto &&, ed), ed25519_provider_->generate());
 
     auto &&pub = ed.public_key;
     auto &&priv = ed.private_key;
@@ -106,7 +106,7 @@ namespace libp2p::crypto {
   }
 
   outcome::result<KeyPair> CryptoProviderImpl::generateSecp256k1() const {
-    OUTCOME_TRY(secp, secp256k1_provider_->generate());
+    OUTCOME_TRY((auto &&, secp), secp256k1_provider_->generate());
 
     auto &&pub = secp.public_key;
     auto &&priv = secp.private_key;
@@ -117,7 +117,7 @@ namespace libp2p::crypto {
   }
 
   outcome::result<KeyPair> CryptoProviderImpl::generateEcdsa() const {
-    OUTCOME_TRY(ecdsa, ecdsa_provider_->generate());
+    OUTCOME_TRY((auto &&, ecdsa), ecdsa_provider_->generate());
 
     auto &&pub = ecdsa.public_key;
     auto &&priv = ecdsa.private_key;
@@ -154,7 +154,7 @@ namespace libp2p::crypto {
       const PrivateKey &key) const {
     rsa::PrivateKey private_key;
     private_key.insert(private_key.end(), key.data.begin(), key.data.end());
-    OUTCOME_TRY(rsa_pub, rsa_provider_->derive(private_key));
+    OUTCOME_TRY((auto &&, rsa_pub), rsa_provider_->derive(private_key));
     return PublicKey{{key.type, {rsa_pub.begin(), rsa_pub.end()}}};
   }
 
@@ -162,7 +162,7 @@ namespace libp2p::crypto {
       const PrivateKey &key) const {
     ed25519::PrivateKey private_key;
     std::copy_n(key.data.begin(), private_key.size(), private_key.begin());
-    OUTCOME_TRY(ed_pub, ed25519_provider_->derive(private_key));
+    OUTCOME_TRY((auto &&, ed_pub), ed25519_provider_->derive(private_key));
 
     return PublicKey{{key.type, {ed_pub.begin(), ed_pub.end()}}};
   }
@@ -171,7 +171,7 @@ namespace libp2p::crypto {
       const PrivateKey &key) const {
     secp256k1::PrivateKey private_key;
     std::copy_n(key.data.begin(), private_key.size(), private_key.begin());
-    OUTCOME_TRY(secp_pub, secp256k1_provider_->derive(private_key));
+    OUTCOME_TRY((auto &&, secp_pub), secp256k1_provider_->derive(private_key));
 
     return PublicKey{{key.type, {secp_pub.begin(), secp_pub.end()}}};
   }
@@ -180,7 +180,7 @@ namespace libp2p::crypto {
       const PrivateKey &key) const {
     ecdsa::PrivateKey private_key;
     std::copy_n(key.data.begin(), private_key.size(), private_key.begin());
-    OUTCOME_TRY(ecdsa_pub, ecdsa_provider_->derive(private_key));
+    OUTCOME_TRY((auto &&, ecdsa_pub), ecdsa_provider_->derive(private_key));
 
     return PublicKey{{key.type, {ecdsa_pub.begin(), ecdsa_pub.end()}}};
   }
@@ -215,7 +215,7 @@ namespace libp2p::crypto {
     priv_key.insert(priv_key.end(), private_key.data.begin(),
                     private_key.data.end());
 
-    OUTCOME_TRY(signature, rsa_provider_->sign(message, priv_key));
+    OUTCOME_TRY((auto &&, signature), rsa_provider_->sign(message, priv_key));
     return {signature.begin(), signature.end()};
   }
 
@@ -223,7 +223,7 @@ namespace libp2p::crypto {
       gsl::span<const uint8_t> message, const PrivateKey &private_key) const {
     ed25519::PrivateKey priv_key;
     std::copy_n(private_key.data.begin(), priv_key.size(), priv_key.begin());
-    OUTCOME_TRY(signature, ed25519_provider_->sign(message, priv_key));
+    OUTCOME_TRY((auto &&, signature), ed25519_provider_->sign(message, priv_key));
     return {signature.begin(), signature.end()};
   }
 
@@ -231,7 +231,7 @@ namespace libp2p::crypto {
       gsl::span<const uint8_t> message, const PrivateKey &private_key) const {
     secp256k1::PrivateKey priv_key;
     std::copy_n(private_key.data.begin(), priv_key.size(), priv_key.begin());
-    OUTCOME_TRY(signature, secp256k1_provider_->sign(message, priv_key));
+    OUTCOME_TRY((auto &&, signature), secp256k1_provider_->sign(message, priv_key));
     return {signature.begin(), signature.end()};
   }
 
@@ -239,7 +239,7 @@ namespace libp2p::crypto {
       gsl::span<const uint8_t> message, const PrivateKey &private_key) const {
     ecdsa::PrivateKey priv_key;
     std::copy_n(private_key.data.begin(), priv_key.size(), priv_key.begin());
-    OUTCOME_TRY(signature, ecdsa_provider_->sign(message, priv_key));
+    OUTCOME_TRY((auto &&, signature), ecdsa_provider_->sign(message, priv_key));
     return {signature.begin(), signature.end()};
   }
 
@@ -560,20 +560,20 @@ namespace libp2p::crypto {
     Buffer result;
     result.reserve(output_size);
 
-    OUTCOME_TRY(a, hmac_provider_->calculateDigest(hash_type, secret, seed));
+    OUTCOME_TRY((auto &&, a), hmac_provider_->calculateDigest(hash_type, secret, seed));
     while (result.size() < output_size) {
       Buffer input;
       input.reserve(a.size() + seed.size());
       input.insert(input.end(), a.begin(), a.end());
       input.insert(input.end(), seed.begin(), seed.end());
 
-      OUTCOME_TRY(b, hmac_provider_->calculateDigest(hash_type, secret, input));
+      OUTCOME_TRY((auto &&, b), hmac_provider_->calculateDigest(hash_type, secret, input));
       size_t todo = b.size();
       if (result.size() + todo > output_size) {
         todo = output_size - result.size();
       }
       std::copy_n(b.begin(), todo, std::back_inserter(result));
-      OUTCOME_TRY(c, hmac_provider_->calculateDigest(hash_type, secret, a));
+      OUTCOME_TRY((auto &&, c), hmac_provider_->calculateDigest(hash_type, secret, a));
       a = std::move(c);
     }
 

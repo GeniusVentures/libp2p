@@ -164,7 +164,7 @@ namespace libp2p::multi::detail {
     }
 
     for (size_t i = 0, j = 0; i < string.size(); i += 8, j += 5) {
-      OUTCOME_TRY(n,
+      OUTCOME_TRY((auto &&, n),
                   decode_sequence(
                       gsl::make_span(&string[i],
                                      std::min<size_t>(string.size() - i, 8)),
