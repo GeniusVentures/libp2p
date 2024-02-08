@@ -2,7 +2,6 @@
  * Copyright Soramitsu Co., Ltd. All Rights Reserved.
  * SPDX-License-Identifier: Apache-2.0
  */
-
 #include <libp2p/multi/converters/converter_utils.hpp>
 
 #include <boost/algorithm/string.hpp>
@@ -102,6 +101,7 @@ namespace libp2p::multi::converters {
       case Protocol::Code::ONION3:
       case Protocol::Code::GARLIC64:
       case Protocol::Code::QUIC:
+	  case Protocol::Code::QUIC_V1:
       case Protocol::Code::WSS:
       case Protocol::Code::P2P_WEBSOCKET_STAR:
       case Protocol::Code::P2P_STARDUST:
@@ -116,7 +116,6 @@ namespace libp2p::multi::converters {
   outcome::result<std::string> bytesToMultiaddrString(
       gsl::span<const uint8_t> bytes) {
     std::string results;
-
     size_t lastpos = 0;
 
     // set up variables
@@ -207,6 +206,7 @@ namespace libp2p::multi::converters {
             }
 
             case Protocol::Code::QUIC:
+			case Protocol::Code::QUIC_V1:
             case Protocol::Code::WS:
             case Protocol::Code::WSS:
               // No details

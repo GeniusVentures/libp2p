@@ -54,7 +54,7 @@ namespace libp2p::protocol::kademlia {
       }
 
       std::vector<multi::Multiaddress> addresses;
-      for (const auto &addr : src.addrs()) {
+      for (const auto &addr : src.addrs()) {	  
         auto res = multi::Multiaddress::create(gsl::span<const uint8_t>(
             // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
             reinterpret_cast<const uint8_t *>(addr.data()), addr.size()));
@@ -69,22 +69,26 @@ namespace libp2p::protocol::kademlia {
     }
 
     template <class PbContainer>
-    outcome::result<void> assign_peers(boost::optional<Message::Peers> &dst,
-                                       const PbContainer &src) {
-      if (!src.empty()) {
-        dst = Message::Peers{};
-        Message::Peers &v = dst.value();
-        v.reserve(src.size());
-        for (const auto &p : src) {
-          auto res = assign_peer(p);
-          if (!res) {
-            return res.as_failure();
-          }
-          v.push_back(std::move(res.value()));
-        }
-      }
-      return outcome::success();
-    }
+	outcome::result<void> assign_peers(boost::optional<Message::Peers> &dst,
+									   const PbContainer &src) {
+	  if (!src.empty()) {
+		dst = Message::Peers{};
+		Message::Peers &v = dst.value();
+		v.reserve(src.size());
+		bool valid_peers = false;  // Track if any peers are valid
+		for (const auto &p : src) {
+		  auto res = assign_peer(p);
+		  if (res) {
+			  valid_peers = true;
+			  v.push_back(std::move(res.value()));
+		  }
+		}
+		if (!valid_peers) {
+		  return outcome::failure(libp2p::protocol::kademlia::Message::Error::INVALID_ADDRESSES);  // Return error if no valid peers found
+		}
+	  }
+	  return outcome::success();
+	}
 
     template <class PbContainer>
     outcome::result<void> assign_record(Message::Record &dst,

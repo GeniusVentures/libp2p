@@ -45,6 +45,7 @@ namespace libp2p::multi {
       ONION3 = 445,
       GARLIC64 = 446,
       QUIC = 460,
+	  QUIC_V1 = 461,
       HTTP = 480,
       HTTPS = 443,
       WS = 477,
@@ -73,7 +74,7 @@ namespace libp2p::multi {
     /**
      * The total number of known protocols
      */
-    static const std::size_t kProtocolsNum = 28;
+    static const std::size_t kProtocolsNum = 29;
 
     /**
      * Returns a protocol with the corresponding name if it exists, or nullptr
@@ -138,6 +139,7 @@ namespace libp2p::multi {
         {Protocol::Code::ONION3, 296, "onion3"},
         {Protocol::Code::GARLIC64, Protocol::kVarLen, "garlic64"},
         {Protocol::Code::QUIC, 0, "quic"},
+		{Protocol::Code::QUIC_V1, 0, "quic-v1"},
         {Protocol::Code::HTTP, 0, "http"},
         {Protocol::Code::HTTPS, 0, "https"},
         {Protocol::Code::WS, 0, "ws"},
