@@ -1,5 +1,7 @@
 syntax = "proto2";
 
+package autonat.pb;
+
 message Message {
   enum MessageType {
     DIAL          = 0;

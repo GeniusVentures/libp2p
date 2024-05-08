@@ -7,6 +7,7 @@ add_subdirectory(protobuf)
 
 libp2p_add_library(p2p_autonat
     autonat.cpp
+	autonat_msg_processor.cpp
     )
 target_link_libraries(p2p_identify
     p2p

@@ -7,6 +7,9 @@
 #include <libp2p/peer/address_repository.hpp>
 #include <libp2p/protocol/identify/utils.hpp>
 #include <iostream>
+#include <libp2p/event/bus.hpp>
+#include <libp2p/protocol/base_protocol.hpp>
+#include <libp2p/protocol/autonat/autonat_msg_processor.hpp>
 
 namespace libp2p::multi {
   class Multiaddress;
@@ -24,17 +27,17 @@ namespace libp2p::protocol {
     /**
      * Create an Auto instance; it will immediately start watching
      * connection events and react to them
-     * @param msg_processor to work with Identify messages
+     * @param msg_processor to work with Autonat messages
      * @param event_bus - bus, over which the events arrive
      */
     Autonat(Host &host,
-             std::shared_ptr<IdentifyMessageProcessor> msg_processor,
+             std::shared_ptr<AutonatMessageProcessor> msg_processor,
              event::Bus &event_bus);
 
     ~Autonat() override = default;
 
     boost::signals2::connection onAutonatReceived(
-        const std::function<IdentifyMessageProcessor::IdentifyCallback> &cb);
+        const std::function<AutonatMessageProcessor::AutonatCallback> &cb);
 
     /**
      * Get addresses other peers reported we have dialed from
@@ -73,7 +76,7 @@ namespace libp2p::protocol {
         const std::weak_ptr<connection::CapableConnection> &conn);
 
     Host &host_;
-    std::shared_ptr<IdentifyMessageProcessor> msg_processor_;
+    std::shared_ptr<AutonatMessageProcessor> msg_processor_;
     event::Bus &bus_;
     event::Handle sub_;  // will unsubscribe during destruction by itself
 
