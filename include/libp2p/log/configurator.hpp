@@ -19,6 +19,33 @@ namespace libp2p::log {
     Configurator();
 
     explicit Configurator(std::string config);
+   private:
+    static const std::string& getEmbeddedConfig() {
+        static const std::string embedded_config = R"(
+# This is libp2p configuration part of logging system
+# ------------- Begin of libp2p config --------------
+groups:
+  - name: libp2p
+    level: off
+    children:
+      - name: muxer
+        children:
+          - name: mplex
+          - name: yamux
+      - name: crypto
+      - name: security
+        children:
+          - name: plaintext
+          - name: secio
+          - name: noise
+      - name: protocols
+        children:
+          - name: echo
+          - name: identify
+          - name: kademlia
+# --------------- End of libp2p config ---------------)";
+        return embedded_config;
+    }
   };
 
 }  // namespace libp2p::log
