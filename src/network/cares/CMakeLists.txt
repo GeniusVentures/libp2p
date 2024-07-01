@@ -8,5 +8,7 @@ libp2p_add_library(p2p_cares
     )
 target_link_libraries(p2p_cares
     c-ares::cares
+    Boost::headers
+    p2p_logger
     ${CMAKE_THREAD_LIBS_INIT}
     )

@@ -41,6 +41,7 @@ libp2p_add_library(p2p_network
     )
 target_link_libraries(p2p_network
     Boost::boost
+    p2p_event
     )
 
 libp2p_add_library(p2p_transport_manager
@@ -55,6 +56,7 @@ libp2p_add_library(p2p_connection_manager
     )
 target_link_libraries(p2p_connection_manager
     Boost::boost
+    p2p_event
     )
 
 libp2p_add_library(p2p_dnsaddr_resolver
