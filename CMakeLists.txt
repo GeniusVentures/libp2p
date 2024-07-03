@@ -17,6 +17,7 @@ set(CMAKE_TOOLCHAIN_FILE
     )
 
 include("cmake/Hunter/init.cmake")
+
 cmake_policy(SET CMP0048 NEW)
 project(libp2p VERSION 0.0.1 LANGUAGES C CXX)
 
@@ -35,6 +36,7 @@ option(TSAN "Enable thread sanitizer" OFF)
 option(UBSAN "Enable UB sanitizer" OFF)
 option(EXPOSE_MOCKS "Make mocks header files visible for child projects" OFF)
 option(METRICS_ENABLED "Enable libp2p metrics" OFF)
+option(LOCAL_BUILD "Build in local folder" OFF)
 
 include(cmake/print.cmake)
 print("C flags: ${CMAKE_C_FLAGS}")
@@ -45,6 +47,9 @@ print("Using CMAKE_TOOLCHAIN_FILE=${CMAKE_TOOLCHAIN_FILE}")
 set_property(GLOBAL PROPERTY TEST_TARGETS)
 
 include(CheckCXXCompilerFlag)
+if(LOCAL_BUILD)
+	include(cmake/localbuild.cmake)
+endif()
 include(cmake/install.cmake)
 include(cmake/libp2p_add_library.cmake)
 include(cmake/dependencies.cmake)
