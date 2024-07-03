@@ -13,14 +13,14 @@ namespace {
 
 namespace libp2p::protocol {
   Autonat::Autonat(Host &host,
-                     std::shared_ptr<IdentifyMessageProcessor> msg_processor,
+                     std::shared_ptr<AutonatMessageProcessor> msg_processor,
                      event::Bus &event_bus)
       : host_{host}, msg_processor_{std::move(msg_processor)}, bus_{event_bus} {
     BOOST_ASSERT(msg_processor_);
   }
 
   boost::signals2::connection Autonat::onAutonatReceived(
-      const std::function<IdentifyMessageProcessor::IdentifyCallback> &cb) {
+      const std::function<AutonatMessageProcessor::AutonatCallback> &cb) {
     return msg_processor_->onAutonatReceived(cb);
   }
 
@@ -86,12 +86,12 @@ namespace libp2p::protocol {
                                  std::move(remote_peer_addr_res.value())}};
 
     msg_processor_->getHost().newStream(
-        peer_info, kIdentifyProto,
+        peer_info, kAutonatProto,
         [self{shared_from_this()}](auto &&stream_res) {
           if (!stream_res) {
             return;
           }
-          self->msg_processor_->receiveIdentify(std::move(stream_res.value()));
+          self->msg_processor_->receiveAutonat(std::move(stream_res.value()));
         });
   }
 }

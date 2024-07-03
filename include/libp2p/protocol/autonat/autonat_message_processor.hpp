@@ -17,8 +17,8 @@
 #include <libp2p/peer/peer_id.hpp>
 #include <libp2p/protocol/identify/observed_addresses.hpp>
 
-namespace identify::pb {
-  class Identify;
+namespace autonat::pb {
+  class Autonat;
 }
 
 namespace libp2p::protocol {
@@ -38,16 +38,16 @@ namespace libp2p::protocol {
         std::shared_ptr<crypto::marshaller::KeyMarshaller> key_marshaller);
 
     boost::signals2::connection onAutonatReceived(
-        const std::function<IdentifyCallback> &cb);
+        const std::function<AutonatCallback> &cb);
 
     /**
-     * Send an Identify message over the provided stream
+     * Send an autonat message over the provided stream
      * @param stream to be identified over
      */
     void sendAutonat(StreamSPtr stream);
 
     /**
-     * Receive an Identify message from the provided stream
+     * Receive an Autonat message from the provided stream
      * @param stream to be identified over
      */
     void receiveAutonat(StreamSPtr stream);
@@ -72,7 +72,7 @@ namespace libp2p::protocol {
 
    private:
     /**
-     * Called, when an identify message is written to the stream
+     * Called, when an autonat message is written to the stream
      * @param written_bytes - how much bytes were written
      * @param stream with the other side
      */
@@ -80,11 +80,11 @@ namespace libp2p::protocol {
                       const StreamSPtr &stream);
 
     /**
-     * Called, when an identify message is received from the other peer
+     * Called, when an autonat message is received from the other peer
      * @param msg, which was read
      * @param stream, over which it was received
      */
-    void autonatReceived(outcome::result<identify::pb::Identify> msg,
+    void autonatReceived(outcome::result<autonat::pb::Autonat> msg,
                           const StreamSPtr &stream);
 
     /**

@@ -63,7 +63,7 @@ namespace libp2p::protocol {
     void handle(StreamResult stream_res) override;
 
     /**
-     * Start accepting NewConnectionEvent-s and asking each of them for Identify
+     * Start accepting NewConnectionEvent-s and asking each of them for Autonat
      */
     void start();
 
