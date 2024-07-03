@@ -39,9 +39,7 @@ option(METRICS_ENABLED "Enable libp2p metrics" OFF)
 option(LOCAL_BUILD "Build in local folder" OFF)
 
 include(cmake/print.cmake)
-print("C flags: ${CMAKE_C_FLAGS}")
-print("CXX flags: ${CMAKE_CXX_FLAGS}")
-print("Using CMAKE_TOOLCHAIN_FILE=${CMAKE_TOOLCHAIN_FILE}")
+
 
 # the property is out of "if TESTING" scope due to addtest func is out too
 set_property(GLOBAL PROPERTY TEST_TARGETS)
@@ -50,11 +48,15 @@ include(CheckCXXCompilerFlag)
 if(LOCAL_BUILD)
 	include(cmake/localbuild.cmake)
 endif()
+message("C flags: ${CMAKE_C_FLAGS}")
+message("CXX flags: ${CMAKE_CXX_FLAGS}")
+message("Using CMAKE_TOOLCHAIN_FILE=${CMAKE_TOOLCHAIN_FILE}")
 include(cmake/install.cmake)
 include(cmake/libp2p_add_library.cmake)
 include(cmake/dependencies.cmake)
 include(cmake/functions.cmake)
 include(cmake/san.cmake)
+
 
 if (METRICS_ENABLED)
   add_compile_definitions("LIBP2P_METRICS_ENABLED")

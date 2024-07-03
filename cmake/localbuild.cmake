@@ -4,6 +4,23 @@ set(EXPOSE_MOCKS ON)
 set(CMAKE_USE_OPENSSL ON)
 set(TESTING OFF)
 
+set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /MT")
+set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /MTd")
+set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} /MT")
+set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} /MTd")
+message(WARNING "BUILD TYPE ${CMAKE_BUILD_TYPE}")
+#if (CMAKE_BUILD_TYPE EQUAL Debug)
+message(WARNING "IN DEBUG")
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} /MTd")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /MTd")
+    set(MSVC_RUNTIME_LIBRARY_OPTION "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+#endif (CMAKE_BUILD_TYPE EQUAL Debug)
+
+# if (CMAKE_BUILD_TYPE EQUAL Release)
+    # set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} /MT")
+    # set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /MT")
+    # set(MSVC_RUNTIME_LIBRARY_OPTION "MultiThreaded$<$<CONFIG:Realease>:Release>")
+# endif (CMAKE_BUILD_TYPE EQUAL Release)
 #GTest
 set(GTest_DIR "${CMAKE_SOURCE_DIR}/../build/Windows/Debug/GTest/lib/cmake/GTest")
 #Boost 
@@ -39,18 +56,26 @@ set(Protobuf_DIR ${CMAKE_SOURCE_DIR}/../build/Windows/Debug/protobuf/cmake)
 set(Protobuf_INCLUDE_DIR ${CMAKE_SOURCE_DIR}/../build/Windows/Debug/protobuf/include)
 set(Protobuf_LIBRARIES ${CMAKE_SOURCE_DIR}/../build/Windows/Debug/protobuf/lib)
 set(Protobuf_PROTOC_EXECUTABLE ${CMAKE_SOURCE_DIR}/../build/Windows/Debug/protobuf/bin/protoc)
-
+include_directories(${Protobuf_INCLUDE_DIR})
 
 set(c-ares_DIR ${CMAKE_SOURCE_DIR}/../build/Windows/Debug/cares/lib/cmake/c-ares)
+include_directories(${CMAKE_SOURCE_DIR}/../build/Windows/Debug/cares/include)
 set(fmt_DIR ${CMAKE_SOURCE_DIR}/../build/Windows/Debug/fmt/lib/cmake/fmt)
+include_directories(${CMAKE_SOURCE_DIR}/../build/Windows/Debug/fmt/include)
 set(yaml-cpp_DIR ${CMAKE_SOURCE_DIR}/../build/Windows/Debug/yaml-cpp/lib/cmake/yaml-cpp)
+include_directories(${CMAKE_SOURCE_DIR}/../build/Windows/Debug/yaml-cpp/include)
 set(soralog_DIR ${CMAKE_SOURCE_DIR}/../build/Windows/Debug/soralog/lib/cmake/soralog)
+include_directories(${CMAKE_SOURCE_DIR}/../build/Windows/Debug/soralog/include)
 set(tsl_hat_trie_DIR ${CMAKE_SOURCE_DIR}/../build/Windows/Debug/tsl_hat_trie/lib/cmake/tsl_hat_trie)
+include_directories(${CMAKE_SOURCE_DIR}/../build/Windows/Debug/tsl_hat_trie/include)
 
 set(Boost.DI_DIR ${CMAKE_SOURCE_DIR}/../build/Windows/Debug/Boost.DI/lib/cmake/Boost.DI)
+include_directories(${CMAKE_SOURCE_DIR}/../build/Windows/Debug/Boost.DI/include)
 
 set(SQLiteModernCpp_DIR ${CMAKE_SOURCE_DIR}/../build/Windows/Debug/SQLiteModernCpp/lib/cmake/SQLiteModernCpp)
+include_directories(${CMAKE_SOURCE_DIR}/../build/Windows/Debug/SQLiteModernCpp/include)
 set(sqlite3_DIR ${CMAKE_SOURCE_DIR}/../build/Windows/Debug/sqlite3/lib/cmake/sqlite3)
+include_directories(${CMAKE_SOURCE_DIR}/../build/Windows/Debug/sqlite3/include)
 
 
 include_directories(${CMAKE_SOURCE_DIR}/../build/Windows/Debug/Microsoft.GSL/include)
