@@ -87,44 +87,6 @@ namespace libp2p::protocol {
     void autonatReceived(outcome::result<autonat::pb::Message> msg,
                           const StreamSPtr &stream);
 
-    /**
-     * Process a received public key of the other peer
-     * @param stream, over which the key was received
-     * @param pubkey_str - marshalled public key; can be empty, if there was no
-     * public key in the message
-     * @return peer id, which was derived from the provided public key (if it
-     * can be derived)
-     */
-    boost::optional<peer::PeerId> consumePublicKey(const StreamSPtr &stream,
-                                                   std::string_view pubkey_str);
-
-    /**
-     * Process received address, which the other peer used to connect to us
-     * @param address - observed address string
-     * @param peer_id - ID of that peer
-     * @param stream, over which the message came
-     */
-    void consumeObservedAddresses(const std::string &address_str,
-                                  const peer::PeerId &peer_id,
-                                  const StreamSPtr &stream);
-
-    /**
-     * Check if provided multiaddress has the same set of transports as at least
-     * of the (\param mas)
-     * @param ma - address to be checked
-     * @param mas - addresses to be checked against
-     * @return true, if that address has common transports, false otherwise
-     */
-    bool hasConsistentTransport(const multi::Multiaddress &ma,
-                                gsl::span<const multi::Multiaddress> mas);
-
-    /**
-     * Process received addresses, which the other peer listens to
-     * @param addresses_strings - stringified listen addresses
-     * @param peer_id - ID of that peer
-     */
-    void consumeListenAddresses(gsl::span<const std::string> addresses_strings,
-                                const peer::PeerId &peer_id);
 
     Host &host_;
     network::ConnectionManager &conn_manager_;
@@ -132,6 +94,7 @@ namespace libp2p::protocol {
     std::shared_ptr<crypto::marshaller::KeyMarshaller> key_marshaller_;
     ObservedAddresses observed_addresses_;
     boost::signals2::signal<AutonatCallback> signal_autonat_received_;
+    std::unordered_map<std::string, int> successful_addresses_;
 
     log::Logger log_ = log::createLogger("AutonatMsgProcessor");
   };

@@ -57,8 +57,8 @@ namespace libp2p::protocol {
     peer::Protocol getProtocolId() const override;
 
     /**
-     * In Identify, handle means we are being identified by the other peer, so
-     * we are expected to send the Identify message
+     * In Autonat, handle means we are either getting an autonat response, or request
+     * If it is a request, we are expected to DIAL them from a separate address.
      */
     void handle(StreamResult stream_res) override;
 
