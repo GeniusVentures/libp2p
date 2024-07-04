@@ -9,7 +9,7 @@ libp2p_add_library(p2p_autonat
     autonat.cpp
 	autonat_msg_processor.cpp
     )
-target_link_libraries(p2p_identify
+target_link_libraries(p2p_autonat
     p2p
     p2p_autonat_proto
     p2p_protobuf_message_read_writer
