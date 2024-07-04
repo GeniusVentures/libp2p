@@ -118,58 +118,96 @@ namespace libp2p::protocol {
   void AutonatMessageProcessor::autonatReceived(
       outcome::result<autonat::pb::Message> msg_res,
       const StreamSPtr &stream) {
-    //auto [peer_id_str, peer_addr_str] = detail::getPeerIdentity(stream);
-    //if (!msg_res) {
-    //  log_->error("cannot read an autonat message from peer {}, {}: {}",
-    //              peer_id_str, peer_addr_str, msg_res.error());
-    //  return stream->reset();
-    //}
+    auto [peer_id_str, peer_addr_str] = detail::getPeerIdentity(stream);
+    if (!msg_res) {
+      log_->error("cannot read an autonat message from peer {}, {}: {}",
+                  peer_id_str, peer_addr_str, msg_res.error());
+      return stream->reset();
+    }
 
-    //log_->info("received an autonat message from peer {}, {}", peer_id_str,
-    //           peer_addr_str);
-    //stream->close([self{shared_from_this()}, p = std::move(peer_id_str),
-    //               a = std::move(peer_addr_str)](auto &&res) {
-    //  if (!res) {
-    //    self->log_->error("cannot close the stream to peer {}, {}: {}", p, a,
-    //                      res.error().message());
-    //  }
-    //});
+    log_->info("received an autonat message from peer {}, {}", peer_id_str,
+               peer_addr_str);
+    stream->close([self{shared_from_this()}, p = std::move(peer_id_str),
+                   a = std::move(peer_addr_str)](auto &&res) {
+      if (!res) {
+        self->log_->error("cannot close the stream to peer {}, {}: {}", p, a,
+                          res.error().message());
+      }
+    });
 
-    //auto &&msg = std::move(msg_res.value());
+    auto &&msg = std::move(msg_res.value());
+    
+    if (!msg.has_type())
+    {
+        log_->error("AUTONAT Message has no type");
+        return;
+    }
+    if (msg.type() == autonat::pb::Message::DIAL)
+    {
+        if (!msg.dial().has_peer())
+        {
+            log_->error("AUTONAT DIAL Message has no peer");
+            return;
+        }
+        //Get Peer Info
+        const auto& peer_info = msg.dial().peer();
 
-    //// process a received public key and retrieve an ID of the other peer
-    //auto received_pubkey_str = msg.has_publickey() ? msg.publickey() : "";
-    //auto peer_id_opt = consumePublicKey(stream, received_pubkey_str);
-    //if (!peer_id_opt) {
-    //  // something bad happened during key processing - we can't continue
-    //  return;
-    //}
-    //auto peer_id = std::move(*peer_id_opt);
+        //Get Remote IP from stream for comparisons
+        auto remote_ip = stream->remoteMultiaddr().value().getStringAddress();
 
-    //// store the received protocols
-    //std::vector<peer::Protocol> protocols;
-    //for (const auto &proto : msg.protocols()) {
-    //  protocols.push_back(proto);
-    //}
-    //auto add_res =
-    //    host_.getPeerRepository().getProtocolRepository().addProtocols(
-    //        peer_id, protocols);
-    //if (!add_res) {
-    //  log_->error("cannot add protocols to peer {}: {}", peer_id.toBase58(),
-    //              add_res.error().message());
-    //}
+        //Get Peer ID
+        auto peer_id_res = libp2p::peer::PeerId::fromBase58(peer_info.id());
+        if (!peer_id_res.has_value())
+        {
+            log_->error("AUTONAT Peer has no ID {}", remote_ip);
+            return;
+        }
+        auto peer_id = peer_id_res.value();
 
-    //if (msg.has_observedaddr()) {
-    //  consumeObservedAddresses(msg.observedaddr(), peer_id, stream);
-    //}
+        // List to store matching addresses
+        //We must avoid participating in a DDOS by filtering addresses that do not match the address we are connected to.
+        std::vector<std::string> matching_addresses;
 
-    //std::vector<std::string> addresses;
-    //for (const auto &addr : msg.listenaddrs()) {
-    //  addresses.push_back(addr);
-    //}
-    //consumeListenAddresses(addresses, peer_id);
+        // Verify if any address in PeerInfo matches the remote IP
+        for (const auto& addr : peer_info.addrs()) {
+            if (addr.find(remote_ip) != std::string::npos) {
+                matching_addresses.push_back(addr);
+            }
+        }
 
-    //signal_autonat_received_(peer_id);
+        if (!matching_addresses.empty()) {
+            // Proceed with dialing logic using matching_addresses
+            for (const auto& addr : matching_addresses) {
+                // Dial the address
+            }
+        }
+        else {
+              log_->error("Peer has no matching addresses for AUTONAT dial. {}", peer_id.toBase58());
+              return;
+        }
+
+    }
+
+    if (msg.type() == autonat::pb::Message::DIAL_RESPONSE) {
+        if (!msg.dialresponse().has_status() || msg.dialresponse().status() != autonat::pb::Message::OK) {
+            log_->error("DIAL_RESPONSE not OK or missing status. {}", msg.dialresponse().statustext());
+            return;
+        }
+
+        const auto& addr = msg.dialresponse().addr();
+
+        if (addr.empty()) {
+            log_->error("DIAL_RESPONSE address is empty.");
+            return;
+        }
+
+        successful_addresses_[addr]++;
+
+        if (successful_addresses_[addr] >= 3) {
+            log_->info("Address {} reported OK 3 or more times. Not behind NAT.", addr);
+            // Handle logic when not behind NAT
+        }
+    }
   }
 
   boost::optional<peer::PeerId> AutonatMessageProcessor::consumePublicKey(
