@@ -30,7 +30,7 @@ namespace libp2p::protocol {
     using StreamSPtr = std::shared_ptr<connection::Stream>;
 
    public:
-    using AutonotCallback = void(const peer::PeerId &);
+    using AutonatCallback = void(const peer::PeerId &);
 
     AutonatMessageProcessor(
         Host &host, network::ConnectionManager &conn_manager,
@@ -84,7 +84,7 @@ namespace libp2p::protocol {
      * @param msg, which was read
      * @param stream, over which it was received
      */
-    void autonatReceived(outcome::result<autonat::pb::Autonat> msg,
+    void autonatReceived(outcome::result<autonat::pb::Message> msg,
                           const StreamSPtr &stream);
 
     /**
@@ -131,7 +131,7 @@ namespace libp2p::protocol {
     peer::IdentityManager &identity_manager_;
     std::shared_ptr<crypto::marshaller::KeyMarshaller> key_marshaller_;
     ObservedAddresses observed_addresses_;
-    boost::signals2::signal<AutonotCallback> signal_autonat_received_;
+    boost::signals2::signal<AutonatCallback> signal_autonat_received_;
 
     log::Logger log_ = log::createLogger("AutonatMsgProcessor");
   };

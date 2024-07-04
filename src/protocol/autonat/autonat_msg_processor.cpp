@@ -44,45 +44,27 @@ namespace libp2p::protocol {
   }
 
   void AutonatMessageProcessor::sendAutonat(StreamSPtr stream) {
-    autonat::pb::Mesasge msg;
+    autonat::pb::Message msg;
 
-    // set the protocols we speak on
-    for (const auto &proto : host_.getRouter().getSupportedProtocols()) {
-      msg.add_protocols(proto);
+    //Set to DIAL to ask nodes to dial us
+    msg.set_type(autonat::pb::Message::DIAL);
+
+    //Create a Dial PB
+    auto dialmsg = new autonat::pb::Message_Dial;
+    //Create a Peer ID
+    auto dialpeer = new autonat::pb::Message_PeerInfo;
+    //Set our Peer ID
+    dialpeer->set_id(host_.getPeerInfo().id.toBase58());
+
+    //Set our Addresses we think we are available on
+    for (const auto& addr : host_.getPeerInfo().addresses) {
+        dialpeer->add_addrs(fromMultiaddrToString(addr));
     }
-
-    // set an address of the other side, so that it knows, which address we used
-    // to connect to it
-    if (auto remote_addr = stream->remoteMultiaddr()) {
-      msg.set_observedaddr(fromMultiaddrToString(remote_addr.value()));
-    }
-
-    // set addresses we are available on
-    for (const auto &addr : host_.getPeerInfo().addresses) {
-      msg.add_listenaddrs(fromMultiaddrToString(addr));
-    }
-
-    // set our public key
-    auto marshalled_pubkey_res =
-        key_marshaller_->marshal(identity_manager_.getKeyPair().publicKey);
-    if (!marshalled_pubkey_res) {
-      log_->critical(
-          "cannot marshal public key, which was provided to us by the identity "
-          "manager: {}",
-          marshalled_pubkey_res.error().message());
-    } else {
-      auto &&marshalled_pubkey = marshalled_pubkey_res.value();
-      msg.set_publickey(marshalled_pubkey.key.data(),
-                        marshalled_pubkey.key.size());
-    }
-
-    // set versions of Libp2p and our implementation
-    msg.set_protocolversion(std::string{host_.getLibp2pVersion()});
-    msg.set_agentversion(std::string{host_.getLibp2pClientVersion()});
-
+    dialmsg->set_allocated_peer(dialpeer);
+    msg.set_allocated_dial(dialmsg);
     // write the resulting Protobuf message
     auto rw = std::make_shared<basic::ProtobufMessageReadWriter>(stream);
-    rw->write<autonate::pb::Message>(
+    rw->write<autonat::pb::Message>(
         msg,
         [self{shared_from_this()},
          stream = std::move(stream)](auto &&res) mutable {
@@ -136,58 +118,58 @@ namespace libp2p::protocol {
   void AutonatMessageProcessor::autonatReceived(
       outcome::result<autonat::pb::Message> msg_res,
       const StreamSPtr &stream) {
-    auto [peer_id_str, peer_addr_str] = detail::getPeerIdentity(stream);
-    if (!msg_res) {
-      log_->error("cannot read an autonat message from peer {}, {}: {}",
-                  peer_id_str, peer_addr_str, msg_res.error());
-      return stream->reset();
-    }
+    //auto [peer_id_str, peer_addr_str] = detail::getPeerIdentity(stream);
+    //if (!msg_res) {
+    //  log_->error("cannot read an autonat message from peer {}, {}: {}",
+    //              peer_id_str, peer_addr_str, msg_res.error());
+    //  return stream->reset();
+    //}
 
-    log_->info("received an autonat message from peer {}, {}", peer_id_str,
-               peer_addr_str);
-    stream->close([self{shared_from_this()}, p = std::move(peer_id_str),
-                   a = std::move(peer_addr_str)](auto &&res) {
-      if (!res) {
-        self->log_->error("cannot close the stream to peer {}, {}: {}", p, a,
-                          res.error().message());
-      }
-    });
+    //log_->info("received an autonat message from peer {}, {}", peer_id_str,
+    //           peer_addr_str);
+    //stream->close([self{shared_from_this()}, p = std::move(peer_id_str),
+    //               a = std::move(peer_addr_str)](auto &&res) {
+    //  if (!res) {
+    //    self->log_->error("cannot close the stream to peer {}, {}: {}", p, a,
+    //                      res.error().message());
+    //  }
+    //});
 
-    auto &&msg = std::move(msg_res.value());
+    //auto &&msg = std::move(msg_res.value());
 
-    // process a received public key and retrieve an ID of the other peer
-    auto received_pubkey_str = msg.has_publickey() ? msg.publickey() : "";
-    auto peer_id_opt = consumePublicKey(stream, received_pubkey_str);
-    if (!peer_id_opt) {
-      // something bad happened during key processing - we can't continue
-      return;
-    }
-    auto peer_id = std::move(*peer_id_opt);
+    //// process a received public key and retrieve an ID of the other peer
+    //auto received_pubkey_str = msg.has_publickey() ? msg.publickey() : "";
+    //auto peer_id_opt = consumePublicKey(stream, received_pubkey_str);
+    //if (!peer_id_opt) {
+    //  // something bad happened during key processing - we can't continue
+    //  return;
+    //}
+    //auto peer_id = std::move(*peer_id_opt);
 
-    // store the received protocols
-    std::vector<peer::Protocol> protocols;
-    for (const auto &proto : msg.protocols()) {
-      protocols.push_back(proto);
-    }
-    auto add_res =
-        host_.getPeerRepository().getProtocolRepository().addProtocols(
-            peer_id, protocols);
-    if (!add_res) {
-      log_->error("cannot add protocols to peer {}: {}", peer_id.toBase58(),
-                  add_res.error().message());
-    }
+    //// store the received protocols
+    //std::vector<peer::Protocol> protocols;
+    //for (const auto &proto : msg.protocols()) {
+    //  protocols.push_back(proto);
+    //}
+    //auto add_res =
+    //    host_.getPeerRepository().getProtocolRepository().addProtocols(
+    //        peer_id, protocols);
+    //if (!add_res) {
+    //  log_->error("cannot add protocols to peer {}: {}", peer_id.toBase58(),
+    //              add_res.error().message());
+    //}
 
-    if (msg.has_observedaddr()) {
-      consumeObservedAddresses(msg.observedaddr(), peer_id, stream);
-    }
+    //if (msg.has_observedaddr()) {
+    //  consumeObservedAddresses(msg.observedaddr(), peer_id, stream);
+    //}
 
-    std::vector<std::string> addresses;
-    for (const auto &addr : msg.listenaddrs()) {
-      addresses.push_back(addr);
-    }
-    consumeListenAddresses(addresses, peer_id);
+    //std::vector<std::string> addresses;
+    //for (const auto &addr : msg.listenaddrs()) {
+    //  addresses.push_back(addr);
+    //}
+    //consumeListenAddresses(addresses, peer_id);
 
-    signal_autonat_received_(peer_id);
+    //signal_autonat_received_(peer_id);
   }
 
   boost::optional<peer::PeerId> AutonatMessageProcessor::consumePublicKey(
