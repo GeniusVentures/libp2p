@@ -40,7 +40,7 @@ namespace libp2p::protocol {
 
   boost::signals2::connection AutonatMessageProcessor::onAutonatReceived(
       const std::function<AutonatCallback> &cb) {
-    return signal_autonat_received_.connect(cb);
+      return signal_autonat_received_.connect(cb);
   }
 
   void AutonatMessageProcessor::sendAutonat(StreamSPtr stream) {
@@ -179,6 +179,7 @@ namespace libp2p::protocol {
             // Proceed with dialing logic using matching_addresses
             for (const auto& addr : matching_addresses) {
                 // Dial the address
+
             }
         }
         else {
@@ -189,8 +190,8 @@ namespace libp2p::protocol {
     }
 
     if (msg.type() == autonat::pb::Message::DIAL_RESPONSE) {
-        if (!msg.dialresponse().has_status() || msg.dialresponse().status() != autonat::pb::Message::OK) {
-            log_->error("DIAL_RESPONSE not OK or missing status. {}", msg.dialresponse().statustext());
+        if (!msg.dialresponse().has_status()) {
+            log_->error("DIAL_RESPONSE missing status. {}", msg.dialresponse().statustext());
             return;
         }
 
@@ -200,12 +201,22 @@ namespace libp2p::protocol {
             log_->error("DIAL_RESPONSE address is empty.");
             return;
         }
+        if (msg.dialresponse().status() != autonat::pb::Message::OK)
+        {
+            unsuccessful_addresses_[addr]++;
+            if (unsuccessful_addresses_[addr] >= 3)
+            {
+                log_->info("Address {} reported NOT OK 3 or more times. Assumed behind NAT.", addr);
+                // Handle logic when behind NAT
+            }
+        }
+        else {
+            successful_addresses_[addr]++;
 
-        successful_addresses_[addr]++;
-
-        if (successful_addresses_[addr] >= 3) {
-            log_->info("Address {} reported OK 3 or more times. Not behind NAT.", addr);
-            // Handle logic when not behind NAT
+            if (successful_addresses_[addr] >= 3) {
+                log_->info("Address {} reported OK 3 or more times. Assumed not behind NAT.", addr);
+                // Handle logic when not behind NAT
+            }
         }
     }
   }
