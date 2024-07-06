@@ -79,6 +79,7 @@ namespace libp2p::protocol {
     std::shared_ptr<AutonatMessageProcessor> msg_processor_;
     event::Bus &bus_;
     event::Handle sub_;  // will unsubscribe during destruction by itself
+    bool natstatus_ = false; //False if we are behind a NAT, true if not.
 
     bool started_ = false;
   };

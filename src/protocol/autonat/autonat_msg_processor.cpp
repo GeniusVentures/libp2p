@@ -34,7 +34,9 @@ namespace libp2p::protocol {
       : host_{host},
         conn_manager_{conn_manager},
         identity_manager_{identity_manager},
-        key_marshaller_{std::move(key_marshaller)} {
+        key_marshaller_{std::move(key_marshaller)},
+        successful_addresses_(),
+        unsuccessful_addresses_() {
     BOOST_ASSERT(key_marshaller_);
   }
 
@@ -192,6 +194,7 @@ namespace libp2p::protocol {
     if (msg.type() == autonat::pb::Message::DIAL_RESPONSE) {
         if (!msg.dialresponse().has_status()) {
             log_->error("DIAL_RESPONSE missing status. {}", msg.dialresponse().statustext());
+            signal_autonat_received_(false);
             return;
         }
 
@@ -199,6 +202,7 @@ namespace libp2p::protocol {
 
         if (addr.empty()) {
             log_->error("DIAL_RESPONSE address is empty.");
+            signal_autonat_received_(false);
             return;
         }
         if (msg.dialresponse().status() != autonat::pb::Message::OK)
@@ -208,6 +212,7 @@ namespace libp2p::protocol {
             {
                 log_->info("Address {} reported NOT OK 3 or more times. Assumed behind NAT.", addr);
                 // Handle logic when behind NAT
+                signal_autonat_received_(false);
             }
         }
         else {
@@ -216,8 +221,11 @@ namespace libp2p::protocol {
             if (successful_addresses_[addr] >= 3) {
                 log_->info("Address {} reported OK 3 or more times. Assumed not behind NAT.", addr);
                 // Handle logic when not behind NAT
+                signal_autonat_received_(true);
             }
         }
+        signal_autonat_received_(false);
+
     }
   }
 

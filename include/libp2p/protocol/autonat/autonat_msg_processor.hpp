@@ -30,7 +30,7 @@ namespace libp2p::protocol {
     using StreamSPtr = std::shared_ptr<connection::Stream>;
 
    public:
-    using AutonatCallback = void(const peer::PeerId &);
+    using AutonatCallback = void(const bool &);
 
     AutonatMessageProcessor(
         Host &host, network::ConnectionManager &conn_manager,
