@@ -13,4 +13,5 @@ target_link_libraries(p2p_tls
     p2p_crypto_error
     p2p_logger
     p2p_security_error
-    )
+    OpenSSL::SSL
+)
