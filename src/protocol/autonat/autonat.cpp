@@ -17,9 +17,9 @@ namespace libp2p::protocol {
                      event::Bus &event_bus)
       : host_{host}, msg_processor_{std::move(msg_processor)}, bus_{event_bus} {
     BOOST_ASSERT(msg_processor_);
-    //msg_processor_->onAutonatReceived([this](const bool& status) {
-    //    natstatus_ = status;
-    //    });
+    msg_processor_->onAutonatReceived([this](const bool& status) {
+        natstatus_ = status;
+        });
   }
 
   boost::signals2::connection Autonat::onAutonatReceived(
