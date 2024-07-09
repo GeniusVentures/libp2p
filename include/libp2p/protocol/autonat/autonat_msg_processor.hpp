@@ -4,6 +4,7 @@
 #include <memory>
 #include <optional>
 #include <string>
+#include <unordered_map>
 
 #include <gsl/span>
 #include <libp2p/connection/stream.hpp>
@@ -18,7 +19,7 @@
 #include <libp2p/protocol/identify/observed_addresses.hpp>
 
 namespace autonat::pb {
-  class Autonat;
+  class Message;
 }
 
 namespace libp2p::protocol {
@@ -84,7 +85,7 @@ namespace libp2p::protocol {
      * @param msg, which was read
      * @param stream, over which it was received
      */
-    void autonatReceived(outcome::result<autonat::pb::Message> msg,
+    void autonatReceived(outcome::result<autonat::pb::Message> msg_res,
                           const StreamSPtr &stream);
 
 

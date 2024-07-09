@@ -1,11 +1,5 @@
 #ifndef LIBP2P_AUTONAT_HPP
 #define LIBP2P_AUTONAT_HPP
-#include <generated/protocol/autonat/protobuf/autonat.pb.h>
-#include <boost/assert.hpp>
-#include <libp2p/basic/protobuf_message_read_writer.hpp>
-#include <libp2p/network/network.hpp>
-#include <libp2p/peer/address_repository.hpp>
-#include <libp2p/protocol/identify/utils.hpp>
 #include <iostream>
 #include <libp2p/event/bus.hpp>
 #include <libp2p/protocol/base_protocol.hpp>
