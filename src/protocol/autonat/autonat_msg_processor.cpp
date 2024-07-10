@@ -66,6 +66,7 @@ namespace libp2p::protocol {
         msg.set_allocated_dial(dialmsg);
         // write the resulting Protobuf message
         auto rw = std::make_shared<basic::ProtobufMessageReadWriter>(stream);
+		std::cout << "Send autonat message" << std::endl;
         rw->write<autonat::pb::Message>(
             msg,
             [self{ shared_from_this() },
@@ -120,6 +121,7 @@ namespace libp2p::protocol {
     void AutonatMessageProcessor::autonatReceived(
         outcome::result<autonat::pb::Message> msg_res,
         const StreamSPtr& stream) {
+		std::cout << "Got autonat message" << std::endl;
         auto [peer_id_str, peer_addr_str] = detail::getPeerIdentity(stream);
         if (!msg_res) {
             log_->error("cannot read an autonat message from peer {}, {}: {}",
@@ -146,6 +148,7 @@ namespace libp2p::protocol {
         }
         if (msg.type() == autonat::pb::Message::DIAL)
         {
+			std::cout << "Autonat msg is dial" << std::endl;
             if (!msg.dial().has_peer())
             {
                 log_->error("AUTONAT DIAL Message has no peer");
@@ -192,6 +195,7 @@ namespace libp2p::protocol {
         }
 
         if (msg.type() == autonat::pb::Message::DIAL_RESPONSE) {
+			std::cout << "Autonat message is response" << std::endl;
             if (!msg.dialresponse().has_status()) {
                 log_->error("DIAL_RESPONSE missing status. {}", msg.dialresponse().statustext());
                 signal_autonat_received_(false);

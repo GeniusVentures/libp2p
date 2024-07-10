@@ -56,11 +56,13 @@ set(OPENSSL_INCLUDE_DIR ${CMAKE_SOURCE_DIR}/../build/Windows/Debug/openssl/build
 set(OPENSSL_LIBRARIES ${CMAKE_SOURCE_DIR}/../build/Windows/Debug/openssl/build/Windows/lib)
 include_directories(${OPENSSL_INCLUDE_DIR})
 
+set(utf8_range_DIR "${CMAKE_SOURCE_DIR}/../build/Windows/Debug/grpc/lib/cmake/utf8_range")
+set(absl_DIR "${CMAKE_SOURCE_DIR}/../build/Windows/Debug/grpc/lib/cmake/absl")
 #Protobuf
-set(Protobuf_DIR ${CMAKE_SOURCE_DIR}/../build/Windows/Debug/protobuf/cmake)
-set(Protobuf_INCLUDE_DIR ${CMAKE_SOURCE_DIR}/../build/Windows/Debug/protobuf/include)
-set(Protobuf_LIBRARIES ${CMAKE_SOURCE_DIR}/../build/Windows/Debug/protobuf/lib)
-set(Protobuf_PROTOC_EXECUTABLE ${CMAKE_SOURCE_DIR}/../build/Windows/Debug/protobuf/bin/protoc)
+set(Protobuf_DIR ${CMAKE_SOURCE_DIR}/../build/Windows/Debug/grpc/cmake)
+set(Protobuf_INCLUDE_DIR ${CMAKE_SOURCE_DIR}/../build/Windows/Debug/grpc/include/google/protobuf)
+set(Protobuf_LIBRARIES ${CMAKE_SOURCE_DIR}/../build/Windows/Debug/grpc/lib)
+set(Protobuf_PROTOC_EXECUTABLE ${CMAKE_SOURCE_DIR}/../build/Windows/Debug/grpc/bin/protoc)
 include_directories(${Protobuf_INCLUDE_DIR})
 
 set(c-ares_DIR ${CMAKE_SOURCE_DIR}/../build/Windows/Debug/cares/lib/cmake/c-ares)
