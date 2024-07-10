@@ -73,6 +73,12 @@ namespace libp2p::protocol {
             stream = std::move(stream)](auto&& res) mutable {
                 self->autonatSent(std::forward<decltype(res)>(res), stream);
             });
+
+        // Handle incoming responses
+        rw->read<autonat::pb::Message>(
+            [self{ shared_from_this() }, stream](auto&& res) {
+                self->autonatReceived(std::forward<decltype(res)>(res), stream);
+            });
     }
 
     void AutonatMessageProcessor::autonatSent(

@@ -4,7 +4,7 @@
 #include <tuple>
 
 #include <boost/assert.hpp>
-
+#include <iostream>
 
 
 namespace {
@@ -91,10 +91,13 @@ namespace libp2p::protocol {
     msg_processor_->getHost().newStream(
         peer_info, kAutonatProto,
         [self{shared_from_this()}](auto &&stream_res) {
-          if (!stream_res) {
-            return;
-          }
-          self->msg_processor_->receiveAutonat(std::move(stream_res.value()));
+            if (!stream_res) {
+                self->log_->error("Failed to create new stream: {}", stream_res.error().message());
+                return;
+            }
+            self->log_->info("Sending Autonat request to peer");
+            auto stream = stream_res.value();
+            self->msg_processor_->sendAutonat(stream);
         });
   }
 }

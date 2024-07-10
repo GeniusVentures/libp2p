@@ -74,6 +74,7 @@ namespace libp2p::protocol {
     event::Bus &bus_;
     event::Handle sub_;  // will unsubscribe during destruction by itself
     bool natstatus_ = false; //False if we are behind a NAT, true if not.
+    log::Logger log_ = log::createLogger("Autonat");
 
     bool started_ = false;
   };
