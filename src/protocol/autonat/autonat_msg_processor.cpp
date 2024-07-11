@@ -228,28 +228,47 @@ namespace libp2p::protocol {
             if (msg.dialresponse().status() == autonat::pb::Message::E_DIAL_ERROR)
             {
                 unsuccessful_addresses_++;
-                if (unsuccessful_addresses_ >= 3)
-                {
-                    log_->info("Addresses reported NOT OK 3 or more times. Assumed behind NAT.");
+                //if (unsuccessful_addresses_ >= 3)
+                //{
+                //    log_->info("Addresses reported NOT OK 3 or more times. Assumed behind NAT.");
                     // Handle logic when behind NAT
-                    signal_autonat_received_(false);
-                }
+                    //signal_autonat_received_(false);
+                //}
             }
             else if (msg.dialresponse().status() == autonat::pb::Message::OK)
             {
                 successful_addresses_++;
 
-                if (successful_addresses_ >= 3) {
-                    log_->info("Addresses reported OK 3 or more times. Assumed not behind NAT.");
+                //if (successful_addresses_ >= 3) {
+                //    log_->info("Addresses reported OK 3 or more times. Assumed not behind NAT.");
                     // Handle logic when not behind NAT
-                    signal_autonat_received_(true);
-                }
+                    //signal_autonat_received_(true);
+                //}
             }
             else {
                 log_->info("Autonat DIAL_RESPONSE has had an error that does not indicate NAT status: {}", msg.dialresponse().statustext());
                 //signal_autonat_received_(false);
             }
-            
+            // Define the threshold ratio for success
+            int total_count = successful_addresses_ + unsuccessful_addresses_;
+            constexpr double threshold_ratio = 0.70;
+
+            //Considerations included here for potential false reports of being behind a NAT, we may not need this.
+            if (successful_addresses_ >= 3 && static_cast<double>(successful_addresses_) / total_count >= threshold_ratio)
+            {
+                log_->info("Addresses reported OK 3 or more times by threshold. Assumed not behind NAT.");
+                signal_autonat_received_(true);
+            }
+            else if (unsuccessful_addresses_ >= 3 && static_cast<double>(unsuccessful_addresses_) / total_count > (1.0 - threshold_ratio))
+            {
+                log_->info("Addresses reported NOT OK 3 or more times by threshold. Assumed behind NAT.");
+                signal_autonat_received_(false);
+            }
+            else {
+                //Default to behind NAT
+                log_->info("Not enough reports to determine NAT status.");
+                signal_autonat_received_(false);
+            }
 
         }
     }
