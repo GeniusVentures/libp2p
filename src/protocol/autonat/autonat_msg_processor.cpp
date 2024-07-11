@@ -74,11 +74,6 @@ namespace libp2p::protocol {
                 self->autonatSent(std::forward<decltype(res)>(res), stream);
             });
 
-        // Handle incoming responses
-        rw->read<autonat::pb::Message>(
-            [self{ shared_from_this() }, stream](auto&& res) {
-                self->autonatReceived(std::forward<decltype(res)>(res), stream);
-            });
     }
 
     void AutonatMessageProcessor::autonatSent(
@@ -93,12 +88,18 @@ namespace libp2p::protocol {
         log_->info("successfully written an Autonat message to peer {}, {}",
             peer_id, peer_addr);
 
-        stream->close([self{ shared_from_this() }, p = std::move(peer_id),
-            a = std::move(peer_addr)](auto&& res) {
-                if (!res) {
-                    self->log_->error("cannot close the stream to peer {}, {}: {}", p, a,
-                        res.error().message());
-                }
+        //stream->close([self{ shared_from_this() }, p = std::move(peer_id),
+        //    a = std::move(peer_addr)](auto&& res) {
+        //        if (!res) {
+        //            self->log_->error("cannot close the stream to peer {}, {}: {}", p, a,
+        //                res.error().message());
+        //        }
+        //    });
+                // Handle incoming responses
+        auto rw = std::make_shared<basic::ProtobufMessageReadWriter>(stream);
+        rw->read<autonat::pb::Message>(
+            [self{ shared_from_this() }, stream = std::move(stream)](auto&& res) {
+                self->autonatReceived(std::forward<decltype(res)>(res), stream);
             });
     }
 
