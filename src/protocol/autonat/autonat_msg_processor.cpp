@@ -56,19 +56,17 @@ namespace libp2p::protocol {
         //Create a Peer ID
         auto dialpeer = new autonat::pb::Message_PeerInfo;
         //Set our Peer ID
-        std::cout << "Adding Peer ID to Autonat PB: " << host_.getPeerInfo().id.toBase58() << std::endl;
         dialpeer->set_id(std::string(host_.getPeerInfo().id.toVector().begin(), host_.getPeerInfo().id.toVector().end()));
 
         //Set our Addresses we think we are available on
         for (const auto& addr : host_.getPeerInfo().addresses) {
-            std::cout << "Adding address to Autonat PB: " << addr.getStringAddress() << std::endl;
+            //std::cout << "Adding address to Autonat PB: " << addr.getStringAddress() << std::endl;
             dialpeer->add_addrs(fromMultiaddrToString(addr));
         }
         dialmsg->set_allocated_peer(dialpeer);
         msg.set_allocated_dial(dialmsg);
         // write the resulting Protobuf message
         auto rw = std::make_shared<basic::ProtobufMessageReadWriter>(stream);
-		std::cout << "Send autonat message" << std::endl;
         rw->write<autonat::pb::Message>(
             msg,
             [self{ shared_from_this() },
@@ -90,13 +88,6 @@ namespace libp2p::protocol {
         log_->info("successfully written an Autonat message to peer {}, {}",
             peer_id, peer_addr);
 
-        //stream->close([self{ shared_from_this() }, p = std::move(peer_id),
-        //    a = std::move(peer_addr)](auto&& res) {
-        //        if (!res) {
-        //            self->log_->error("cannot close the stream to peer {}, {}: {}", p, a,
-        //                res.error().message());
-        //        }
-        //    });
                 // Handle incoming responses
         auto rw = std::make_shared<basic::ProtobufMessageReadWriter>(stream);
         rw->read<autonat::pb::Message>(
@@ -130,7 +121,6 @@ namespace libp2p::protocol {
     void AutonatMessageProcessor::autonatReceived(
         outcome::result<autonat::pb::Message> msg_res,
         const StreamSPtr& stream) {
-		std::cout << "Got autonat message" << std::endl;
         auto [peer_id_str, peer_addr_str] = detail::getPeerIdentity(stream);
         if (!msg_res) {
             log_->error("cannot read an autonat message from peer {}, {}: {}",
@@ -157,7 +147,6 @@ namespace libp2p::protocol {
         }
         if (msg.type() == autonat::pb::Message::DIAL)
         {
-			std::cout << "Autonat msg is dial" << std::endl;
             if (!msg.dial().has_peer())
             {
                 log_->error("AUTONAT DIAL Message has no peer");
@@ -204,7 +193,6 @@ namespace libp2p::protocol {
         }
 
         if (msg.type() == autonat::pb::Message::DIAL_RESPONSE) {
-			std::cout << "Autonat message is response" << std::endl;
             if (!msg.dialresponse().has_status()) {
                 log_->error("DIAL_RESPONSE missing status. {}", msg.dialresponse().statustext());
                 signal_autonat_received_(false);
@@ -228,22 +216,10 @@ namespace libp2p::protocol {
             if (msg.dialresponse().status() == autonat::pb::Message::E_DIAL_ERROR)
             {
                 unsuccessful_addresses_++;
-                //if (unsuccessful_addresses_ >= 3)
-                //{
-                //    log_->info("Addresses reported NOT OK 3 or more times. Assumed behind NAT.");
-                    // Handle logic when behind NAT
-                    //signal_autonat_received_(false);
-                //}
             }
             else if (msg.dialresponse().status() == autonat::pb::Message::OK)
             {
                 successful_addresses_++;
-
-                //if (successful_addresses_ >= 3) {
-                //    log_->info("Addresses reported OK 3 or more times. Assumed not behind NAT.");
-                    // Handle logic when not behind NAT
-                    //signal_autonat_received_(true);
-                //}
             }
             else {
                 log_->info("Autonat DIAL_RESPONSE has had an error that does not indicate NAT status: {}", msg.dialresponse().statustext());
