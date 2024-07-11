@@ -219,7 +219,7 @@ namespace libp2p::protocol {
                 return;
             }
             auto readableaddr = fromStringToMultiaddr(addr);
-            if (readableaddr.has_value())
+            if (!readableaddr.has_value())
             {
                 log_->error("DIAL_RESPONSE address is malformed. {}", readableaddr.error().message());
                 return;
