@@ -9,6 +9,7 @@
 #include <libp2p/network/network.hpp>
 #include <libp2p/peer/address_repository.hpp>
 #include <libp2p/protocol/identify/utils.hpp>
+#include "libp2p/injector/host_injector.hpp"
 #include <iostream>
 
 namespace {
@@ -130,13 +131,7 @@ namespace libp2p::protocol {
 
         log_->info("received an autonat message from peer {}, {}", peer_id_str,
             peer_addr_str);
-        stream->close([self{ shared_from_this() }, p = std::move(peer_id_str),
-            a = std::move(peer_addr_str)](auto&& res) {
-                if (!res) {
-                    self->log_->error("cannot close the stream to peer {}, {}: {}", p, a,
-                        res.error().message());
-                }
-            });
+
 
         auto&& msg = std::move(msg_res.value());
 
@@ -145,6 +140,8 @@ namespace libp2p::protocol {
             log_->error("AUTONAT Message has no type");
             return;
         }
+
+        //The other node has requested we dial them and send a response
         if (msg.type() == autonat::pb::Message::DIAL)
         {
             if (!msg.dial().has_peer())
@@ -182,17 +179,33 @@ namespace libp2p::protocol {
                 // Proceed with dialing logic using matching_addresses
                 for (const auto& addr : matching_addresses) {
                     // Dial the address
-
+                    auto injector = libp2p::injector::makeHostInjector();
+                    auto temphost = injector.create<std::shared_ptr<libp2p::Host>>();
+                    //temphost.
                 }
             }
             else {
                 log_->error("Peer has no matching addresses for AUTONAT dial. {}", peer_id.toBase58());
+                stream->close([self{ shared_from_this() }, p = std::move(peer_id_str),
+                    a = std::move(peer_addr_str)](auto&& res) {
+                        if (!res) {
+                            self->log_->error("cannot close the stream to peer {}, {}: {}", p, a,
+                                res.error().message());
+                        }
+                    });
                 return;
             }
 
         }
 
         if (msg.type() == autonat::pb::Message::DIAL_RESPONSE) {
+            stream->close([self{ shared_from_this() }, p = std::move(peer_id_str),
+                a = std::move(peer_addr_str)](auto&& res) {
+                    if (!res) {
+                        self->log_->error("cannot close the stream to peer {}, {}: {}", p, a,
+                            res.error().message());
+                    }
+                });
             if (!msg.dialresponse().has_status()) {
                 log_->error("DIAL_RESPONSE missing status. {}", msg.dialresponse().statustext());
                 signal_autonat_received_(false);

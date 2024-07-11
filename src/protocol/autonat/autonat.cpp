@@ -44,7 +44,7 @@ namespace libp2p::protocol {
     if (!stream_res) {
       return;
     }
-    msg_processor_->sendAutonat(std::move(stream_res.value()));
+    msg_processor_->receiveAutonat(std::move(stream_res.value()));
   }
 
   void Autonat::start() {
