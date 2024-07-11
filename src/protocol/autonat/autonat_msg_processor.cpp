@@ -166,23 +166,36 @@ namespace libp2p::protocol {
 
             // List to store matching addresses
             //We must avoid participating in a DDOS by filtering addresses that do not match the address we are connected to.
-            std::vector<std::string> matching_addresses;
+            std::vector<multi::Multiaddress> matching_addresses;
 
             // Verify if any address in PeerInfo matches the remote IP
             for (const auto& addr : peer_info.addrs()) {
-                if (addr.find(remote_ip) != std::string::npos) {
-                    matching_addresses.push_back(addr);
+                auto ma_addr = fromStringToMultiaddr(addr);
+                if (ma_addr.value().getStringAddress().find(remote_ip) != std::string::npos) {
+                    matching_addresses.push_back(ma_addr.value());
                 }
             }
 
             if (!matching_addresses.empty()) {
                 // Proceed with dialing logic using matching_addresses
-                for (const auto& addr : matching_addresses) {
-                    // Dial the address
-                    auto injector = libp2p::injector::makeHostInjector();
-                    auto temphost = injector.create<std::shared_ptr<libp2p::Host>>();
-                    //temphost.
-                }
+                auto injector = libp2p::injector::makeHostInjector();
+                auto temphost = injector.create<std::shared_ptr<libp2p::Host>>();
+                libp2p::multi::Multiaddress listen_address = libp2p::multi::Multiaddress::create("/ip4/127.0.0.1/tcp/32348").value();
+                temphost->getNetwork().getListener().listen(listen_address);
+                libp2p::peer::PeerInfo target_peer_info{ peer_id, matching_addresses };
+                temphost->newStream(
+                    target_peer_info,
+                    "/libp2p/autonat/1.0.0",
+                    [stream](auto&& stream_res) {
+                        if (!stream_res) {
+                            std::cerr << "Failed to create new stream: " << stream_res.error().message() << std::endl;
+                            return;
+                        }
+                        auto originalstream = std::move(stream);
+                        auto newstream = std::move(stream_res.value());
+                        std::cout << "Successfully created new stream to target." << std::endl;
+                        //Send a DIAL_RESPONSE
+                    });
             }
             else {
                 log_->error("Peer has no matching addresses for AUTONAT dial. {}", peer_id.toBase58());
