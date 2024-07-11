@@ -56,10 +56,12 @@ namespace libp2p::protocol {
         //Create a Peer ID
         auto dialpeer = new autonat::pb::Message_PeerInfo;
         //Set our Peer ID
-        dialpeer->set_id(host_.getPeerInfo().id.toBase58());
+        std::cout << "Adding Peer ID to Autonat PB: " << host_.getPeerInfo().id.toBase58() << std::endl;
+        dialpeer->set_id(std::string(host_.getPeerInfo().id.toVector().begin(), host_.getPeerInfo().id.toVector().end()));
 
         //Set our Addresses we think we are available on
         for (const auto& addr : host_.getPeerInfo().addresses) {
+            std::cout << "Adding address to Autonat PB: " << addr.getStringAddress() << std::endl;
             dialpeer->add_addrs(fromMultiaddrToString(addr));
         }
         dialmsg->set_allocated_peer(dialpeer);
@@ -212,25 +214,32 @@ namespace libp2p::protocol {
             auto addr = msg.dialresponse().addr();
 
             if (addr.empty()) {
-                log_->error("DIAL_RESPONSE address is empty.");
+                log_->error("DIAL_RESPONSE address is empty. {}", msg.dialresponse().statustext());
                 signal_autonat_received_(false);
                 return;
             }
+            auto readableaddr = fromStringToMultiaddr(addr);
+            if (readableaddr.has_value())
+            {
+                log_->error("DIAL_RESPONSE address is malformed. {}", readableaddr.error().message());
+                return;
+            }
+            auto stringaddr = std::string(readableaddr.value().getStringAddress());
             if (msg.dialresponse().status() != autonat::pb::Message::OK)
             {
-                unsuccessful_addresses_[addr]++;
-                if (unsuccessful_addresses_[addr] >= 3)
+                unsuccessful_addresses_[stringaddr]++;
+                if (unsuccessful_addresses_[stringaddr] >= 3)
                 {
-                    log_->info("Address {} reported NOT OK 3 or more times. Assumed behind NAT.", addr);
+                    log_->info("Address {} reported NOT OK 3 or more times. Assumed behind NAT.", stringaddr);
                     // Handle logic when behind NAT
                     signal_autonat_received_(false);
                 }
             }
             else {
-                successful_addresses_[addr]++;
+                successful_addresses_[stringaddr]++;
 
-                if (successful_addresses_[addr] >= 3) {
-                    log_->info("Address {} reported OK 3 or more times. Assumed not behind NAT.", addr);
+                if (successful_addresses_[stringaddr] >= 3) {
+                    log_->info("Address {} reported OK 3 or more times. Assumed not behind NAT.", stringaddr);
                     // Handle logic when not behind NAT
                     signal_autonat_received_(true);
                 }
