@@ -214,7 +214,7 @@ namespace libp2p::protocol {
             auto addr = msg.dialresponse().addr();
 
             if (addr.empty()) {
-                log_->error("DIAL_RESPONSE address is empty. {}", msg.dialresponse().statustext());
+                log_->error("DIAL_RESPONSE address is empty. {} errcode {}", msg.dialresponse().statustext(), msg.dialresponse().status());
                 signal_autonat_received_(false);
                 return;
             }
@@ -225,7 +225,7 @@ namespace libp2p::protocol {
                 return;
             }
             auto stringaddr = std::string(readableaddr.value().getStringAddress());
-            if (msg.dialresponse().status() != autonat::pb::Message::OK)
+            if (msg.dialresponse().status() == autonat::pb::Message::E_DIAL_ERROR)
             {
                 unsuccessful_addresses_[stringaddr]++;
                 if (unsuccessful_addresses_[stringaddr] >= 3)
@@ -235,7 +235,8 @@ namespace libp2p::protocol {
                     signal_autonat_received_(false);
                 }
             }
-            else {
+            else if (msg.dialresponse().status() == autonat::pb::Message::OK)
+            {
                 successful_addresses_[stringaddr]++;
 
                 if (successful_addresses_[stringaddr] >= 3) {
@@ -244,7 +245,11 @@ namespace libp2p::protocol {
                     signal_autonat_received_(true);
                 }
             }
-            signal_autonat_received_(false);
+            else {
+                log_->info("Autonat DIAL_RESPONSE has had an error that does not indicate NAT status: {}", msg.dialresponse().statustext());
+                //signal_autonat_received_(false);
+            }
+            
 
         }
     }
