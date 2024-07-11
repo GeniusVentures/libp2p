@@ -95,8 +95,9 @@ namespace libp2p::protocol {
     std::shared_ptr<crypto::marshaller::KeyMarshaller> key_marshaller_;
     ObservedAddresses observed_addresses_;
     boost::signals2::signal<AutonatCallback> signal_autonat_received_;
-    std::unordered_map<std::string, int> successful_addresses_;
-    std::unordered_map<std::string, int> unsuccessful_addresses_;
+    int successful_addresses_;
+    int unsuccessful_addresses_;
+
 
     log::Logger log_ = log::createLogger("AutonatMsgProcessor");
   };
