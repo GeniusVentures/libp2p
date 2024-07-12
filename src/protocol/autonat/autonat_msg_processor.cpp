@@ -177,25 +177,72 @@ namespace libp2p::protocol {
             }
 
             if (!matching_addresses.empty()) {
-                // Proceed with dialing logic using matching_addresses
+                //Create a temporary libp2p host to dial out with
                 auto injector = libp2p::injector::makeHostInjector();
                 auto temphost = injector.create<std::shared_ptr<libp2p::Host>>();
                 libp2p::multi::Multiaddress listen_address = libp2p::multi::Multiaddress::create("/ip4/127.0.0.1/tcp/32348").value();
                 temphost->getNetwork().getListener().listen(listen_address);
-                libp2p::peer::PeerInfo target_peer_info{ peer_id, matching_addresses };
-                temphost->newStream(
-                    target_peer_info,
-                    "/libp2p/autonat/1.0.0",
-                    [stream](auto&& stream_res) {
-                        if (!stream_res) {
-                            std::cerr << "Failed to create new stream: " << stream_res.error().message() << std::endl;
-                            return;
+                //Create a dial response
+                
+
+
+                for (const auto& addr : matching_addresses)
+                {
+                    //Consider whether duplicate addresses could cause us to report twice a positive or negative result.
+                    std::vector<multi::Multiaddress> dialaddr;
+                    dialaddr.push_back(addr);
+                    libp2p::peer::PeerInfo target_peer_info{ peer_id, dialaddr };
+                    temphost->newStream(
+                        target_peer_info,
+                        "/libp2p/autonat/1.0.0",
+                        [self{ shared_from_this() }, stream, addr](auto&& stream_res) {
+                            autonat::pb::Message responsemsg;
+                            responsemsg.set_type(autonat::pb::Message::DIAL_RESPONSE);
+                            auto dialrmsg = new autonat::pb::Message_DialResponse;
+                            auto rw = std::make_shared<basic::ProtobufMessageReadWriter>(stream);
+                            if (!stream_res) {
+                                std::cerr << "Failed to create new stream: " << stream_res.error().message() << std::endl;
+                                dialrmsg->set_status(autonat::pb::Message::E_DIAL_ERROR);
+                                dialrmsg->set_statustext("Error Dialing");
+                                responsemsg.set_allocated_dialresponse(dialrmsg);
+                                rw->write<autonat::pb::Message>(
+                                    responsemsg,
+                                    [self, stream = std::move(stream)](auto&& res) mutable {
+                                        self->log_->info("Sent a negative DIAL_RESPONSE to autonat request");
+                                    });
+                                return;
+                            }
+                            dialrmsg->set_addr(fromMultiaddrToString(addr));
+                            dialrmsg->set_status(autonat::pb::Message::OK);
+                            dialrmsg->set_statustext("Success");
+                            responsemsg.set_allocated_dialresponse(dialrmsg);
+                            auto newstream = std::move(stream_res.value());
+                            //Send Dial response on original stream
+                            
+                            rw->write<autonat::pb::Message>(
+                                responsemsg,
+                                [self, stream = std::move(stream)](auto&& res) mutable {
+                                    self->log_->info("Sent a positive DIAL_RESPONSE to autonat request");
+                                });
+                            //Close this stream.
+                            newstream->close([self](auto&& res)
+                                {
+                                    if (!res)
+                                    {
+                                        self->log_->error("cannot close the stream to peer: {}", res.error().message());
+                                    }
+                                });
+                            std::cout << "Successfully created new stream to target." << std::endl;
+                        });
+                }
+                stream->close([self{ shared_from_this() }, p = std::move(peer_id_str),
+                    a = std::move(peer_addr_str)](auto&& res) {
+                        if (!res) {
+                            self->log_->error("cannot close the stream to peer {}, {}: {}", p, a,
+                                res.error().message());
                         }
-                        auto originalstream = std::move(stream);
-                        auto newstream = std::move(stream_res.value());
-                        std::cout << "Successfully created new stream to target." << std::endl;
-                        //Send a DIAL_RESPONSE
                     });
+
             }
             else {
                 log_->error("Peer has no matching addresses for AUTONAT dial. {}", peer_id.toBase58());
