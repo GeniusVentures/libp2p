@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-package relay.pb
+package relay.pb;
 
 message HopMessage {
   enum Type {
