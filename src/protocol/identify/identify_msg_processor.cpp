@@ -294,17 +294,19 @@ namespace libp2p::protocol {
     auto i_listen_addresses = listener.getListenAddressesInterfaces();
 
     auto listen_addresses = listener.getListenAddresses();
+    //TODO: Investigate this more. This check seems counter to the entire purpose of identify. If I already know my external address, I wouldn't need this information to begin with.
+    // I assume this was completely misguided.
 
-    auto addr_in_addresses =
-        std::find(i_listen_addresses.begin(), i_listen_addresses.end(),
-                  local_addr_res.value())
-            != i_listen_addresses.end()
-        || std::find(listen_addresses.begin(), listen_addresses.end(),
-                     local_addr_res.value())
-            != listen_addresses.end();
-    if (!addr_in_addresses) {
-      return;
-    }
+    //auto addr_in_addresses =
+    //    std::find(i_listen_addresses.begin(), i_listen_addresses.end(),
+    //              local_addr_res.value())
+    //        != i_listen_addresses.end()
+    //    || std::find(listen_addresses.begin(), listen_addresses.end(),
+    //                 local_addr_res.value())
+    //        != listen_addresses.end();
+    //if (!addr_in_addresses) {
+    //  return;
+    //}
 
     if (!hasConsistentTransport(observed_address, host_.getAddresses())) {
       return;
