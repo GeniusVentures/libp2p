@@ -59,7 +59,7 @@ namespace libp2p::protocol {
     /**
      * Start accepting NewConnectionEvent-s and asking each of them for Autonat
      */
-    void start();
+    void start(std::vector<libp2p::multi::Multiaddress> connaddrs, libp2p::peer::PeerId peer_id, uint64_t time);
 
    private:
     /**
@@ -67,7 +67,9 @@ namespace libp2p::protocol {
      * @param conn - new connection
      */
     void onNewConnection(
-        const std::weak_ptr<connection::CapableConnection> &conn);
+        const std::weak_ptr<connection::CapableConnection> &conn,
+        std::vector<libp2p::multi::Multiaddress> connaddrs, 
+        libp2p::peer::PeerId peer_id, uint64_t time);
 
     Host &host_;
     std::shared_ptr<RelayMessageProcessor> msg_processor_;

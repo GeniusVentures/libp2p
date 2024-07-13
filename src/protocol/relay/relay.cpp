@@ -48,7 +48,8 @@ namespace libp2p::protocol {
     msg_processor_->receiveRelay(std::move(stream_res.value()));
   }
 
-  void Relay::start() {
+  void Relay::start(std::vector<libp2p::multi::Multiaddress> connaddrs, 
+      libp2p::peer::PeerId peer_id, uint64_t time) {
     // no double starts
     BOOST_ASSERT(!started_);
     started_ = true;
@@ -62,15 +63,17 @@ namespace libp2p::protocol {
         });
 
     sub_ = bus_.getChannel<event::network::OnNewConnectionChannel>().subscribe(
-        [wp = weak_from_this()](auto &&conn) {
+        [wp = weak_from_this(), connaddrs, time, peer_id](auto &&conn) {
           if (auto self = wp.lock()) {
-            return self->onNewConnection(conn);
+            return self->onNewConnection(conn, connaddrs, peer_id, time);
           }
         });
   }
 
   void Relay::onNewConnection(
-      const std::weak_ptr<connection::CapableConnection> &conn) {
+      const std::weak_ptr<connection::CapableConnection> &conn,
+      std::vector<libp2p::multi::Multiaddress> connaddrs, 
+      libp2p::peer::PeerId peer_id, uint64_t time) {
     if (conn.expired()) {
       return;
     }
@@ -91,14 +94,14 @@ namespace libp2p::protocol {
 
     msg_processor_->getHost().newStream(
         peer_info, kRelayProto,
-        [self{shared_from_this()}](auto &&stream_res) {
+        [self{shared_from_this()}, connaddrs, time, peer_id](auto &&stream_res) {
             if (!stream_res) {
                 self->log_->error("Failed to create new stream: {}", stream_res.error().message());
                 return;
             }
             self->log_->info("Sending Autonat request to peer");
             auto stream = stream_res.value();
-            self->msg_processor_->sendRelay(stream);
+            self->msg_processor_->sendHopRelay(stream, connaddrs, peer_id, time);
         });
   }
 }

@@ -21,6 +21,7 @@
 namespace relay::pb {
   class HopMessage;
   class StopMessage;
+  class Reservation;
 }
 
 namespace libp2p::protocol {
@@ -43,13 +44,13 @@ namespace libp2p::protocol {
         const std::function<RelayCallback> &cb);
 
     /**
-     * Send an autonat message over the provided stream
+     * Send an relay message over the provided stream
      * @param stream to be identified over
      */
-    void sendRelay(StreamSPtr stream, std::vector<libp2p::multi::Multiaddress> connaddrs, uint64_t time);
+    void sendHopRelay(StreamSPtr stream, std::vector<libp2p::multi::Multiaddress> connaddrs, libp2p::peer::PeerId peer_id, uint64_t time);
 
     /**
-     * Receive an Autonat message from the provided stream
+     * Receive an Relay message from the provided stream
      * @param stream to be identified over
      */
     void receiveRelay(StreamSPtr stream);
@@ -74,21 +75,44 @@ namespace libp2p::protocol {
 
    private:
     /**
-     * Called, when an autonat message is written to the stream
+     * Called, when an relay message is written to the stream
      * @param written_bytes - how much bytes were written
      * @param stream with the other side
      */
-    void relaySent(outcome::result<size_t> written_bytes,
-                      const StreamSPtr &stream);
+    void relayHopSent(outcome::result<size_t> written_bytes,
+                      const StreamSPtr &stream, 
+                      std::vector<libp2p::multi::Multiaddress> connaddrs, 
+                      libp2p::peer::PeerId peer_id);
 
     /**
-     * Called, when an autonat message is received from the other peer
+     * Called, when an relay message is written to the stream
+     * @param written_bytes - how much bytes were written
+     * @param stream with the other side
+     */
+    void relayConnectSent(outcome::result<size_t> written_bytes,
+        const StreamSPtr& stream);
+    /**
+     * Called, when an relay message is received from the other peer
      * @param msg, which was read
      * @param stream, over which it was received
      */
-    void relayReceived(outcome::result<relay::pb::HopMessage> msg_res,
-                          const StreamSPtr &stream);
+    void relayHopReceived(outcome::result<relay::pb::HopMessage> msg_res,
+                          const StreamSPtr &stream,
+                          std::vector<libp2p::multi::Multiaddress> connaddrs,
+                          libp2p::peer::PeerId peer_id);
 
+    /**
+     * Called, when an relay message is received from the other peer
+     * @param msg, which was read
+     * @param stream, over which it was received
+     */
+    void relayConnectReceived(outcome::result<relay::pb::StopMessage> msg_res,
+        const StreamSPtr& stream);
+    /**
+     * Send an relay message over the provided stream
+     * @param stream to be identified over
+     */
+    void sendConnectRelay(const StreamSPtr& stream, std::vector<libp2p::multi::Multiaddress> connaddrs, libp2p::peer::PeerId peer_id);
 
     Host &host_;
     network::ConnectionManager &conn_manager_;
