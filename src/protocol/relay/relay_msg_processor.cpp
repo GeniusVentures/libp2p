@@ -46,8 +46,28 @@ namespace libp2p::protocol {
         return signal_relay_received_.connect(cb);
     }
 
-    void RelayMessageProcessor::sendRelay(StreamSPtr stream) {
+    void RelayMessageProcessor::sendRelay(StreamSPtr stream, std::vector<libp2p::multi::Multiaddress> connaddrs, uint64_t time) {
+        //Create a Hop Message
+        relay::pb::HopMessage msg;
+        msg.set_type(relay::pb::HopMessage_Type_RESERVE);
+        //Create a reservation
+        auto reservation = new relay::pb::Reservation;
+        uint64_t current_time = std::chrono::seconds(std::time(nullptr)).count();
+        reservation->set_expire(current_time + time);
+        for (auto& addr : connaddrs)
+        {
+            reservation->add_addrs(fromMultiaddrToString(addr));
+        }
+        msg.set_allocated_reservation(reservation);
 
+        // write the resulting Protobuf message
+        auto rw = std::make_shared<basic::ProtobufMessageReadWriter>(stream);
+        rw->write<relay::pb::HopMessage>(
+            msg,
+            [self{ shared_from_this() },
+            stream = std::move(stream)](auto&& res) mutable {
+                self->relaySent(std::forward<decltype(res)>(res), stream);
+            });
     }
 
     void RelayMessageProcessor::relaySent(

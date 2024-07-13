@@ -20,6 +20,7 @@
 
 namespace relay::pb {
   class HopMessage;
+  class StopMessage;
 }
 
 namespace libp2p::protocol {
@@ -45,7 +46,7 @@ namespace libp2p::protocol {
      * Send an autonat message over the provided stream
      * @param stream to be identified over
      */
-    void sendRelay(StreamSPtr stream);
+    void sendRelay(StreamSPtr stream, std::vector<libp2p::multi::Multiaddress> connaddrs, uint64_t time);
 
     /**
      * Receive an Autonat message from the provided stream
