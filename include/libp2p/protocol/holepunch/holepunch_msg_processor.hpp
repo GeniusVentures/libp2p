@@ -1,5 +1,5 @@
-#ifndef LIBP2P_RELAY_MSG_PROCESSOR_HPP
-#define LIBP2P_RELAY_MSG_PROCESSOR_HPP
+#ifndef LIBP2P_HOLEPUNCH_MSG_PROCESSOR_HPP
+#define LIBP2P_HOLEPUNCH_MSG_PROCESSOR_HPP
 
 #include <memory>
 #include <optional>
@@ -34,9 +34,7 @@ namespace libp2p::protocol {
     using HolepunchCallback = void(const bool &);
 
     HolepunchMessageProcessor(
-        Host &host, network::ConnectionManager &conn_manager,
-        peer::IdentityManager &identity_manager,
-        std::shared_ptr<crypto::marshaller::KeyMarshaller> key_marshaller);
+        Host &host, network::ConnectionManager &conn_manager);
 
     boost::signals2::connection onHolepunchReceived(
         const std::function<HolepunchCallback> &cb);
@@ -45,7 +43,7 @@ namespace libp2p::protocol {
      * Send an autonat message over the provided stream
      * @param stream to be identified over
      */
-    void sendHolepunch(StreamSPtr stream);
+    void sendHolepunch(StreamSPtr stream, std::vector<libp2p::multi::Multiaddress> obsaddr);
 
     /**
      * Receive an Autonat message from the provided stream
@@ -91,12 +89,8 @@ namespace libp2p::protocol {
 
     Host &host_;
     network::ConnectionManager &conn_manager_;
-    peer::IdentityManager &identity_manager_;
-    std::shared_ptr<crypto::marshaller::KeyMarshaller> key_marshaller_;
     ObservedAddresses observed_addresses_;
     boost::signals2::signal<HolepunchCallback> signal_holepunch_received_;
-    int successful_addresses_;
-    int unsuccessful_addresses_;
 
 
     log::Logger log_ = log::createLogger("HolepunchMsgProcessor");

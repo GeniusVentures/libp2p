@@ -36,9 +36,7 @@ namespace libp2p::protocol {
     using RelayCallback = void(const bool &);
 
     RelayMessageProcessor(
-        Host &host, network::ConnectionManager &conn_manager,
-        peer::IdentityManager &identity_manager,
-        std::shared_ptr<crypto::marshaller::KeyMarshaller> key_marshaller);
+        Host &host, network::ConnectionManager &conn_manager);
 
     boost::signals2::connection onRelayReceived(
         const std::function<RelayCallback> &cb);
@@ -82,7 +80,7 @@ namespace libp2p::protocol {
     void relayHopSent(outcome::result<size_t> written_bytes,
                       const StreamSPtr &stream, 
                       std::vector<libp2p::multi::Multiaddress> connaddrs, 
-                      libp2p::peer::PeerId peer_id);
+                      libp2p::peer::PeerId mypeer_id);
 
     /**
      * Called, when an relay message is written to the stream
@@ -99,7 +97,7 @@ namespace libp2p::protocol {
     void relayHopReceived(outcome::result<relay::pb::HopMessage> msg_res,
                           const StreamSPtr &stream,
                           std::vector<libp2p::multi::Multiaddress> connaddrs,
-                          libp2p::peer::PeerId peer_id);
+                          libp2p::peer::PeerId mypeer_id);
 
     /**
      * Called, when an relay message is received from the other peer
@@ -112,16 +110,12 @@ namespace libp2p::protocol {
      * Send an relay message over the provided stream
      * @param stream to be identified over
      */
-    void sendConnectRelay(const StreamSPtr& stream, std::vector<libp2p::multi::Multiaddress> connaddrs, libp2p::peer::PeerId peer_id);
+    void sendConnectRelay(const StreamSPtr& stream, std::vector<libp2p::multi::Multiaddress> connaddrs, libp2p::peer::PeerId mypeer_id);
 
     Host &host_;
     network::ConnectionManager &conn_manager_;
-    peer::IdentityManager &identity_manager_;
-    std::shared_ptr<crypto::marshaller::KeyMarshaller> key_marshaller_;
     ObservedAddresses observed_addresses_;
     boost::signals2::signal<RelayCallback> signal_relay_received_;
-    int successful_addresses_;
-    int unsuccessful_addresses_;
 
 
     log::Logger log_ = log::createLogger("RelayMsgProcessor");

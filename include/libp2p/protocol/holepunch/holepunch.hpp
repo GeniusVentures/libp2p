@@ -1,5 +1,5 @@
-#ifndef LIBP2P_RELAY_HPP
-#define LIBP2P_RELAY_HPP
+#ifndef LIBP2P_HOLEPUNCH_HPP
+#define LIBP2P_HOLEPUNCH_HPP
 #include <iostream>
 #include <libp2p/event/bus.hpp>
 #include <libp2p/protocol/base_protocol.hpp>
@@ -59,7 +59,7 @@ namespace libp2p::protocol {
     /**
      * Start accepting NewConnectionEvent-s and asking each of them for Autonat
      */
-    void start();
+    void start(std::vector<libp2p::multi::Multiaddress> obsaddr);
 
    private:
     /**
@@ -67,7 +67,8 @@ namespace libp2p::protocol {
      * @param conn - new connection
      */
     void onNewConnection(
-        const std::weak_ptr<connection::CapableConnection> &conn);
+        const std::weak_ptr<connection::CapableConnection> &conn,
+        std::vector<libp2p::multi::Multiaddress> obsaddr);
 
     Host &host_;
     std::shared_ptr<HolepunchMessageProcessor> msg_processor_;

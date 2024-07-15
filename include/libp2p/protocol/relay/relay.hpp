@@ -4,6 +4,7 @@
 #include <libp2p/event/bus.hpp>
 #include <libp2p/protocol/base_protocol.hpp>
 #include <libp2p/protocol/relay/relay_msg_processor.hpp>
+#include <libp2p/protocol/holepunch/holepunch.hpp>
 
 namespace libp2p::multi {
   class Multiaddress;
@@ -75,7 +76,8 @@ namespace libp2p::protocol {
     std::shared_ptr<RelayMessageProcessor> msg_processor_;
     event::Bus &bus_;
     event::Handle sub_;  // will unsubscribe during destruction by itself
-    bool natstatus_ = false; //False if we are behind a NAT, true if not.
+    std::shared_ptr<libp2p::protocol::Holepunch> holepunch_;
+    std::shared_ptr<libp2p::protocol::HolepunchMessageProcessor> holepunchmsg_proc_;
     log::Logger log_ = log::createLogger("Relay");
 
     bool started_ = false;

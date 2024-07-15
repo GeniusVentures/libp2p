@@ -47,7 +47,7 @@ namespace libp2p::protocol {
     msg_processor_->receiveHolepunch(std::move(stream_res.value()));
   }
 
-  void Holepunch::start() {
+  void Holepunch::start(std::vector<libp2p::multi::Multiaddress> obsaddr) {
     // no double starts
     BOOST_ASSERT(!started_);
     started_ = true;
@@ -61,15 +61,16 @@ namespace libp2p::protocol {
         });
 
     sub_ = bus_.getChannel<event::network::OnNewConnectionChannel>().subscribe(
-        [wp = weak_from_this()](auto &&conn) {
+        [wp = weak_from_this(), obsaddr](auto &&conn) {
           if (auto self = wp.lock()) {
-            return self->onNewConnection(conn);
+            return self->onNewConnection(conn, obsaddr);
           }
         });
   }
 
   void Holepunch::onNewConnection(
-      const std::weak_ptr<connection::CapableConnection> &conn) {
+      const std::weak_ptr<connection::CapableConnection> &conn,
+      std::vector<libp2p::multi::Multiaddress> obsaddr) {
     if (conn.expired()) {
       return;
     }
@@ -90,14 +91,14 @@ namespace libp2p::protocol {
 
     msg_processor_->getHost().newStream(
         peer_info, kHolepunchProto,
-        [self{shared_from_this()}](auto &&stream_res) {
+        [self{shared_from_this()}, obsaddr](auto &&stream_res) {
             if (!stream_res) {
                 self->log_->error("Failed to create new stream: {}", stream_res.error().message());
                 return;
             }
             self->log_->info("Sending Autonat request to peer");
             auto stream = stream_res.value();
-            self->msg_processor_->sendHolepunch(stream);
+            self->msg_processor_->sendHolepunch(stream, obsaddr);
         });
   }
 }

@@ -29,16 +29,12 @@ namespace {
 
 namespace libp2p::protocol {
     RelayMessageProcessor::RelayMessageProcessor(
-        Host& host, network::ConnectionManager& conn_manager,
-        peer::IdentityManager& identity_manager,
-        std::shared_ptr<crypto::marshaller::KeyMarshaller> key_marshaller)
+        Host& host, network::ConnectionManager& conn_manager)
         : host_{ host },
-        conn_manager_{ conn_manager },
-        identity_manager_{ identity_manager },
-        key_marshaller_{ std::move(key_marshaller) },
-        successful_addresses_(),
-        unsuccessful_addresses_() {
-        BOOST_ASSERT(key_marshaller_);
+        conn_manager_{ conn_manager }
+    {
+
+
     }
 
     boost::signals2::connection RelayMessageProcessor::onRelayReceived(
@@ -70,14 +66,14 @@ namespace libp2p::protocol {
             });
     }
 
-    void RelayMessageProcessor::sendConnectRelay(const StreamSPtr& stream, std::vector<libp2p::multi::Multiaddress> connaddrs, libp2p::peer::PeerId peer_id)
+    void RelayMessageProcessor::sendConnectRelay(const StreamSPtr& stream, std::vector<libp2p::multi::Multiaddress> connaddrs, libp2p::peer::PeerId mypeer_id)
     {
         relay::pb::StopMessage msg;
         msg.set_type(relay::pb::StopMessage_Type_CONNECT);
 
         //Create a new peer for connection
         auto peer = new relay::pb::Peer;
-        peer->set_id(std::string(peer_id.toVector().begin(), peer_id.toVector().end()));
+        peer->set_id(std::string(mypeer_id.toVector().begin(), mypeer_id.toVector().end()));
         for (auto& addr : connaddrs)
         {
             peer->add_addrs(fromMultiaddrToString(addr));
@@ -97,14 +93,14 @@ namespace libp2p::protocol {
         rw->write<relay::pb::StopMessage>(
             msg,
             [self{ shared_from_this() },
-            stream = std::move(stream), peer_id, connaddrs](auto&& res) mutable {
+            stream, mypeer_id, connaddrs](auto&& res) mutable {
                 self->relayConnectSent(std::forward<decltype(res)>(res), stream);
             });
     }
 
     void RelayMessageProcessor::relayHopSent(
         outcome::result<size_t> written_bytes, const StreamSPtr& stream,
-        std::vector<libp2p::multi::Multiaddress> connaddrs, libp2p::peer::PeerId peer_id) {
+        std::vector<libp2p::multi::Multiaddress> connaddrs, libp2p::peer::PeerId mypeer_id) {
         auto [peer_id, peer_addr] = detail::getPeerIdentity(stream);
         if (!written_bytes) {
             log_->error("cannot write Relay message to stream to peer {}, {}: {}",
@@ -118,8 +114,8 @@ namespace libp2p::protocol {
         // Handle incoming responses
         auto rw = std::make_shared<basic::ProtobufMessageReadWriter>(stream);
         rw->read<relay::pb::HopMessage>(
-            [self{ shared_from_this() }, stream = std::move(stream), connaddrs, peer_id](auto&& res) {
-                self->relayHopReceived(std::forward<decltype(res)>(res), stream, connaddrs, peer_id);
+            [self{ shared_from_this() }, stream, connaddrs, mypeer_id](auto&& res) {
+                self->relayHopReceived(std::forward<decltype(res)>(res), stream, connaddrs, mypeer_id);
             });
     }
 
@@ -166,7 +162,7 @@ namespace libp2p::protocol {
         outcome::result<relay::pb::HopMessage> msg_res,
         const StreamSPtr& stream,
         std::vector<libp2p::multi::Multiaddress> connaddrs,
-        libp2p::peer::PeerId peer_id) {
+        libp2p::peer::PeerId mypeer_id) {
         auto [peer_id_str, peer_addr_str] = detail::getPeerIdentity(stream);
         if (!msg_res) {
             log_->error("cannot read an autonat message from peer {}, {}: {}",
@@ -198,7 +194,7 @@ namespace libp2p::protocol {
         auto reservation = msg.reservation();
 
         //Initiate a connect
-        sendConnectRelay(stream, connaddrs, peer_id);
+        sendConnectRelay(stream, connaddrs, mypeer_id);
     }
 
     void RelayMessageProcessor::relayConnectReceived(
@@ -206,7 +202,7 @@ namespace libp2p::protocol {
         const StreamSPtr& stream) {
         auto [peer_id_str, peer_addr_str] = detail::getPeerIdentity(stream);
         if (!msg_res) {
-            log_->error("cannot read an autonat message from peer {}, {}: {}",
+            log_->error("cannot read an relay message from peer {}, {}: {}",
                 peer_id_str, peer_addr_str, msg_res.error());
             return stream->reset();
         }

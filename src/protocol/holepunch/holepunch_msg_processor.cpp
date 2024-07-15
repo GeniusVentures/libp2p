@@ -29,16 +29,10 @@ namespace {
 
 namespace libp2p::protocol {
     HolepunchMessageProcessor::HolepunchMessageProcessor(
-        Host& host, network::ConnectionManager& conn_manager,
-        peer::IdentityManager& identity_manager,
-        std::shared_ptr<crypto::marshaller::KeyMarshaller> key_marshaller)
+        Host& host, network::ConnectionManager& conn_manager)
         : host_{ host },
-        conn_manager_{ conn_manager },
-        identity_manager_{ identity_manager },
-        key_marshaller_{ std::move(key_marshaller) },
-        successful_addresses_(),
-        unsuccessful_addresses_() {
-        BOOST_ASSERT(key_marshaller_);
+        conn_manager_{ conn_manager }
+    {
     }
 
     boost::signals2::connection HolepunchMessageProcessor::onHolepunchReceived(
@@ -46,8 +40,22 @@ namespace libp2p::protocol {
         return signal_holepunch_received_.connect(cb);
     }
 
-    void HolepunchMessageProcessor::sendHolepunch(StreamSPtr stream) {
+    void HolepunchMessageProcessor::sendHolepunch(StreamSPtr stream, std::vector<libp2p::multi::Multiaddress> obsaddr) {
+        holepunch::pb::HolePunch msg;
+        msg.set_type(holepunch::pb::HolePunch_Type_CONNECT);
+        for (auto& addr : obsaddr)
+        {
+            msg.add_obsaddrs(fromMultiaddrToString(addr));
+        }
 
+        // write the resulting Protobuf message
+        auto rw = std::make_shared<basic::ProtobufMessageReadWriter>(stream);
+        rw->write<holepunch::pb::HolePunch>(
+            msg,
+            [self{ shared_from_this() },
+            stream = std::move(stream)](auto&& res) mutable {
+                self->holepunchSent(std::forward<decltype(res)>(res), stream);
+            });
     }
 
     void HolepunchMessageProcessor::holepunchSent(
@@ -61,6 +69,12 @@ namespace libp2p::protocol {
 
         log_->info("successfully written an Autonat message to peer {}, {}",
             peer_id, peer_addr);
+        // Handle incoming responses
+        auto rw = std::make_shared<basic::ProtobufMessageReadWriter>(stream);
+        rw->read<holepunch::pb::HolePunch>(
+            [self{ shared_from_this() }, stream = std::move(stream)](auto&& res) {
+                self->holepunchReceived(std::forward<decltype(res)>(res), stream);
+            });
     }
 
     void HolepunchMessageProcessor::receiveHolepunch(StreamSPtr stream) {
@@ -87,11 +101,30 @@ namespace libp2p::protocol {
         const StreamSPtr& stream) {
         auto [peer_id_str, peer_addr_str] = detail::getPeerIdentity(stream);
         if (!msg_res) {
-            log_->error("cannot read an autonat message from peer {}, {}: {}",
+            log_->error("cannot read an holepunch message from peer {}, {}: {}",
                 peer_id_str, peer_addr_str, msg_res.error());
             return stream->reset();
         }
 
+        log_->info("received an holepunch message from peer {}, {}", peer_id_str,
+            peer_addr_str);
+
+        auto&& msg = std::move(msg_res.value());
+        //Connect message
+        if (msg.type() == holepunch::pb::HolePunch::CONNECT)
+        {
+            std::vector<libp2p::multi::Multiaddress> connaddrs;
+            for (auto& addr : msg.obsaddrs())
+            {
+                connaddrs.push_back(fromStringToMultiaddr(addr).value());
+            }
+            //Open connection with SYN Packets?
+        }
+        //What is SYNC?
+        if (msg.type() == holepunch::pb::HolePunch::SYNC)
+        {
+
+        }
     }
 
 }
