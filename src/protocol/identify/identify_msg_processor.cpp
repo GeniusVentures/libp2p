@@ -294,20 +294,26 @@ namespace libp2p::protocol {
     auto i_listen_addresses = listener.getListenAddressesInterfaces();
 
     auto listen_addresses = listener.getListenAddresses();
-    //TODO: Investigate this more. This check seems counter to the entire purpose of identify. If I already know my external address, I wouldn't need this information to begin with.
-    // I assume this was completely misguided.
-
-    //auto addr_in_addresses =
-    //    std::find(i_listen_addresses.begin(), i_listen_addresses.end(),
-    //              local_addr_res.value())
-    //        != i_listen_addresses.end()
-    //    || std::find(listen_addresses.begin(), listen_addresses.end(),
-    //                 local_addr_res.value())
-    //        != listen_addresses.end();
-    //if (!addr_in_addresses) {
-    //  return;
-    //}
-
+    std::cout << "Local address test: " << local_addr_res.value().getStringAddress() << std::endl;
+    for (auto& addr : i_listen_addresses)
+    {
+        std::cout << "Interface addr: " << addr.getStringAddress() << std::endl;
+    }
+    for (auto& addr : listen_addresses)
+    {
+        std::cout << "Listen addr: " << addr.getStringAddress() << std::endl;
+    }
+    auto addr_in_addresses =
+        std::find(i_listen_addresses.begin(), i_listen_addresses.end(),
+                  local_addr_res.value())
+            != i_listen_addresses.end()
+        || std::find(listen_addresses.begin(), listen_addresses.end(),
+                     local_addr_res.value())
+            != listen_addresses.end();
+    if (!addr_in_addresses) {
+      return;
+    }
+    std::cout << "Got past addr check" << std::endl;
     if (!hasConsistentTransport(observed_address, host_.getAddresses())) {
       return;
     }
@@ -341,6 +347,7 @@ namespace libp2p::protocol {
                     peer_id.toBase58());
         continue;
       }
+      std::cout << "Added Listen Address??? " << addr_res.value().getStringAddress() << std::endl;
       listen_addresses.push_back(std::move(addr_res.value()));
     }
 
