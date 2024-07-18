@@ -209,14 +209,20 @@ namespace libp2p::transport {
       socket_.open(boost::asio::ip::tcp::v4());
       boost::asio::socket_base::reuse_address option(true);
       socket_.set_option(option, reec);
-      std::cout << "reec: " << reec.message() << std::endl;
-
+      if (reec) {
+          std::cerr << "Error setting reuse address: " << reec.message() << std::endl;
+          return;
+      }
 #ifdef SO_REUSEPORT
       boost::asio::detail::socket_option::boolean<SOL_SOCKET, SO_REUSEPORT> reuse_port_option(true);
       socket_.set_option(reuse_port_option, reec);
 #endif
 
       socket_.bind(local_endpoint, reec);
+      if (reec) {
+          std::cerr << "Error binding socket: " << reec.message() << std::endl;
+          return;
+      }
       if (reec) {
           std::cerr << "Error binding socket: " << reec.message() << std::endl;
           return;
@@ -339,8 +345,6 @@ namespace libp2p::transport {
 
   outcome::result<void> TcpConnection::saveMultiaddresses() {
     boost::system::error_code ec;
-    //std::cout << "Socket Local Endpoint: " << socket_.local_endpoint().address().to_string() << std::endl;
-    //std::cout << "Socket Local Endpoint: " << socket_.local_endpoint().port() << std::endl;
     if (socket_.is_open()) {
       if (!local_multiaddress_) {
         auto endpoint(socket_.local_endpoint(ec));

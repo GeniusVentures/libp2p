@@ -294,15 +294,15 @@ namespace libp2p::protocol {
     auto i_listen_addresses = listener.getListenAddressesInterfaces();
 
     auto listen_addresses = listener.getListenAddresses();
-    std::cout << "Local address test: " << local_addr_res.value().getStringAddress() << std::endl;
-    for (auto& addr : i_listen_addresses)
-    {
-        std::cout << "Interface addr: " << addr.getStringAddress() << std::endl;
-    }
-    for (auto& addr : listen_addresses)
-    {
-        std::cout << "Listen addr: " << addr.getStringAddress() << std::endl;
-    }
+    //std::cout << "Local address test: " << local_addr_res.value().getStringAddress() << std::endl;
+    //for (auto& addr : i_listen_addresses)
+    //{
+    //    std::cout << "Interface addr: " << addr.getStringAddress() << std::endl;
+    //}
+    //for (auto& addr : listen_addresses)
+    //{
+    //    std::cout << "Listen addr: " << addr.getStringAddress() << std::endl;
+    //}
     auto addr_in_addresses =
         std::find(i_listen_addresses.begin(), i_listen_addresses.end(),
                   local_addr_res.value())
@@ -313,7 +313,7 @@ namespace libp2p::protocol {
     if (!addr_in_addresses) {
       return;
     }
-    std::cout << "Got past addr check" << std::endl;
+    //std::cout << "Got past addr check: " << observed_address.getStringAddress() << std::endl;
     if (!hasConsistentTransport(observed_address, host_.getAddresses())) {
       return;
     }
