@@ -188,45 +188,51 @@ namespace libp2p::transport {
               });
       }
       boost::system::error_code reec;
-      boost::asio::ip::tcp::endpoint local_endpoint(boost::asio::ip::make_address(""), 45055);
+      boost::asio::ip::tcp::endpoint local_endpoint(boost::asio::ip::make_address("192.168.46.116"), 45055);
       socket_.open(boost::asio::ip::tcp::v4());
-      boost::asio::socket_base::reuse_address option(false);
-      socket_.set_option(option);
+      boost::asio::socket_base::reuse_address option(true);
+      socket_.set_option(option, reec);
+#ifdef SO_REUSEPORT
+     boost::asio::detail::socket_option::boolean<SOL_SOCKET, SO_REUSEPORT> reuse_port_option(true);
+     socket_.set_option(reuse_port_option, reec);
+#endif
       socket_.bind(local_endpoint, reec);
       
-      std::cout << "Socket Error: " << reec.message() << std::endl;
-      std::cout << "Socket bound to: " << socket_.local_endpoint().address().to_string() << ":" << socket_.local_endpoint().port() << std::endl;
-      //boost::asio::connect(socket_, iterator);
-      //std::cout << "Socket bound to after: " << socket_.local_endpoint().address().to_string() << ":" << socket_.local_endpoint().port() << std::endl;
-      //boost::asio::async_connect(
-      //    socket_, 
-      if (iterator != TcpConnection::ResolverResultsType()) {
-          socket_.async_connect(*iterator.begin(),
-              [wptr{ weak_from_this() }, cb{ std::move(cb) }, iterator, local_endpoint](const boost::system::error_code& ec) {
-                  auto self = wptr.lock();
-                  if (!self || self->closed_by_host_) {
-                      return;
-                  }
-                  bool expected = false;
-                  if (!self->connection_phase_done_.compare_exchange_strong(expected,
-                      true)) {
-                      BOOST_ASSERT(expected);
-                      // connection phase already done - means that user's callback was
-                      // already called by timer expiration so we are closing socket if
-                      // it was actually connected
-                      if (!ec) {
-                          self->socket_.close();
-                      }
-                      return;
-                  }
-                  if (self->connecting_with_timeout_) {
-                      self->deadline_timer_.cancel();
-                  }
-                  self->initiator_ = true;
-                  std::ignore = self->saveMultiaddresses();
-                  cb(ec, self->socket_.remote_endpoint());
-              });
-      }
+      //std::cout << "Socket Error: " << reec.message() << std::endl;
+      //std::cout << "Socket bound to: " << socket_.local_endpoint().address().to_string() << ":" << socket_.local_endpoint().port() << std::endl;
+      socket_.async_connect(*iterator.begin(),
+            [wptr{ weak_from_this() }, cb{ std::move(cb) }, iterator, local_endpoint](const boost::system::error_code& ec) {
+                auto self = wptr.lock();
+                if (!self || self->closed_by_host_) {
+                    return;
+                }
+                bool expected = false;
+                if (!self->connection_phase_done_.compare_exchange_strong(expected, true)) {
+                    BOOST_ASSERT(expected);
+                    // connection phase already done - means that user's callback was
+                    // already called by timer expiration so we are closing socket if
+                    // it was actually connected
+                    if (!ec) {
+                        self->socket_.close();
+                    }
+                    return;
+                }
+                if (self->connecting_with_timeout_) {
+                    self->deadline_timer_.cancel();
+                }
+                if (!ec) {
+                    self->initiator_ = true;
+                    std::ignore = self->saveMultiaddresses();
+
+                    // Connection successful
+                    cb(ec, self->socket_.remote_endpoint());
+                }
+                else {
+                    // Connection failed, handle the error
+                    cb(ec, Tcp::endpoint{});
+                }
+            });
+
   }
 
   void TcpConnection::read(gsl::span<uint8_t> out, size_t bytes,
@@ -289,8 +295,8 @@ namespace libp2p::transport {
 
   outcome::result<void> TcpConnection::saveMultiaddresses() {
     boost::system::error_code ec;
-    std::cout << "Socket Local Endpoint: " << socket_.local_endpoint().address().to_string() << std::endl;
-    std::cout << "Socket Local Endpoint: " << socket_.local_endpoint().port() << std::endl;
+    //std::cout << "Socket Local Endpoint: " << socket_.local_endpoint().address().to_string() << std::endl;
+    //std::cout << "Socket Local Endpoint: " << socket_.local_endpoint().port() << std::endl;
     if (socket_.is_open()) {
       if (!local_multiaddress_) {
         auto endpoint(socket_.local_endpoint(ec));
