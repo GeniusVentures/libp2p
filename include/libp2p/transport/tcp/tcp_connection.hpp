@@ -74,7 +74,7 @@ namespace libp2p::transport {
      * @param iterator list of resolved IP addresses of remote service.
      * @param cb callback executed on operation completion.
      */
-    void connect(const ResolverResultsType &iterator, ConnectCallbackFunc cb);
+    void connect(const ResolverResultsType &iterator, ConnectCallbackFunc cb, multi::Multiaddress bindaddress);
 
     /**
      * @brief Connect to a remote service with a time limit for connection
@@ -84,7 +84,7 @@ namespace libp2p::transport {
      * @param timeout in milliseconds for connection establishing.
      */
     void connect(const ResolverResultsType &iterator, ConnectCallbackFunc cb,
-                 std::chrono::milliseconds timeout);
+                 std::chrono::milliseconds timeout, multi::Multiaddress bindaddress);
 
     void read(gsl::span<uint8_t> out, size_t bytes,
               ReadCallbackFunc cb) override;

@@ -11,29 +11,29 @@ namespace libp2p::transport {
 
   void TcpTransport::dial(const peer::PeerId &remoteId,
                           multi::Multiaddress address,
-                          TransportAdaptor::HandlerFunc handler) {
+                          TransportAdaptor::HandlerFunc handler,
+                          multi::Multiaddress bindaddress) {
     dial(remoteId, std::move(address), std::move(handler),
-         std::chrono::milliseconds::zero());
+         std::chrono::milliseconds::zero(), bindaddress);
   }
 
   void TcpTransport::dial(const peer::PeerId &remoteId,
                           multi::Multiaddress address,
                           TransportAdaptor::HandlerFunc handler,
-                          std::chrono::milliseconds timeout) {
+                          std::chrono::milliseconds timeout,
+                          multi::Multiaddress bindaddress) {
     if (!canDial(address)) {
       //TODO(107): Reentrancy
 
       return handler(std::errc::address_family_not_supported);
     }
-    //if (conns_ > 0) return;
-    conns_++;
 
     auto conn = std::make_shared<TcpConnection>(*context_);
 
     auto [host, port] = detail::getHostAndTcpPort(address);
 
     auto connect = [self{shared_from_this()}, conn, handler{std::move(handler)},
-                    remoteId, timeout](auto ec, auto r) mutable {
+                    remoteId, timeout, bindaddress](auto ec, auto r) mutable {
       if (ec) {
         return handler(ec);
       }
@@ -51,7 +51,7 @@ namespace libp2p::transport {
 
             session->secureOutbound(remoteId);
           },
-          timeout);
+          timeout, bindaddress);
     };
 
     using P = multi::Protocol::Code;

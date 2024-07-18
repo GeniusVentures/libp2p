@@ -41,9 +41,10 @@ namespace libp2p::transport {
      * @return connection in case of success, error otherwise
      */
     virtual void dial(const peer::PeerId &remoteId, multi::Multiaddress address,
-                      HandlerFunc handler) {
+                      HandlerFunc handler,
+                      multi::Multiaddress bindaddress) {
       dial(remoteId, std::move(address), std::move(handler),
-           std::chrono::milliseconds(0));
+           std::chrono::milliseconds(0),bindaddress);
     }
 
     /**
@@ -56,7 +57,7 @@ namespace libp2p::transport {
      */
     virtual void dial(const peer::PeerId &remoteId, multi::Multiaddress address,
                       HandlerFunc handler,
-                      std::chrono::milliseconds timeout) = 0;
+                      std::chrono::milliseconds timeout, multi::Multiaddress bindaddress) = 0;
 
     /**
      * Create a listener for incoming connections of this Transport; in case

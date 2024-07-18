@@ -26,7 +26,7 @@ namespace libp2p::host {
     BOOST_ASSERT(network_ != nullptr);
     BOOST_ASSERT(repo_ != nullptr);
     BOOST_ASSERT(bus_ != nullptr);
-    BOOST_ASSERT(transport_manager_ != nullptr);
+    BOOST_ASSERT(transport_manager_ != nullptr);    
   }
 
   std::string_view BasicHost::getLibp2pVersion() const {
@@ -148,13 +148,13 @@ namespace libp2p::host {
                             const peer::Protocol &protocol,
                             const Host::StreamResultHandler &handler,
                             std::chrono::milliseconds timeout) {
-    network_->getDialer().newStream(p, protocol, handler, timeout);
+    network_->getDialer().newStream(p, protocol, handler, timeout, network_->getListener().getListenAddresses().at(0));
   }
 
   void BasicHost::newStream(const peer::PeerId &peer_id,
                             const peer::Protocol &protocol,
                             const StreamResultHandler &handler) {
-    network_->getDialer().newStream(peer_id, protocol, handler);
+    network_->getDialer().newStream(peer_id, protocol, handler, network_->getListener().getListenAddresses().at(0));
   }
 
   outcome::result<void> BasicHost::listen(const multi::Multiaddress &ma) {
@@ -220,7 +220,7 @@ namespace libp2p::host {
   void BasicHost::connect(const peer::PeerInfo &peer_info,
                           const ConnectionResultHandler &handler,
                           std::chrono::milliseconds timeout) {
-    network_->getDialer().dial(peer_info, handler, timeout);
+    network_->getDialer().dial(peer_info, handler, timeout, network_->getListener().getListenAddresses().at(0));
   }
 
   void BasicHost::disconnect(const peer::PeerId &peer_id) {

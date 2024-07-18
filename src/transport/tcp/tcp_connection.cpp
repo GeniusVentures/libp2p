@@ -40,8 +40,7 @@ namespace libp2p::transport {
       : context_(ctx),
         socket_(context_),
         connection_phase_done_{false},
-        deadline_timer_(context_) {
-  }
+        deadline_timer_(context_) {}
 
   outcome::result<void> TcpConnection::close() {
     closed_by_host_ = true;
@@ -154,15 +153,15 @@ namespace libp2p::transport {
 
   void TcpConnection::connect(
       const TcpConnection::ResolverResultsType &iterator,
-      TcpConnection::ConnectCallbackFunc cb) {
-    connect(iterator, std::move(cb), std::chrono::milliseconds::zero());
+      TcpConnection::ConnectCallbackFunc cb, multi::Multiaddress bindaddress) {
+    connect(iterator, std::move(cb), std::chrono::milliseconds::zero(), bindaddress);
   }
 
 #include <functional>  // Include this to use std::function
 
   void TcpConnection::connect(
       const TcpConnection::ResolverResultsType& iterator,
-      ConnectCallbackFunc cb, std::chrono::milliseconds timeout) {
+      ConnectCallbackFunc cb, std::chrono::milliseconds timeout, multi::Multiaddress bindaddress) {
       if (timeout > std::chrono::milliseconds::zero()) {
           connecting_with_timeout_ = true;
           deadline_timer_.expires_from_now(
@@ -188,9 +187,25 @@ namespace libp2p::transport {
                   }
               });
       }
+      //Get address to bind to from MA
+      std::string ip_address;
+      uint16_t port;
+      auto ip_address_opt = bindaddress.getFirstValueForProtocol(libp2p::multi::Protocol::Code::IP4);
+      if (!ip_address_opt) {
+          std::cerr << "Error: IP address not found in Multiaddress" << std::endl;
+          return;
+      }
+      ip_address = ip_address_opt.value();
 
+      auto port_opt = bindaddress.getFirstValueForProtocol(libp2p::multi::Protocol::Code::TCP);
+      if (!port_opt) {
+          std::cerr << "Error: Port not found in Multiaddress" << std::endl;
+          return;
+      }
+      port = static_cast<uint16_t>(std::stoi(port_opt.value()));
+      //Bind with reuse port.
       boost::system::error_code reec;
-      boost::asio::ip::tcp::endpoint local_endpoint(boost::asio::ip::make_address("192.168.46.116"), 45055);
+      boost::asio::ip::tcp::endpoint local_endpoint(boost::asio::ip::make_address(ip_address), port);
       socket_.open(boost::asio::ip::tcp::v4());
       boost::asio::socket_base::reuse_address option(true);
       socket_.set_option(option, reec);

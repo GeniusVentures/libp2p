@@ -13,7 +13,7 @@
 namespace libp2p::network {
 
   void DialerImpl::dial(const peer::PeerInfo &p, DialResultFunc cb,
-                        std::chrono::milliseconds timeout) {
+                        std::chrono::milliseconds timeout, multi::Multiaddress bindaddress) {
     SL_TRACE(log_, "Dialing to {}", p.id.toBase58().substr(46));
     if (auto c = cmgr_->getBestConnectionForPeer(p.id); c != nullptr) {
       // we have connection to this peer
@@ -21,7 +21,7 @@ namespace libp2p::network {
       SL_TRACE(log_, "Reusing connection to peer {}",
                p.id.toBase58().substr(46));
       scheduler_->schedule(
-          [cb{std::move(cb)}, c{std::move(c)}]() mutable { cb(std::move(c)); });
+          [cb{ std::move(cb) }, c{ std::move(c) }, bindaddress{ std::move(bindaddress) }]() mutable { cb(std::move(c)); });
       return;
     }
 
@@ -48,7 +48,8 @@ namespace libp2p::network {
     }
 
     DialCtx new_ctx{/* .addresses =*/ {p.addresses.begin(), p.addresses.end()},
-                    /*.timeout =*/ timeout};
+                    /*.timeout =*/ timeout,
+                    /*.bindaddress= */ bindaddress};
     new_ctx.callbacks.emplace_back(std::move(cb));
     bool scheduled = dialing_peers_.emplace(p.id, std::move(new_ctx)).second;
     BOOST_ASSERT(scheduled);
@@ -127,7 +128,7 @@ namespace libp2p::network {
       ctx.dialled = true;
       SL_TRACE(log_, "Dial to {} via {}", peer_id.toBase58().substr(46),
                addr.getStringAddress());
-      tr->dial(peer_id, addr, dial_handler, ctx.timeout);
+      tr->dial(peer_id, addr, dial_handler, ctx.timeout, ctx.bindaddress);
     } else {
       scheduler_->schedule([wp{weak_from_this()}, peer_id] {
         if (auto self = wp.lock()) {
@@ -153,7 +154,8 @@ namespace libp2p::network {
   void DialerImpl::newStream(const peer::PeerInfo &p,
                              const peer::Protocol &protocol,
                              StreamResultFunc cb,
-                             std::chrono::milliseconds timeout) {
+                             std::chrono::milliseconds timeout,
+                             multi::Multiaddress bindaddress) {
     SL_TRACE(log_, "New stream to {} for {} (peer info)",
              p.id.toBase58().substr(46), protocol);
     dial(
@@ -175,12 +177,12 @@ namespace libp2p::network {
           self->multiselect_->simpleStreamNegotiate(result.value(), protocol,
                                                     std::move(cb));
         },
-        timeout);
+        timeout, bindaddress);
   }
 
   void DialerImpl::newStream(const peer::PeerId &peer_id,
                              const peer::Protocol &protocol,
-                             StreamResultFunc cb) {
+                             StreamResultFunc cb, multi::Multiaddress bindaddress) {
     SL_TRACE(log_, "New stream to {} for {} (peer id)",
              peer_id.toBase58().substr(46), protocol);
     auto conn = cmgr_->getBestConnectionForPeer(peer_id);

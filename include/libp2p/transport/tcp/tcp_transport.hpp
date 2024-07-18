@@ -28,11 +28,13 @@ namespace libp2p::transport {
                  std::shared_ptr<Upgrader> upgrader);
 
     void dial(const peer::PeerId &remoteId, multi::Multiaddress address,
-              TransportAdaptor::HandlerFunc handler) override;
+              TransportAdaptor::HandlerFunc handler,
+              multi::Multiaddress bindaddress) override;
 
     void dial(const peer::PeerId &remoteId, multi::Multiaddress address,
               TransportAdaptor::HandlerFunc handler,
-              std::chrono::milliseconds timeout) override;
+              std::chrono::milliseconds timeout,
+              multi::Multiaddress bindaddress) override;
 
     std::shared_ptr<TransportListener> createListener(
         TransportListener::HandlerFunc handler) override;
@@ -44,7 +46,7 @@ namespace libp2p::transport {
    private:
     std::shared_ptr<boost::asio::io_context> context_;
     std::shared_ptr<Upgrader> upgrader_;
-    int conns_ = 0;
+
   };  // namespace libp2p::transport
 
 }  // namespace libp2p::transport

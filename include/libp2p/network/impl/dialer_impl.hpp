@@ -31,16 +31,16 @@ namespace libp2p::network {
 
     // Establishes a connection to a given peer
     void dial(const peer::PeerInfo &p, DialResultFunc cb,
-              std::chrono::milliseconds timeout) override;
+              std::chrono::milliseconds timeout, multi::Multiaddress bindaddress) override;
 
     // NewStream returns a new stream to given peer p.
     // If there is no connection to p, attempts to create one.
     void newStream(const peer::PeerInfo &p, const peer::Protocol &protocol,
                    StreamResultFunc cb,
-                   std::chrono::milliseconds timeout) override;
+                   std::chrono::milliseconds timeout, multi::Multiaddress bindaddress) override;
 
     void newStream(const peer::PeerId &peer_id, const peer::Protocol &protocol,
-                   StreamResultFunc cb) override;
+                   StreamResultFunc cb, multi::Multiaddress bindaddress) override;
 
    private:
     // A context to handle an intermediary state of the peer we are dialing to
@@ -52,6 +52,9 @@ namespace libp2p::network {
       /// Timeout for a single connection attempt
       std::chrono::milliseconds timeout;
 
+      // Bind address for dialers
+      multi::Multiaddress bindaddress;
+
       /// Addresses we already tried, but no connection was established
       std::set<multi::Multiaddress> tried_addresses;
 
@@ -62,6 +65,8 @@ namespace libp2p::network {
       boost::optional<DialResult> result;
       // ^ used when all connecting attempts failed and no more known peer
       // addresses are left
+
+
 
       // indicates that at least one attempt to dial was happened
       // (at least one supported network transport was found and used)

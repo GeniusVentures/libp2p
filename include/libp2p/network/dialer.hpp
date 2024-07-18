@@ -33,13 +33,13 @@ namespace libp2p::network {
      * specific timeout
      */
     virtual void dial(const peer::PeerInfo &p, DialResultFunc cb,
-                      std::chrono::milliseconds timeout) = 0;
+                      std::chrono::milliseconds timeout, multi::Multiaddress bindaddress) = 0;
 
     /**
      * Establishes a connection or returns existing one to a given peer
      */
-    inline void dial(const peer::PeerInfo &p, DialResultFunc cb) {
-      dial(p, std::move(cb), std::chrono::milliseconds::zero());
+    inline void dial(const peer::PeerInfo &p, DialResultFunc cb, multi::Multiaddress bindaddress) {
+      dial(p, std::move(cb), std::chrono::milliseconds::zero(), bindaddress);
     }
 
     /**
@@ -48,16 +48,16 @@ namespace libp2p::network {
      */
     virtual void newStream(const peer::PeerInfo &peer_info,
                            const peer::Protocol &protocol, StreamResultFunc cb,
-                           std::chrono::milliseconds timeout) = 0;
+                           std::chrono::milliseconds timeout, multi::Multiaddress bindaddress) = 0;
 
     /**
      * NewStream returns a new stream to given peer p.
      * If there is no connection to p, attempts to create one.
      */
     inline void newStream(const peer::PeerInfo &peer_info,
-                          const peer::Protocol &protocol, StreamResultFunc cb) {
+                          const peer::Protocol &protocol, StreamResultFunc cb, multi::Multiaddress bindaddress) {
       newStream(peer_info, protocol, std::move(cb),
-                std::chrono::milliseconds::zero());
+                std::chrono::milliseconds::zero(), bindaddress);
     }
 
     /**
@@ -66,7 +66,7 @@ namespace libp2p::network {
      */
     virtual void newStream(const peer::PeerId &peer_id,
                            const peer::Protocol &protocol,
-                           StreamResultFunc cb) = 0;
+                           StreamResultFunc cb, multi::Multiaddress bindaddress) = 0;
   };
 
 }  // namespace libp2p::network
