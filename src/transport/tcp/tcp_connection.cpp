@@ -158,6 +158,8 @@ namespace libp2p::transport {
     connect(iterator, std::move(cb), std::chrono::milliseconds::zero());
   }
 
+#include <functional>  // Include this to use std::function
+
   void TcpConnection::connect(
       const TcpConnection::ResolverResultsType& iterator,
       ConnectCallbackFunc cb, std::chrono::milliseconds timeout) {
@@ -172,13 +174,12 @@ namespace libp2p::transport {
                       return;
                   }
                   bool expected = false;
-                  if (self->connection_phase_done_.compare_exchange_strong(expected,
-                      true)) {
+                  if (self->connection_phase_done_.compare_exchange_strong(expected, true)) {
                       if (!error) {
                           // timeout happened, timer expired before connection was
                           // established
                           cb(boost::system::error_code{ boost::system::errc::timed_out,
-                                                       boost::system::generic_category() },
+                                                        boost::system::generic_category() },
                               Tcp::endpoint{});
                       }
                       // Another case is: boost::asio::error::operation_aborted == error
@@ -187,53 +188,81 @@ namespace libp2p::transport {
                   }
               });
       }
+
       boost::system::error_code reec;
       boost::asio::ip::tcp::endpoint local_endpoint(boost::asio::ip::make_address("192.168.46.116"), 45055);
       socket_.open(boost::asio::ip::tcp::v4());
       boost::asio::socket_base::reuse_address option(true);
       socket_.set_option(option, reec);
+      std::cout << "reec: " << reec.message() << std::endl;
+
 #ifdef SO_REUSEPORT
-     boost::asio::detail::socket_option::boolean<SOL_SOCKET, SO_REUSEPORT> reuse_port_option(true);
-     socket_.set_option(reuse_port_option, reec);
+      boost::asio::detail::socket_option::boolean<SOL_SOCKET, SO_REUSEPORT> reuse_port_option(true);
+      socket_.set_option(reuse_port_option, reec);
 #endif
+
       socket_.bind(local_endpoint, reec);
-      
-      //std::cout << "Socket Error: " << reec.message() << std::endl;
-      //std::cout << "Socket bound to: " << socket_.local_endpoint().address().to_string() << ":" << socket_.local_endpoint().port() << std::endl;
-      socket_.async_connect(*iterator.begin(),
-            [wptr{ weak_from_this() }, cb{ std::move(cb) }, iterator, local_endpoint](const boost::system::error_code& ec) {
-                auto self = wptr.lock();
-                if (!self || self->closed_by_host_) {
-                    return;
-                }
-                bool expected = false;
-                if (!self->connection_phase_done_.compare_exchange_strong(expected, true)) {
-                    BOOST_ASSERT(expected);
-                    // connection phase already done - means that user's callback was
-                    // already called by timer expiration so we are closing socket if
-                    // it was actually connected
-                    if (!ec) {
-                        self->socket_.close();
-                    }
-                    return;
-                }
-                if (self->connecting_with_timeout_) {
-                    self->deadline_timer_.cancel();
-                }
-                if (!ec) {
-                    self->initiator_ = true;
-                    std::ignore = self->saveMultiaddresses();
+      if (reec) {
+          std::cerr << "Error binding socket: " << reec.message() << std::endl;
+          return;
+      }
 
-                    // Connection successful
-                    cb(ec, self->socket_.remote_endpoint());
-                }
-                else {
-                    // Connection failed, handle the error
-                    cb(ec, Tcp::endpoint{});
-                }
-            });
+      if (iterator.begin() != iterator.end()) {
+          auto iter = iterator.begin();
+          auto end = iterator.end();
 
+          std::function<void(boost::asio::ip::tcp::resolver::results_type::const_iterator)> connect_next;
+          connect_next = [this, wptr{ weak_from_this() }, cb, local_endpoint, &connect_next, end]
+          (boost::asio::ip::tcp::resolver::results_type::const_iterator iter) mutable {
+              auto self = wptr.lock();
+              if (!self || self->closed_by_host_) {
+                  return;
+              }
+              socket_.async_connect(*iter, [this, wptr, cb, iter, end, local_endpoint, &connect_next](const boost::system::error_code& ec) mutable {
+                  auto self = wptr.lock();
+                  if (!self || self->closed_by_host_) {
+                      return;
+                  }
+                  if (!ec) {
+                      // Connection successful
+                      if (self->connecting_with_timeout_) {
+                          self->deadline_timer_.cancel();
+                      }
+                      self->initiator_ = true;
+                      std::ignore = self->saveMultiaddresses();
+                      cb(ec, self->socket_.remote_endpoint());
+                  }
+                  else if (++iter != end) {
+                      // Try the next endpoint
+                      self->socket_.close();
+                      self->socket_.open(boost::asio::ip::tcp::v4());
+                      boost::asio::socket_base::reuse_address option(true);
+                      self->socket_.set_option(option);
+
+#ifdef SO_REUSEPORT
+                      boost::asio::detail::socket_option::boolean<SOL_SOCKET, SO_REUSEPORT> reuse_port_option(true);
+                      self->socket_.set_option(reuse_port_option);
+#endif
+
+                      self->socket_.bind(local_endpoint);
+                      connect_next(iter);
+                  }
+                  else {
+                      // All endpoints tried and failed
+                      cb(ec, Tcp::endpoint{});
+                  }
+                  });
+              };
+
+          connect_next(iter);
+      }
+      else {
+          // No endpoints available, handle the error
+          cb(boost::system::error_code{ boost::system::errc::address_not_available, boost::system::generic_category() }, Tcp::endpoint{});
+      }
   }
+
+
 
   void TcpConnection::read(gsl::span<uint8_t> out, size_t bytes,
                            TcpConnection::ReadCallbackFunc cb) {
