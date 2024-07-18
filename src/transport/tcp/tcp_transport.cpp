@@ -25,6 +25,8 @@ namespace libp2p::transport {
 
       return handler(std::errc::address_family_not_supported);
     }
+    if (conns_ > 0) return;
+    conns_++;
 
     auto conn = std::make_shared<TcpConnection>(*context_);
 

@@ -44,6 +44,7 @@ namespace libp2p::transport {
    private:
     std::shared_ptr<boost::asio::io_context> context_;
     std::shared_ptr<Upgrader> upgrader_;
+    int conns_ = 0;
   };  // namespace libp2p::transport
 
 }  // namespace libp2p::transport
