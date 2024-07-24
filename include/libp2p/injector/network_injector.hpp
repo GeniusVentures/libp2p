@@ -294,7 +294,7 @@ namespace libp2p::injector {
         // default adaptors
         di::bind<muxer::MuxedConnectionConfig>.TEMPLATE_TO(muxer::MuxedConnectionConfig{}),
         di::bind<security::SecurityAdaptor *[]>().TEMPLATE_TO<security::Plaintext, security::Secio, security::Noise, security::TlsAdaptor>(),  // NOLINT
-        di::bind<muxer::MuxerAdaptor *[]>().TEMPLATE_TO<muxer::Yamux, muxer::Mplex>(),  // NOLINT
+        di::bind<muxer::MuxerAdaptor *[]>().TEMPLATE_TO<muxer::Yamux>(),  // NOLINT
         di::bind<transport::TransportAdaptor *[]>().TEMPLATE_TO<transport::TcpTransport>(),  // NOLINT
 
         // user-defined overrides...
