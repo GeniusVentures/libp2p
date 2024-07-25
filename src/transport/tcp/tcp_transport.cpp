@@ -6,6 +6,12 @@
 #include <libp2p/transport/tcp/tcp_transport.hpp>
 
 #include <libp2p/transport/impl/upgrader_session.hpp>
+#include <iostream>
+
+#ifndef _WIN32
+#include <sys/resource.h>
+#include <cstring>
+#endif
 
 namespace libp2p::transport {
 
@@ -78,10 +84,37 @@ namespace libp2p::transport {
 
   TcpTransport::TcpTransport(std::shared_ptr<boost::asio::io_context> context,
                              std::shared_ptr<Upgrader> upgrader)
-      : context_(std::move(context)), upgrader_(std::move(upgrader)) {}
+      : context_(std::move(context)), upgrader_(std::move(upgrader)) {
+      increase_open_file_limit();
+  }
 
   peer::Protocol TcpTransport::getProtocolId() const {
     return "/tcp/1.0.0";
   }
 
+  void TcpTransport::increase_open_file_limit()
+  {
+#ifndef _WIN32
+      struct rlimit limit;
+
+      // Get current limits
+      if (getrlimit(RLIMIT_NOFILE, &limit) == 0) {
+          std::cout << "Current limits: " << limit.rlim_cur << " (soft), " << limit.rlim_max << " (hard)" << std::endl;
+
+          // Set new limits
+          limit.rlim_cur = limit.rlim_max;  // Increase soft limit to the hard limit
+          if (setrlimit(RLIMIT_NOFILE, &limit) != 0) {
+              std::cerr << "Error setting new limits: " << strerror(errno) << std::endl;
+          }
+          else {
+              std::cout << "New limits set successfully" << std::endl;
+          }
+      }
+      else {
+          std::cerr << "Error getting current limits: " << strerror(errno) << std::endl;
+      }
+#else
+      std::cout << "File descriptor limit increase not needed on Windows." << std::endl;
+#endif
+  }
 }  // namespace libp2p::transport

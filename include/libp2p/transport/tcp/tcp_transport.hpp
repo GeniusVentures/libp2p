@@ -25,7 +25,7 @@ namespace libp2p::transport {
     ~TcpTransport() override = default;
 
     TcpTransport(std::shared_ptr<boost::asio::io_context> context,
-                 std::shared_ptr<Upgrader> upgrader);
+        std::shared_ptr<Upgrader> upgrader);
 
     void dial(const peer::PeerId &remoteId, multi::Multiaddress address,
               TransportAdaptor::HandlerFunc handler,
@@ -44,6 +44,7 @@ namespace libp2p::transport {
     peer::Protocol getProtocolId() const override;
 
    private:
+    void increase_open_file_limit();
     std::shared_ptr<boost::asio::io_context> context_;
     std::shared_ptr<Upgrader> upgrader_;
 
