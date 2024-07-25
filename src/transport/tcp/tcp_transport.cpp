@@ -96,18 +96,19 @@ namespace libp2p::transport {
   {
 #ifndef _WIN32
       struct rlimit limit;
+      const rlim_t max_descriptors = 2048;  // Define a cap for file descriptors
 
       // Get current limits
       if (getrlimit(RLIMIT_NOFILE, &limit) == 0) {
           std::cout << "Current limits: " << limit.rlim_cur << " (soft), " << limit.rlim_max << " (hard)" << std::endl;
 
-          // Set new limits
-          limit.rlim_cur = limit.rlim_max;  // Increase soft limit to the hard limit
+          // Set new soft limit to the minimum of the current hard limit and max_descriptors
+          limit.rlim_cur = std::min(limit.rlim_max, max_descriptors);
           if (setrlimit(RLIMIT_NOFILE, &limit) != 0) {
               std::cerr << "Error setting new limits: " << strerror(errno) << std::endl;
           }
           else {
-              std::cout << "New limits set successfully" << std::endl;
+              std::cout << "New limits set successfully: " << limit.rlim_cur << " (soft), " << limit.rlim_max << " (hard)" << std::endl;
           }
       }
       else {
