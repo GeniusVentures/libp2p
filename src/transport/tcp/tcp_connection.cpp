@@ -223,10 +223,6 @@ namespace libp2p::transport {
           std::cerr << "Error binding socket: " << reec.message() << std::endl;
           return;
       }
-      if (reec) {
-          std::cerr << "Error binding socket: " << reec.message() << std::endl;
-          return;
-      }
 
       if (iterator.begin() != iterator.end()) {
           auto iter = iterator.begin();
