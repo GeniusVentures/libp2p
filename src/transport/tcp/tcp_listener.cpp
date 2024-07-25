@@ -38,7 +38,7 @@ namespace libp2p::transport {
       acceptor_.set_option(ip::tcp::acceptor::reuse_address(true));
 #ifdef SO_REUSEPORT
       boost::asio::detail::socket_option::boolean<SOL_SOCKET, SO_REUSEPORT> reuse_port_option(true);
-      acceptor_.set_option(reuse_port_option, reec);
+      acceptor_.set_option(reuse_port_option);
 #endif
       acceptor_.bind(endpoint);
       acceptor_.listen();
