@@ -274,6 +274,7 @@ namespace libp2p::protocol {
 
     void AutonatMessageProcessor::autonatParseDIALRESPONSE(const StreamSPtr& stream, autonat::pb::Message& msg, std::string& peer_id_str, std::string& peer_addr_str)
     {
+        auto local_addr_res = stream->localMultiaddr();
         stream->close([self{ shared_from_this() }, p = std::move(peer_id_str),
             a = std::move(peer_addr_str)](auto&& res) {
                 if (!res) {
@@ -281,43 +282,45 @@ namespace libp2p::protocol {
                         res.error().message());
                 }
             });
+        if (local_addr_res.has_error())
+        {
+            log_->error("DIAL_RESPONSE missing local address from stream. {}", local_addr_res.error().message());
+            return;
+        }
         if (!msg.dialresponse().has_status()) {
             log_->error("DIAL_RESPONSE missing status. {}", msg.dialresponse().statustext());
             signal_autonat_received_(false);
             return;
         }
+        auto response_address = msg.dialresponse().addr();
+        auto response_ma = fromStringToMultiaddr(response_address);
+        if (response_ma.has_error())
+        {
+            log_->error("DIAL_RESPONSE bad address. {}", response_ma.error().message());
+            return;
+        }
 
         if (msg.dialresponse().status() == autonat::pb::Message::E_DIAL_ERROR)
         {
-            unsuccessful_addresses_++;
+            unsuccessful_addresses_[std::string(response_ma.value().getStringAddress())]++;
         }
         else if (msg.dialresponse().status() == autonat::pb::Message::OK)
         {
-            successful_addresses_++;
+            successful_addresses_[std::string(response_ma.value().getStringAddress())]++;
         }
         else {
             log_->info("Autonat DIAL_RESPONSE has had an error that does not indicate NAT status: {}", msg.dialresponse().statustext());
             //signal_autonat_received_(false);
         }
-        // Define the threshold ratio for success
-        int total_count = successful_addresses_ + unsuccessful_addresses_;
-        constexpr double threshold_ratio = 0.70;
-
-        //Considerations included here for potential false reports of being behind a NAT, we may not need this.
-        if (successful_addresses_ >= 3 && static_cast<double>(successful_addresses_) / total_count >= threshold_ratio)
+        //Record confirmation
+        if (successful_addresses_[std::string(response_ma.value().getStringAddress())] >= 4)
         {
-            log_->info("Addresses reported OK 3 or more times by threshold. Assumed not behind NAT.");
-            signal_autonat_received_(true);
+            observed_addresses_.confirm(local_addr_res.value(), response_ma.value());
         }
-        else if (unsuccessful_addresses_ >= 3 && static_cast<double>(unsuccessful_addresses_) / total_count > (1.0 - threshold_ratio))
+        //Take uncertainty as fact
+        if (unsuccessful_addresses_[std::string(response_ma.value().getStringAddress())] >= 4)
         {
-            log_->info("Addresses reported NOT OK 3 or more times by threshold. Assumed behind NAT.");
-            signal_autonat_received_(false);
-        }
-        else {
-            //Default to behind NAT
-            log_->info("Not enough reports to determine NAT status.");
-            signal_autonat_received_(false);
+            observed_addresses_.unconfirm(local_addr_res.value(), response_ma.value());
         }
     }
 }

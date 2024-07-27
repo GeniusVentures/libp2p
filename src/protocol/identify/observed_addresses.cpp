@@ -76,6 +76,8 @@ namespace libp2p::protocol {
     // update the address observation
     observed_addr_it->seen_by[observer_group] = observation;
     observed_addr_it->last_seen = now;
+    //Set confirmed to false until autonat reports
+    observed_addr_it->confirmed = false;
   }
 
   void ObservedAddresses::collectGarbage() {
@@ -109,6 +111,40 @@ namespace libp2p::protocol {
                                              Clock::time_point now) const {
     return now - address.last_seen <= address.ttl
         && address.seen_by.size() >= kActivationThresh;
+  }
+
+  void ObservedAddresses::confirm(const multi::Multiaddress& local, const multi::Multiaddress& observed)
+  {
+      // Find the local address in the map
+      auto local_it = observed_addresses_.find(local);
+      if (local_it != observed_addresses_.end()) {
+          // Iterate through the vector of ObservedAddress
+          for (auto& observed_address : local_it->second) {
+              // Check if the observed address matches
+              if (observed_address.address == observed) {
+                  // Set confirmed to true
+                  observed_address.confirmed = true;
+                  return; // Exit the function once confirmed
+              }
+          }
+      }
+  }
+
+  void ObservedAddresses::unconfirm(const multi::Multiaddress& local, const multi::Multiaddress& observed)
+  {
+      // Find the local address in the map
+      auto local_it = observed_addresses_.find(local);
+      if (local_it != observed_addresses_.end()) {
+          // Iterate through the vector of ObservedAddress
+          for (auto& observed_address : local_it->second) {
+              // Check if the observed address matches
+              if (observed_address.address == observed) {
+                  // Set confirmed to true
+                  observed_address.confirmed = false;
+                  return; // Exit the function once confirmed
+              }
+          }
+      }
   }
 
   multi::Multiaddress ObservedAddresses::observerGroup(

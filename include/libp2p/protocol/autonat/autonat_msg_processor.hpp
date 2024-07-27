@@ -89,7 +89,22 @@ namespace libp2p::protocol {
                           const StreamSPtr &stream);
 
 
+    /**
+     * Called, when an autonat message is a DIAL_RESPONSE(Which indicates they have tried dialing us)
+     * @param stream, over which it was received
+     * @param msg, which was read
+     * @param peer_id_str peer id we are interacting with
+     * @param peer_addr_str Address of peer we are connected to
+     */
     void autonatParseDIALRESPONSE(const StreamSPtr& stream, autonat::pb::Message& msg, std::string& peer_id_str, std::string& peer_addr_str);
+
+    /**
+     * Called, when an autonat message is a DIAL(Which indicates we should try dialing them)
+     * @param stream, over which it was received
+     * @param msg, which was read
+     * @param peer_id_str peer id we are interacting with
+     * @param peer_addr_str Address of peer we are connected to
+     */
     void autonatParseDIALREQUEST(const StreamSPtr& stream, autonat::pb::Message& msg, std::string& peer_id_str, std::string& peer_addr_str);
 
     Host &host_;
@@ -98,8 +113,10 @@ namespace libp2p::protocol {
     std::shared_ptr<crypto::marshaller::KeyMarshaller> key_marshaller_;
     ObservedAddresses observed_addresses_;
     boost::signals2::signal<AutonatCallback> signal_autonat_received_;
-    int successful_addresses_;
-    int unsuccessful_addresses_;
+    //int successful_addresses_;
+    //int unsuccessful_addresses_;
+    std::unordered_map<std::string, int> successful_addresses_;
+    std::unordered_map<std::string, int> unsuccessful_addresses_;
 
 
     log::Logger log_ = log::createLogger("AutonatMsgProcessor");

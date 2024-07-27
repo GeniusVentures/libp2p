@@ -52,6 +52,20 @@ namespace libp2p::protocol {
              const multi::Multiaddress &observer, bool is_initiator);
 
     /**
+     * Add an address, which was observed by another peer
+     * @param local - local address to confirm observed
+     * @param observed - observe MA to confirm
+     */
+    void confirm(const multi::Multiaddress& local, const multi::Multiaddress& observed);
+
+    /**
+     * Add an address, which was observed by another peer
+     * @param local - local address to unconfirm observed
+     * @param observed - observe MA to unconfirm
+     */
+    void unconfirm(const multi::Multiaddress& local, const multi::Multiaddress& observed);
+
+    /**
      * Get rid of expired addresses; should be called from time to time
      */
     void collectGarbage();
@@ -71,6 +85,7 @@ namespace libp2p::protocol {
       std::unordered_map<multi::Multiaddress, Observation> seen_by;
       Clock::time_point last_seen;
       Milliseconds ttl = peer::ttl::kOwnObserved;
+      bool confirmed;
     };
 
     std::unordered_map<multi::Multiaddress, std::vector<ObservedAddress>>
