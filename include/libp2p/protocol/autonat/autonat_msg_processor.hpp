@@ -89,6 +89,9 @@ namespace libp2p::protocol {
                           const StreamSPtr &stream);
 
 
+    void autonatParseDIALRESPONSE(const StreamSPtr& stream, autonat::pb::Message& msg, std::string& peer_id_str, std::string& peer_addr_str);
+    void autonatParseDIALREQUEST(const StreamSPtr& stream, autonat::pb::Message& msg, std::string& peer_id_str, std::string& peer_addr_str);
+
     Host &host_;
     network::ConnectionManager &conn_manager_;
     peer::IdentityManager &identity_manager_;

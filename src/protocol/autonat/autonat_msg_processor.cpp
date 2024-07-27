@@ -47,6 +47,11 @@ namespace libp2p::protocol {
     }
 
     void AutonatMessageProcessor::sendAutonat(StreamSPtr stream) {
+        if (host_.getObservedAddresses().size() <= 0)
+        {
+            log_->info("We have no observed addresses to check for NAT.");
+            return;
+        }
         autonat::pb::Message msg;
 
         //Set to DIAL to ask nodes to dial us
@@ -60,7 +65,7 @@ namespace libp2p::protocol {
         dialpeer->set_id(std::string(host_.getPeerInfo().id.toVector().begin(), host_.getPeerInfo().id.toVector().end()));
 
         //Set our Addresses we think we are available on
-        for (const auto& addr : host_.getPeerInfo().addresses) {
+        for (const auto& addr : host_.getObservedAddresses()) {
             //std::cout << "Adding address to Autonat PB: " << addr.getStringAddress() << std::endl;
             dialpeer->add_addrs(fromMultiaddrToString(addr));
         }
@@ -141,124 +146,110 @@ namespace libp2p::protocol {
             return;
         }
 
-        //The other node has requested we dial them and send a response
-        if (msg.type() == autonat::pb::Message::DIAL)
+        //Determine the type of message and handle
+        switch (msg.type())
         {
-            if (!msg.dial().has_peer())
+        case autonat::pb::Message::DIAL:
+            autonatParseDIALREQUEST(stream, msg, peer_id_str, peer_addr_str);
+            break;
+        case autonat::pb::Message::DIAL_RESPONSE:
+            autonatParseDIALRESPONSE(stream, msg, peer_id_str, peer_addr_str);
+            break;
+        }
+    }
+    void AutonatMessageProcessor::autonatParseDIALREQUEST(const StreamSPtr& stream, autonat::pb::Message& msg, std::string& peer_id_str, std::string& peer_addr_str)
+    {
+        if (!msg.dial().has_peer())
+        {
+            log_->error("AUTONAT DIAL Message has no peer");
+            return;
+        }
+        //Get Peer Info
+        const auto& peer_info = msg.dial().peer();
+
+        //Get Remote IP from stream for comparisons
+        auto remote_ip = stream->remoteMultiaddr().value().getStringAddress();
+
+        //Get Peer ID
+        auto peer_id_res = libp2p::peer::PeerId::fromBase58(peer_info.id());
+        if (!peer_id_res.has_value())
+        {
+            log_->error("AUTONAT Peer has no ID {}", remote_ip);
+            return;
+        }
+        auto peer_id = peer_id_res.value();
+
+        // List to store matching addresses
+        //We must avoid participating in a DDOS by filtering addresses that do not match the address we are connected to.
+        std::vector<multi::Multiaddress> matching_addresses;
+
+        // Verify if any address in PeerInfo matches the remote IP
+        for (const auto& addr : peer_info.addrs()) {
+            auto ma_addr = fromStringToMultiaddr(addr);
+            if (ma_addr.value().getStringAddress().find(remote_ip) != std::string::npos) {
+                matching_addresses.push_back(ma_addr.value());
+            }
+        }
+
+        if (!matching_addresses.empty()) {
+            //Create a temporary libp2p host to dial out with
+            auto injector = libp2p::injector::makeHostInjector();
+            auto temphost = injector.create<std::shared_ptr<libp2p::Host>>();
+            libp2p::multi::Multiaddress listen_address = libp2p::multi::Multiaddress::create("/ip4/127.0.0.1/tcp/32348").value();
+            temphost->getNetwork().getListener().listen(listen_address);
+            //Create a dial response
+
+
+
+            for (const auto& addr : matching_addresses)
             {
-                log_->error("AUTONAT DIAL Message has no peer");
-                return;
-            }
-            //Get Peer Info
-            const auto& peer_info = msg.dial().peer();
-
-            //Get Remote IP from stream for comparisons
-            auto remote_ip = stream->remoteMultiaddr().value().getStringAddress();
-
-            //Get Peer ID
-            auto peer_id_res = libp2p::peer::PeerId::fromBase58(peer_info.id());
-            if (!peer_id_res.has_value())
-            {
-                log_->error("AUTONAT Peer has no ID {}", remote_ip);
-                return;
-            }
-            auto peer_id = peer_id_res.value();
-
-            // List to store matching addresses
-            //We must avoid participating in a DDOS by filtering addresses that do not match the address we are connected to.
-            std::vector<multi::Multiaddress> matching_addresses;
-
-            // Verify if any address in PeerInfo matches the remote IP
-            for (const auto& addr : peer_info.addrs()) {
-                auto ma_addr = fromStringToMultiaddr(addr);
-                if (ma_addr.value().getStringAddress().find(remote_ip) != std::string::npos) {
-                    matching_addresses.push_back(ma_addr.value());
-                }
-            }
-
-            if (!matching_addresses.empty()) {
-                //Create a temporary libp2p host to dial out with
-                auto injector = libp2p::injector::makeHostInjector();
-                auto temphost = injector.create<std::shared_ptr<libp2p::Host>>();
-                libp2p::multi::Multiaddress listen_address = libp2p::multi::Multiaddress::create("/ip4/127.0.0.1/tcp/32348").value();
-                temphost->getNetwork().getListener().listen(listen_address);
-                //Create a dial response
-                
-
-
-                for (const auto& addr : matching_addresses)
-                {
-                    //Consider whether duplicate addresses could cause us to report twice a positive or negative result.
-                    std::vector<multi::Multiaddress> dialaddr;
-                    dialaddr.push_back(addr);
-                    libp2p::peer::PeerInfo target_peer_info{ peer_id, dialaddr };
-                    temphost->newStream(
-                        target_peer_info,
-                        "/libp2p/autonat/1.0.0",
-                        [self{ shared_from_this() }, stream, addr](auto&& stream_res) {
-                            autonat::pb::Message responsemsg;
-                            responsemsg.set_type(autonat::pb::Message::DIAL_RESPONSE);
-                            auto dialrmsg = new autonat::pb::Message_DialResponse;
-                            auto rw = std::make_shared<basic::ProtobufMessageReadWriter>(stream);
-                            if (!stream_res) {
-                                std::cerr << "Failed to create new stream: " << stream_res.error().message() << std::endl;
-                                dialrmsg->set_status(autonat::pb::Message::E_DIAL_ERROR);
-                                dialrmsg->set_statustext("Error Dialing");
-                                responsemsg.set_allocated_dialresponse(dialrmsg);
-                                rw->write<autonat::pb::Message>(
-                                    responsemsg,
-                                    [self, stream = std::move(stream)](auto&& res) mutable {
-                                        self->log_->info("Sent a negative DIAL_RESPONSE to autonat request");
-                                    });
-                                return;
-                            }
-                            dialrmsg->set_addr(fromMultiaddrToString(addr));
-                            dialrmsg->set_status(autonat::pb::Message::OK);
-                            dialrmsg->set_statustext("Success");
+                //Consider whether duplicate addresses could cause us to report twice a positive or negative result.
+                std::vector<multi::Multiaddress> dialaddr;
+                dialaddr.push_back(addr);
+                libp2p::peer::PeerInfo target_peer_info{ peer_id, dialaddr };
+                temphost->newStream(
+                    target_peer_info,
+                    "/libp2p/autonat/1.0.0",
+                    [self{ shared_from_this() }, stream, addr](auto&& stream_res) {
+                        autonat::pb::Message responsemsg;
+                        responsemsg.set_type(autonat::pb::Message::DIAL_RESPONSE);
+                        auto dialrmsg = new autonat::pb::Message_DialResponse;
+                        auto rw = std::make_shared<basic::ProtobufMessageReadWriter>(stream);
+                        if (!stream_res) {
+                            std::cerr << "Failed to create new stream: " << stream_res.error().message() << std::endl;
+                            dialrmsg->set_status(autonat::pb::Message::E_DIAL_ERROR);
+                            dialrmsg->set_statustext("Error Dialing");
                             responsemsg.set_allocated_dialresponse(dialrmsg);
-                            auto newstream = std::move(stream_res.value());
-                            //Send Dial response on original stream
-                            
                             rw->write<autonat::pb::Message>(
                                 responsemsg,
                                 [self, stream = std::move(stream)](auto&& res) mutable {
-                                    self->log_->info("Sent a positive DIAL_RESPONSE to autonat request");
+                                    self->log_->info("Sent a negative DIAL_RESPONSE to autonat request");
                                 });
-                            //Close this stream.
-                            newstream->close([self](auto&& res)
+                            return;
+                        }
+                        dialrmsg->set_addr(fromMultiaddrToString(addr));
+                        dialrmsg->set_status(autonat::pb::Message::OK);
+                        dialrmsg->set_statustext("Success");
+                        responsemsg.set_allocated_dialresponse(dialrmsg);
+                        auto newstream = std::move(stream_res.value());
+                        //Send Dial response on original stream
+
+                        rw->write<autonat::pb::Message>(
+                            responsemsg,
+                            [self, stream = std::move(stream)](auto&& res) mutable {
+                                self->log_->info("Sent a positive DIAL_RESPONSE to autonat request");
+                            });
+                        //Close this stream.
+                        newstream->close([self](auto&& res)
+                            {
+                                if (!res)
                                 {
-                                    if (!res)
-                                    {
-                                        self->log_->error("cannot close the stream to peer: {}", res.error().message());
-                                    }
-                                });
-                            std::cout << "Successfully created new stream to target." << std::endl;
-                        });
-                }
-                stream->close([self{ shared_from_this() }, p = std::move(peer_id_str),
-                    a = std::move(peer_addr_str)](auto&& res) {
-                        if (!res) {
-                            self->log_->error("cannot close the stream to peer {}, {}: {}", p, a,
-                                res.error().message());
-                        }
+                                    self->log_->error("cannot close the stream to peer: {}", res.error().message());
+                                }
+                            });
+                        std::cout << "Successfully created new stream to target." << std::endl;
                     });
-
             }
-            else {
-                log_->error("Peer has no matching addresses for AUTONAT dial. {}", peer_id.toBase58());
-                stream->close([self{ shared_from_this() }, p = std::move(peer_id_str),
-                    a = std::move(peer_addr_str)](auto&& res) {
-                        if (!res) {
-                            self->log_->error("cannot close the stream to peer {}, {}: {}", p, a,
-                                res.error().message());
-                        }
-                    });
-                return;
-            }
-
-        }
-
-        if (msg.type() == autonat::pb::Message::DIAL_RESPONSE) {
             stream->close([self{ shared_from_this() }, p = std::move(peer_id_str),
                 a = std::move(peer_addr_str)](auto&& res) {
                     if (!res) {
@@ -266,62 +257,69 @@ namespace libp2p::protocol {
                             res.error().message());
                     }
                 });
-            if (!msg.dialresponse().has_status()) {
-                log_->error("DIAL_RESPONSE missing status. {}", msg.dialresponse().statustext());
-                signal_autonat_received_(false);
-                return;
-            }
 
-            //auto addr = msg.dialresponse().addr();
-
-            //if (addr.empty()) {
-            //    log_->error("DIAL_RESPONSE address is empty. {} errcode {}", msg.dialresponse().statustext(), msg.dialresponse().status());
-            //    signal_autonat_received_(false);
-            //    return;
-            //}
-            //auto readableaddr = fromStringToMultiaddr(addr);
-            //if (!readableaddr.has_value())
-            //{
-            //    log_->error("DIAL_RESPONSE address is malformed. {}", readableaddr.error().message());
-            //    return;
-            //}
-            //auto stringaddr = std::string(readableaddr.value().getStringAddress());
-            if (msg.dialresponse().status() == autonat::pb::Message::E_DIAL_ERROR)
-            {
-                unsuccessful_addresses_++;
-            }
-            else if (msg.dialresponse().status() == autonat::pb::Message::OK)
-            {
-                successful_addresses_++;
-            }
-            else {
-                log_->info("Autonat DIAL_RESPONSE has had an error that does not indicate NAT status: {}", msg.dialresponse().statustext());
-                //signal_autonat_received_(false);
-            }
-            // Define the threshold ratio for success
-            int total_count = successful_addresses_ + unsuccessful_addresses_;
-            constexpr double threshold_ratio = 0.70;
-
-            //Considerations included here for potential false reports of being behind a NAT, we may not need this.
-            if (successful_addresses_ >= 3 && static_cast<double>(successful_addresses_) / total_count >= threshold_ratio)
-            {
-                log_->info("Addresses reported OK 3 or more times by threshold. Assumed not behind NAT.");
-                signal_autonat_received_(true);
-            }
-            else if (unsuccessful_addresses_ >= 3 && static_cast<double>(unsuccessful_addresses_) / total_count > (1.0 - threshold_ratio))
-            {
-                log_->info("Addresses reported NOT OK 3 or more times by threshold. Assumed behind NAT.");
-                signal_autonat_received_(false);
-            }
-            else {
-                //Default to behind NAT
-                log_->info("Not enough reports to determine NAT status.");
-                signal_autonat_received_(false);
-            }
-
+        }
+        else {
+            log_->error("Peer has no matching addresses for AUTONAT dial. {}", peer_id.toBase58());
+            stream->close([self{ shared_from_this() }, p = std::move(peer_id_str),
+                a = std::move(peer_addr_str)](auto&& res) {
+                    if (!res) {
+                        self->log_->error("cannot close the stream to peer {}, {}: {}", p, a,
+                            res.error().message());
+                    }
+                });
+            return;
         }
     }
 
+    void AutonatMessageProcessor::autonatParseDIALRESPONSE(const StreamSPtr& stream, autonat::pb::Message& msg, std::string& peer_id_str, std::string& peer_addr_str)
+    {
+        stream->close([self{ shared_from_this() }, p = std::move(peer_id_str),
+            a = std::move(peer_addr_str)](auto&& res) {
+                if (!res) {
+                    self->log_->error("cannot close the stream to peer {}, {}: {}", p, a,
+                        res.error().message());
+                }
+            });
+        if (!msg.dialresponse().has_status()) {
+            log_->error("DIAL_RESPONSE missing status. {}", msg.dialresponse().statustext());
+            signal_autonat_received_(false);
+            return;
+        }
+
+        if (msg.dialresponse().status() == autonat::pb::Message::E_DIAL_ERROR)
+        {
+            unsuccessful_addresses_++;
+        }
+        else if (msg.dialresponse().status() == autonat::pb::Message::OK)
+        {
+            successful_addresses_++;
+        }
+        else {
+            log_->info("Autonat DIAL_RESPONSE has had an error that does not indicate NAT status: {}", msg.dialresponse().statustext());
+            //signal_autonat_received_(false);
+        }
+        // Define the threshold ratio for success
+        int total_count = successful_addresses_ + unsuccessful_addresses_;
+        constexpr double threshold_ratio = 0.70;
+
+        //Considerations included here for potential false reports of being behind a NAT, we may not need this.
+        if (successful_addresses_ >= 3 && static_cast<double>(successful_addresses_) / total_count >= threshold_ratio)
+        {
+            log_->info("Addresses reported OK 3 or more times by threshold. Assumed not behind NAT.");
+            signal_autonat_received_(true);
+        }
+        else if (unsuccessful_addresses_ >= 3 && static_cast<double>(unsuccessful_addresses_) / total_count > (1.0 - threshold_ratio))
+        {
+            log_->info("Addresses reported NOT OK 3 or more times by threshold. Assumed behind NAT.");
+            signal_autonat_received_(false);
+        }
+        else {
+            //Default to behind NAT
+            log_->info("Not enough reports to determine NAT status.");
+            signal_autonat_received_(false);
+        }
+    }
 }
 
   // namespace libp2p::protocol
