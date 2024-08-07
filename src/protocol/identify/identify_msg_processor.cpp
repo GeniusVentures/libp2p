@@ -278,6 +278,7 @@ namespace libp2p::protocol {
     auto local_addr_res = stream->localMultiaddr();
     auto is_initiator_res = stream->isInitiator();
     if (!remote_addr_res || !local_addr_res || !is_initiator_res) {
+        return log_->error("We appear to be missing an address on the stream containing observed address");
       return;
     }
 
@@ -311,13 +312,17 @@ namespace libp2p::protocol {
                      local_addr_res.value())
             != listen_addresses.end();
     if (!addr_in_addresses) {
+        return log_->error("Observed address local address not one of our address {} :: {}",
+            local_addr_res.value().getStringAddress(), observed_address.getStringAddress());
       return;
     }
     //std::cout << "Got past addr check: " << observed_address.getStringAddress() << std::endl;
     if (!hasConsistentTransport(observed_address, host_.getAddresses())) {
+        return log_->error("Observed address lacks consistent transport {}",
+            observed_address.getStringAddress());
       return;
     }
-
+    log_->info("Recording an observed address {}", observed_address.getStringAddress());
     observed_addresses_.add(std::move(observed_address),
                             std::move(local_addr_res.value()),
                             remote_addr_res.value(), is_initiator_res.value());

@@ -14,7 +14,14 @@ namespace libp2p::network {
 
   void DialerImpl::dial(const peer::PeerInfo &p, DialResultFunc cb,
                         std::chrono::milliseconds timeout, multi::Multiaddress bindaddress) {
-    SL_TRACE(log_, "Dialing to {}", p.id.toBase58().substr(46));
+      if (p.id.toBase58().size() == 0)
+      {
+          scheduler_->schedule(
+              [cb{ std::move(cb) }] { cb(std::errc::destination_address_required); });
+          SL_ERROR(log_, "Dialing contains no peer ID to dial");
+          return;
+      }
+    SL_TRACE(log_, "Dialing to {} from {}", p.id.toBase58(), bindaddress.getStringAddress());
     if (auto c = cmgr_->getBestConnectionForPeer(p.id); c != nullptr) {
       // we have connection to this peer
 
