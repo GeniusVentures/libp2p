@@ -302,10 +302,12 @@ namespace libp2p::protocol {
 
         if (msg.dialresponse().status() == autonat::pb::Message::E_DIAL_ERROR)
         {
+            log_->info("Address {} has a dial error, this will tally up.", response_ma.value().getStringAddress());
             unsuccessful_addresses_[std::string(response_ma.value().getStringAddress())]++;
         }
         else if (msg.dialresponse().status() == autonat::pb::Message::OK)
         {
+            log_->info("Address {} has an OK status, this will tally up.", response_ma.value().getStringAddress());
             successful_addresses_[std::string(response_ma.value().getStringAddress())]++;
         }
         else {
@@ -315,11 +317,13 @@ namespace libp2p::protocol {
         //Record confirmation
         if (successful_addresses_[std::string(response_ma.value().getStringAddress())] >= 4)
         {
+            log_->info("Autonat confirming address: {}", response_ma.value().getStringAddress());
             observed_addresses_.confirm(local_addr_res.value(), response_ma.value());
         }
         //Take uncertainty as fact
         if (unsuccessful_addresses_[std::string(response_ma.value().getStringAddress())] >= 4)
         {
+            log_->info("Autonat unconfirming address: {}", response_ma.value().getStringAddress());
             observed_addresses_.unconfirm(local_addr_res.value(), response_ma.value());
         }
     }
