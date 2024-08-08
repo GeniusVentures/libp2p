@@ -54,6 +54,11 @@ namespace libp2p::protocol {
     void receiveAutonat(StreamSPtr stream);
 
     /**
+     * Clear trackers for fresh autonat start
+     */
+    void clearAutoNatTrackers();
+
+    /**
      * Get a Host of this processor
      * @return Host
      */

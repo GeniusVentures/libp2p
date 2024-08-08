@@ -28,6 +28,7 @@ namespace libp2p::protocol {
         std::thread([this]() {
             std::this_thread::sleep_for(std::chrono::minutes(3));
             requestautonat_ = true;
+            msg_processor_->clearAutoNatTrackers();
             }).detach();
         });
   }

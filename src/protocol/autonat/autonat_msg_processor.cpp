@@ -46,6 +46,11 @@ namespace libp2p::protocol {
         return signal_autonat_received_.connect(cb);
     }
 
+    void AutonatMessageProcessor::clearAutoNatTrackers() {
+        successful_addresses_.clear();
+        unsuccessful_addresses_.clear();
+    }
+
     void AutonatMessageProcessor::sendAutonat(StreamSPtr stream) {
         if (host_.getObservedAddresses().size() <= 0)
         {
