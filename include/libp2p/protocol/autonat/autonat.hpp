@@ -77,6 +77,7 @@ namespace libp2p::protocol {
     log::Logger log_ = log::createLogger("Autonat");
 
     bool started_ = false;
+    bool requestautonat_ = true;
   };
 }
 

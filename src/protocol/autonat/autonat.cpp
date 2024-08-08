@@ -19,6 +19,16 @@ namespace libp2p::protocol {
     BOOST_ASSERT(msg_processor_);
     msg_processor_->onAutonatReceived([this](const bool& status) {
         natstatus_ = status;
+        log_->error("Autonat result: {}", status);
+        if (requestautonat_ == false) return;
+        // Set requestautonat_ to false
+        requestautonat_ = false;
+
+        // Create a detached thread that resets requestautonat_ to true after 3 minutes
+        std::thread([this]() {
+            std::this_thread::sleep_for(std::chrono::minutes(3));
+            requestautonat_ = true;
+            }).detach();
         });
   }
 
@@ -70,34 +80,47 @@ namespace libp2p::protocol {
 
   void Autonat::onNewConnection(
       const std::weak_ptr<connection::CapableConnection> &conn) {
-    if (conn.expired()) {
-      return;
-    }
+      if (!requestautonat_)
+      {
+          log_->info("Not asking for autonat for now");
+          return;
+      }
+   
+      if (conn.expired()) {
+          log_->info("Connection expired before requesting autonat");
+          return;
+      }
 
-    auto remote_peer_res = conn.lock()->remotePeer();
-    if (!remote_peer_res) {
-      return;
-    }
+  
+      auto remote_peer_res = conn.lock()->remotePeer();
+      if (!remote_peer_res) {
+          log_->info("Autonat connection has no peer info");
+          return;
+      }
 
-    auto remote_peer_addr_res = conn.lock()->remoteMultiaddr();
-    if (!remote_peer_addr_res) {
-      return;
-    }
+    
+      auto remote_peer_addr_res = conn.lock()->remoteMultiaddr();
+      if (!remote_peer_addr_res) {
+          log_->info("Autonat connection has no address");
+          return;
+      }
 
-    peer::PeerInfo peer_info{std::move(remote_peer_res.value()),
-                             std::vector<multi::Multiaddress>{
-                                 std::move(remote_peer_addr_res.value())}};
+    
+      peer::PeerInfo peer_info{std::move(remote_peer_res.value()),             
+          std::vector<multi::Multiaddress>{               
+          std::move(remote_peer_addr_res.value())}};
 
-    msg_processor_->getHost().newStream(
-        peer_info, kAutonatProto,
-        [self{shared_from_this()}](auto &&stream_res) {
-            if (!stream_res) {
-                self->log_->error("Failed to create new stream: {}", stream_res.error().message());
-                return;
-            }
-            self->log_->info("Sending Autonat request to peer");
-            auto stream = stream_res.value();
-            self->msg_processor_->sendAutonat(stream);
-        });
+    
+      msg_processor_->getHost().newStream(
+          peer_info, kAutonatProto,
+          [self{shared_from_this()}](auto &&stream_res) {
+              if (!stream_res) {
+                  self->log_->error("Failed to create new stream: {}", stream_res.error().message());
+                  return;
+              }
+              self->log_->info("Sending Autonat request to peer");
+              auto stream = stream_res.value();
+              self->msg_processor_->sendAutonat(stream);
+          });
   }
 }

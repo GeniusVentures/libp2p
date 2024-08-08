@@ -319,12 +319,14 @@ namespace libp2p::protocol {
         {
             log_->info("Autonat confirming address: {}", response_ma.value().getStringAddress());
             observed_addresses_.confirm(local_addr_res.value(), response_ma.value());
+            signal_autonat_received_(true);
         }
         //Take uncertainty as fact
         if (unsuccessful_addresses_[std::string(response_ma.value().getStringAddress())] >= 4)
         {
             log_->info("Autonat unconfirming address: {}", response_ma.value().getStringAddress());
             observed_addresses_.unconfirm(local_addr_res.value(), response_ma.value());
+            signal_autonat_received_(false);
         }
     }
 }
