@@ -307,14 +307,11 @@ namespace libp2p::protocol {
             local_addr_res.value().getStringAddress(), observed_address.getStringAddress());
       return;
     }
-    std::cout << "Got past addr check: " << observed_address.getStringAddress() << std::endl;
     if (!hasConsistentTransport(observed_address, host_.getAddresses())) {
-        std::cout << "Inconsistent transport: " << observed_address.getStringAddress() << std::endl;
         return log_->error("Observed address lacks consistent transport {}",
             observed_address.getStringAddress());
       return;
     }
-    std::cout << "Recording-----------: " << observed_address.getStringAddress() << std::endl;
     log_->info("Recording an observed address {}", observed_address.getStringAddress());
     observed_addresses_.add(std::move(observed_address),
                             std::move(local_addr_res.value()),
@@ -339,7 +336,6 @@ namespace libp2p::protocol {
 
       return std::any_of(mas.begin(), mas.end(),
           [&filtered_ma_protos, &filterProtocols](const auto& ma_from_mas) {
-              std::cout << "MA to check for transport: " << ma_from_mas.getStringAddress() << std::endl;
               auto filtered_ma_from_mas_protos = filterProtocols(ma_from_mas.getProtocols());
               return filtered_ma_protos == filtered_ma_from_mas_protos;
           });
@@ -350,7 +346,6 @@ namespace libp2p::protocol {
   void IdentifyMessageProcessor::consumeListenAddresses(
       gsl::span<const std::string> addresses_strings,
       const peer::PeerId &peer_id) {
-      std::cout << "consume listen address" << std::endl;
     if (addresses_strings.empty()) {
         log_->error("No listen addresses to consume",
             peer_id.toBase58());
