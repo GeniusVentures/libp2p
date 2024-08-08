@@ -295,15 +295,6 @@ namespace libp2p::protocol {
     auto i_listen_addresses = listener.getListenAddressesInterfaces();
 
     auto listen_addresses = listener.getListenAddresses();
-    //std::cout << "Local address test: " << local_addr_res.value().getStringAddress() << std::endl;
-    //for (auto& addr : i_listen_addresses)
-    //{
-    //    std::cout << "Interface addr: " << addr.getStringAddress() << std::endl;
-    //}
-    //for (auto& addr : listen_addresses)
-    //{
-    //    std::cout << "Listen addr: " << addr.getStringAddress() << std::endl;
-    //}
     auto addr_in_addresses =
         std::find(i_listen_addresses.begin(), i_listen_addresses.end(),
                   local_addr_res.value())
@@ -316,31 +307,53 @@ namespace libp2p::protocol {
             local_addr_res.value().getStringAddress(), observed_address.getStringAddress());
       return;
     }
-    //std::cout << "Got past addr check: " << observed_address.getStringAddress() << std::endl;
+    std::cout << "Got past addr check: " << observed_address.getStringAddress() << std::endl;
     if (!hasConsistentTransport(observed_address, host_.getAddresses())) {
+        std::cout << "Inconsistent transport: " << observed_address.getStringAddress() << std::endl;
         return log_->error("Observed address lacks consistent transport {}",
             observed_address.getStringAddress());
       return;
     }
+    std::cout << "Recording-----------: " << observed_address.getStringAddress() << std::endl;
     log_->info("Recording an observed address {}", observed_address.getStringAddress());
     observed_addresses_.add(std::move(observed_address),
                             std::move(local_addr_res.value()),
                             remote_addr_res.value(), is_initiator_res.value());
   }
 
+
   bool IdentifyMessageProcessor::hasConsistentTransport(
-      const multi::Multiaddress &ma, gsl::span<const multi::Multiaddress> mas) {
-    auto ma_protos = ma.getProtocols();
-    return std::any_of(mas.begin(), mas.end(),
-                       [&ma_protos](const auto &ma_from_mas) {
-                         return ma_protos == ma_from_mas.getProtocols();
-                       });
+      const libp2p::multi::Multiaddress& ma, gsl::span<const libp2p::multi::Multiaddress> mas) {
+
+      auto ma_protos = ma.getProtocols();
+
+      //Remove 'p2p' protocol from the list if present, this is irrelevant
+      auto filterProtocols = [](std::list<libp2p::multi::Protocol> protos) {
+          protos.remove_if([](const libp2p::multi::Protocol& proto) {
+              return proto.name == "p2p";
+              });
+          return protos;
+          };
+
+      auto filtered_ma_protos = filterProtocols(ma_protos);
+
+      return std::any_of(mas.begin(), mas.end(),
+          [&filtered_ma_protos, &filterProtocols](const auto& ma_from_mas) {
+              std::cout << "MA to check for transport: " << ma_from_mas.getStringAddress() << std::endl;
+              auto filtered_ma_from_mas_protos = filterProtocols(ma_from_mas.getProtocols());
+              return filtered_ma_protos == filtered_ma_from_mas_protos;
+          });
   }
+
+
 
   void IdentifyMessageProcessor::consumeListenAddresses(
       gsl::span<const std::string> addresses_strings,
       const peer::PeerId &peer_id) {
+      std::cout << "consume listen address" << std::endl;
     if (addresses_strings.empty()) {
+        log_->error("No listen addresses to consume",
+            peer_id.toBase58());
       return;
     }
 
