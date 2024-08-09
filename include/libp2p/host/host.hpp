@@ -21,6 +21,7 @@
 #include <libp2p/peer/peer_repository.hpp>
 #include <libp2p/peer/protocol.hpp>
 #include <libp2p/protocol/base_protocol.hpp>
+#include <libp2p/protocol/relay/relay_addresses.hpp>
 
 namespace libp2p {
   /**
@@ -99,6 +100,13 @@ namespace libp2p {
      * May return 0 addresses if we don't know our observed addresses.
      */
     virtual std::vector<multi::Multiaddress> getObservedAddresses() const = 0;
+
+    /**
+     * @brief Get our circuit relay addresses
+     *
+     * May return 0 addresses if we don't have any relay addresses
+     */
+    virtual std::vector<multi::Multiaddress> getRelayAddresses() const = 0;
 
     /**
     * @brief Get connectedness information for given peer
@@ -244,6 +252,11 @@ namespace libp2p {
      * @brief Getter for a peer repository.
      */
     virtual peer::PeerRepository &getPeerRepository() = 0;
+
+    /**
+     * @brief Getter for a relay address repository.
+     */
+    virtual protocol::RelayAddresses& getRelayRepository() = 0;
 
     /**
      * @brief Getter for a router.

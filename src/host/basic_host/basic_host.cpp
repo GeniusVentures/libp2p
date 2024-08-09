@@ -102,6 +102,10 @@ namespace libp2p::host {
     return {};
   }
 
+  std::vector<multi::Multiaddress> BasicHost::getObservedAddresses() const {
+      return relayaddr_->getAllAddresses();
+  }
+
   Host::Connectedness BasicHost::connectedness(const peer::PeerInfo &p) const {
     auto conn = network_->getConnectionManager().getBestConnectionForPeer(p.id);
     if (conn != nullptr) {
@@ -207,6 +211,10 @@ namespace libp2p::host {
 
   peer::PeerRepository &BasicHost::getPeerRepository() {
     return *repo_;
+  }
+
+  protocol::RelayAddresses& BasicHost::getRelayRepository() {
+      return *relayaddr_;
   }
 
   network::Router &BasicHost::getRouter() {
