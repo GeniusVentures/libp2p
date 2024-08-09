@@ -193,6 +193,9 @@ namespace libp2p::protocol {
         //Get Reservation info
         auto reservation = msg.reservation();
 
+        std::string circuitaddress = std::string(stream->remoteMultiaddr().value().getStringAddress()) + "/p2p/" + stream->remotePeerId().value().toBase58() + "p2p-circuit/p2p/" + mypeer_id.toBase58();
+        auto circuitma = libp2p::multi::Multiaddress::create(circuitaddress);
+        //host_.getRelayRepository().add(circuitma.value(), circuitma.value(), reservation.expire());
         //Initiate a connect
         sendConnectRelay(stream, connaddrs, mypeer_id);
     }
