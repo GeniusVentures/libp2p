@@ -8,6 +8,7 @@ add_subdirectory(protobuf)
 libp2p_add_library(p2p_relay
     relay.cpp
 	relay_msg_processor.cpp
+	relay_addresses.cpp
     )
 target_link_libraries(p2p_relay
     p2p
