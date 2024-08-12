@@ -45,7 +45,7 @@ namespace libp2p::protocol {
      * Send an relay message over the provided stream
      * @param stream to be identified over
      */
-    void sendHopRelay(StreamSPtr stream, std::vector<libp2p::multi::Multiaddress> connaddrs, libp2p::peer::PeerId peer_id, uint64_t time);
+    void sendHopRelay(StreamSPtr stream);
 
     /**
      * Receive an Relay message from the provided stream
@@ -78,9 +78,7 @@ namespace libp2p::protocol {
      * @param stream with the other side
      */
     void relayHopSent(outcome::result<size_t> written_bytes,
-                      const StreamSPtr &stream, 
-                      std::vector<libp2p::multi::Multiaddress> connaddrs, 
-                      libp2p::peer::PeerId mypeer_id);
+                      const StreamSPtr &stream);
 
     /**
      * Called, when an relay message is written to the stream
@@ -95,9 +93,7 @@ namespace libp2p::protocol {
      * @param stream, over which it was received
      */
     void relayHopReceived(outcome::result<relay::pb::HopMessage> msg_res,
-                          const StreamSPtr &stream,
-                          std::vector<libp2p::multi::Multiaddress> connaddrs,
-                          libp2p::peer::PeerId mypeer_id);
+                          const StreamSPtr &stream);
 
     /**
      * Called, when an relay message is received from the other peer

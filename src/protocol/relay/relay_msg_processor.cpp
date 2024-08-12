@@ -42,7 +42,7 @@ namespace libp2p::protocol {
         return signal_relay_received_.connect(cb);
     }
 
-    void RelayMessageProcessor::sendHopRelay(StreamSPtr stream, std::vector<libp2p::multi::Multiaddress> connaddrs, libp2p::peer::PeerId peer_id, uint64_t time) {
+    void RelayMessageProcessor::sendHopRelay(StreamSPtr stream) {
         //Create a Hop Message
         relay::pb::HopMessage msg;
         msg.set_type(relay::pb::HopMessage_Type_RESERVE);
@@ -61,8 +61,8 @@ namespace libp2p::protocol {
         rw->write<relay::pb::HopMessage>(
             msg,
             [self{ shared_from_this() },
-            stream = std::move(stream), peer_id, connaddrs](auto&& res) mutable {
-                self->relayHopSent(std::forward<decltype(res)>(res), stream, connaddrs, peer_id);
+            stream = std::move(stream)](auto&& res) mutable {
+                self->relayHopSent(std::forward<decltype(res)>(res), stream);
             });
     }
 
@@ -99,8 +99,7 @@ namespace libp2p::protocol {
     }
 
     void RelayMessageProcessor::relayHopSent(
-        outcome::result<size_t> written_bytes, const StreamSPtr& stream,
-        std::vector<libp2p::multi::Multiaddress> connaddrs, libp2p::peer::PeerId mypeer_id) {
+        outcome::result<size_t> written_bytes, const StreamSPtr& stream) {
         auto [peer_id, peer_addr] = detail::getPeerIdentity(stream);
         if (!written_bytes) {
             log_->error("cannot write Relay message to stream to peer {}, {}: {}",
@@ -114,8 +113,8 @@ namespace libp2p::protocol {
         // Handle incoming responses
         auto rw = std::make_shared<basic::ProtobufMessageReadWriter>(stream);
         rw->read<relay::pb::HopMessage>(
-            [self{ shared_from_this() }, stream, connaddrs, mypeer_id](auto&& res) {
-                self->relayHopReceived(std::forward<decltype(res)>(res), stream, connaddrs, mypeer_id);
+            [self{ shared_from_this() }, stream](auto&& res) {
+                self->relayHopReceived(std::forward<decltype(res)>(res), stream);
             });
     }
 
@@ -160,9 +159,7 @@ namespace libp2p::protocol {
 
     void RelayMessageProcessor::relayHopReceived(
         outcome::result<relay::pb::HopMessage> msg_res,
-        const StreamSPtr& stream,
-        std::vector<libp2p::multi::Multiaddress> connaddrs,
-        libp2p::peer::PeerId mypeer_id) {
+        const StreamSPtr& stream) {
         auto [peer_id_str, peer_addr_str] = detail::getPeerIdentity(stream);
         if (!msg_res) {
             log_->error("cannot read an relay message from peer {}, {}: {}",
@@ -223,7 +220,7 @@ namespace libp2p::protocol {
             auto addrma = fromStringToMultiaddr(addr);
             if (!addrma.has_error())
             {
-                std::string circuitaddress = std::string(addrma.value().getStringAddress()) + "/p2p-circuit/p2p/" + mypeer_id.toBase58();
+                std::string circuitaddress = std::string(addrma.value().getStringAddress()) + "/p2p-circuit/p2p/" + host_.getId().toBase58();
                 auto circuitma = libp2p::multi::Multiaddress::create(circuitaddress);
                 host_.getRelayRepository().add(local_addr_res.value(), circuitma.value(), reservation.expire());
             }
