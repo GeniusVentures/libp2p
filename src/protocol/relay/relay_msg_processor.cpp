@@ -46,15 +46,15 @@ namespace libp2p::protocol {
         //Create a Hop Message
         relay::pb::HopMessage msg;
         msg.set_type(relay::pb::HopMessage_Type_RESERVE);
-        //Create a reservation
-        auto reservation = new relay::pb::Reservation;
-        uint64_t current_time = std::chrono::seconds(std::time(nullptr)).count();
-        reservation->set_expire(current_time + time);
-        for (auto& addr : connaddrs)
-        {
-            reservation->add_addrs(fromMultiaddrToString(addr));
-        }
-        msg.set_allocated_reservation(reservation);
+        ////Create a reservation
+        //auto reservation = new relay::pb::Reservation;
+        //uint64_t current_time = std::chrono::seconds(std::time(nullptr)).count();
+        //reservation->set_expire(current_time + time);
+        //for (auto& addr : connaddrs)
+        //{
+        //    reservation->add_addrs(fromMultiaddrToString(addr));
+        //}
+        //msg.set_allocated_reservation(reservation);
 
         // write the resulting Protobuf message
         auto rw = std::make_shared<basic::ProtobufMessageReadWriter>(stream);
@@ -165,9 +165,17 @@ namespace libp2p::protocol {
         libp2p::peer::PeerId mypeer_id) {
         auto [peer_id_str, peer_addr_str] = detail::getPeerIdentity(stream);
         if (!msg_res) {
-            log_->error("cannot read an autonat message from peer {}, {}: {}",
+            log_->error("cannot read an relay message from peer {}, {}: {}",
                 peer_id_str, peer_addr_str, msg_res.error());
             return stream->reset();
+        }
+        // in order for observed addresses feature to work, all those parameters
+        // must be gotten
+        auto remote_addr_res = stream->remoteMultiaddr();
+        auto local_addr_res = stream->localMultiaddr();
+        auto is_initiator_res = stream->isInitiator();
+        if (!remote_addr_res || !local_addr_res || !is_initiator_res) {
+            return log_->error("We appear to be missing an address on the stream containing relay info");
         }
 
         log_->info("received an relay message from peer {}, {}", peer_id_str,
@@ -189,15 +197,40 @@ namespace libp2p::protocol {
                 peer_addr_str);
             return stream->reset();
         }
+        // if our local address is not one of our "official" listen addresses, we don't know how to map this.
+        auto& listener = host_.getNetwork().getListener();
+        auto i_listen_addresses = listener.getListenAddressesInterfaces();
+
+        auto listen_addresses = listener.getListenAddresses();
+        auto addr_in_addresses =
+            std::find(i_listen_addresses.begin(), i_listen_addresses.end(),
+                local_addr_res.value())
+            != i_listen_addresses.end()
+            || std::find(listen_addresses.begin(), listen_addresses.end(),
+                local_addr_res.value())
+            != listen_addresses.end();
+        if (!addr_in_addresses) {
+            return log_->error("Relay stream address does not contain a valid listening address:  {}",
+                local_addr_res.value().getStringAddress());
+            return;
+        }
 
         //Get Reservation info
         auto reservation = msg.reservation();
 
-        std::string circuitaddress = std::string(stream->remoteMultiaddr().value().getStringAddress()) + "/p2p/" + stream->remotePeerId().value().toBase58() + "p2p-circuit/p2p/" + mypeer_id.toBase58();
-        auto circuitma = libp2p::multi::Multiaddress::create(circuitaddress);
-        //host_.getRelayRepository().add(circuitma.value(), circuitma.value(), reservation.expire());
+        for (auto& addr : reservation.addrs())
+        {
+            auto addrma = fromStringToMultiaddr(addr);
+            if (!addrma.has_error())
+            {
+                std::string circuitaddress = std::string(addrma.value().getStringAddress()) + "/p2p-circuit/p2p/" + mypeer_id.toBase58();
+                auto circuitma = libp2p::multi::Multiaddress::create(circuitaddress);
+                host_.getRelayRepository().add(local_addr_res.value(), circuitma.value(), reservation.expire());
+            }
+        }
+
         //Initiate a connect
-        sendConnectRelay(stream, connaddrs, mypeer_id);
+        //sendConnectRelay(stream, connaddrs, mypeer_id);
     }
 
     void RelayMessageProcessor::relayConnectReceived(
