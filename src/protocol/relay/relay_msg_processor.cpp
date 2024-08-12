@@ -42,7 +42,7 @@ namespace libp2p::protocol {
         return signal_relay_received_.connect(cb);
     }
 
-    void RelayMessageProcessor::sendHopRelay(StreamSPtr stream) {
+    void RelayMessageProcessor::sendHopReservation(StreamSPtr stream) {
         //Create a Hop Message
         relay::pb::HopMessage msg;
         msg.set_type(relay::pb::HopMessage_Type_RESERVE);
@@ -62,7 +62,7 @@ namespace libp2p::protocol {
             msg,
             [self{ shared_from_this() },
             stream = std::move(stream)](auto&& res) mutable {
-                self->relayHopSent(std::forward<decltype(res)>(res), stream);
+                self->relayReservationSent(std::forward<decltype(res)>(res), stream);
             });
     }
 
@@ -98,7 +98,7 @@ namespace libp2p::protocol {
             });
     }
 
-    void RelayMessageProcessor::relayHopSent(
+    void RelayMessageProcessor::relayReservationSent(
         outcome::result<size_t> written_bytes, const StreamSPtr& stream) {
         auto [peer_id, peer_addr] = detail::getPeerIdentity(stream);
         if (!written_bytes) {
@@ -114,7 +114,7 @@ namespace libp2p::protocol {
         auto rw = std::make_shared<basic::ProtobufMessageReadWriter>(stream);
         rw->read<relay::pb::HopMessage>(
             [self{ shared_from_this() }, stream](auto&& res) {
-                self->relayHopReceived(std::forward<decltype(res)>(res), stream);
+                self->relayReservationReceived(std::forward<decltype(res)>(res), stream);
             });
     }
 
@@ -157,7 +157,7 @@ namespace libp2p::protocol {
         return observed_addresses_;
     }
 
-    void RelayMessageProcessor::relayHopReceived(
+    void RelayMessageProcessor::relayReservationReceived(
         outcome::result<relay::pb::HopMessage> msg_res,
         const StreamSPtr& stream) {
         auto [peer_id_str, peer_addr_str] = detail::getPeerIdentity(stream);
@@ -225,9 +225,6 @@ namespace libp2p::protocol {
                 host_.getRelayRepository().add(local_addr_res.value(), circuitma.value(), reservation.expire());
             }
         }
-
-        //Initiate a connect
-        //sendConnectRelay(stream, connaddrs, mypeer_id);
     }
 
     void RelayMessageProcessor::relayConnectReceived(
@@ -246,21 +243,38 @@ namespace libp2p::protocol {
         auto&& msg = std::move(msg_res.value());
 
         //Make sure we got a STATUS response
-        if (msg.type() != relay::pb::StopMessage_Type_STATUS)
+        if (msg.type() != relay::pb::StopMessage_Type_CONNECT)
         {
-            log_->info("Relay Connnect got a type other than STATUS when expecting status from: {}, {}", peer_id_str,
+            log_->info("Relay Connnect got a type other than CONNECT when expecting status from: {}, {}", peer_id_str,
                 peer_addr_str);
             return stream->reset();
         }
         //Make sure reservation is OK
-        if (msg.status() != relay::pb::OK)
-        {
-            log_->info("Relay Connect got status that indicates reservations are unavailable from: {}, {}", peer_id_str,
-                peer_addr_str);
-            return stream->reset();
-        }
+        //if (msg.status() != relay::pb::OK)
+        //{
+        //    log_->info("Relay Connect got status that indicates reservations are unavailable from: {}, {}", peer_id_str,
+        //        peer_addr_str);
+        //    return stream->reset();
+        //}
+        //Send a positive response
+        relayConnectResponse(stream);
+    }
 
+    void RelayMessageProcessor::relayConnectResponse(const StreamSPtr& stream)
+    {
+        //Create a Stop Message
+        relay::pb::StopMessage msg;
+        msg.set_type(relay::pb::StopMessage_Type_STATUS);
+        msg.set_status(relay::pb::OK);
 
+        // write the resulting Protobuf message, this stream is now the connection with peer.
+        auto rw = std::make_shared<basic::ProtobufMessageReadWriter>(stream);
+        rw->write<relay::pb::StopMessage>(
+            msg,
+            [self{ shared_from_this() },
+            stream = std::move(stream)](auto&& res) mutable {
+                self->relayReservationSent(std::forward<decltype(res)>(res), stream);
+            });
     }
 }
 

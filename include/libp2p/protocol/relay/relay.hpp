@@ -60,7 +60,7 @@ namespace libp2p::protocol {
     /**
      * Start accepting NewConnectionEvent-s and asking each of them for Autonat
      */
-    void start(std::vector<libp2p::multi::Multiaddress> connaddrs, libp2p::peer::PeerId peer_id, uint64_t time);
+    void start();
 
    private:
     /**
@@ -68,9 +68,7 @@ namespace libp2p::protocol {
      * @param conn - new connection
      */
     void onNewConnection(
-        const std::weak_ptr<connection::CapableConnection> &conn,
-        std::vector<libp2p::multi::Multiaddress> connaddrs, 
-        libp2p::peer::PeerId peer_id, uint64_t time);
+        const std::weak_ptr<connection::CapableConnection> &conn);
 
     Host &host_;
     std::shared_ptr<RelayMessageProcessor> msg_processor_;
@@ -79,6 +77,8 @@ namespace libp2p::protocol {
     std::shared_ptr<libp2p::protocol::Holepunch> holepunch_;
     std::shared_ptr<libp2p::protocol::HolepunchMessageProcessor> holepunchmsg_proc_;
     log::Logger log_ = log::createLogger("Relay");
+    int maxrelays = 3;
+    int relayconnections;
 
     bool started_ = false;
   };

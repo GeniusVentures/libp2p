@@ -45,7 +45,7 @@ namespace libp2p::protocol {
      * Send an relay message over the provided stream
      * @param stream to be identified over
      */
-    void sendHopRelay(StreamSPtr stream);
+    void sendHopReservation(StreamSPtr stream);
 
     /**
      * Receive an Relay message from the provided stream
@@ -77,7 +77,7 @@ namespace libp2p::protocol {
      * @param written_bytes - how much bytes were written
      * @param stream with the other side
      */
-    void relayHopSent(outcome::result<size_t> written_bytes,
+    void relayReservationSent(outcome::result<size_t> written_bytes,
                       const StreamSPtr &stream);
 
     /**
@@ -92,7 +92,7 @@ namespace libp2p::protocol {
      * @param msg, which was read
      * @param stream, over which it was received
      */
-    void relayHopReceived(outcome::result<relay::pb::HopMessage> msg_res,
+    void relayReservationReceived(outcome::result<relay::pb::HopMessage> msg_res,
                           const StreamSPtr &stream);
 
     /**
@@ -102,6 +102,13 @@ namespace libp2p::protocol {
      */
     void relayConnectReceived(outcome::result<relay::pb::StopMessage> msg_res,
         const StreamSPtr& stream);
+
+    /**
+     * Called, when an relay message is received from the other peer
+     * @param msg, which was read
+     * @param stream, over which it was received
+     */
+    void relayConnectResponse(const StreamSPtr& stream);
     /**
      * Send an relay message over the provided stream
      * @param stream to be identified over
