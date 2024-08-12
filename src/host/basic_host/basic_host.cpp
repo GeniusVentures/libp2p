@@ -45,6 +45,7 @@ namespace libp2p::host {
     auto addresses = getAddresses();
     auto observed = getObservedAddresses();
     auto interfaces = getAddressesInterfaces();
+    auto relays = getRelayAddresses();
 
     std::set<multi::Multiaddress> unique_addresses;
     unique_addresses.insert(std::make_move_iterator(addresses.begin()),
@@ -53,6 +54,8 @@ namespace libp2p::host {
                             std::make_move_iterator(interfaces.end()));
     unique_addresses.insert(std::make_move_iterator(observed.begin()),
                             std::make_move_iterator(observed.end()));
+    unique_addresses.insert(std::make_move_iterator(relays.begin()),
+        std::make_move_iterator(relays.end()));
 
     // TODO(xDimon): Needs to filter special interfaces (e.g. INADDR_ANY, etc.)
     for (auto i = unique_addresses.begin(); i != unique_addresses.end();) {
@@ -102,7 +105,7 @@ namespace libp2p::host {
     return {};
   }
 
-  std::vector<multi::Multiaddress> BasicHost::getObservedAddresses() const {
+  std::vector<multi::Multiaddress> BasicHost::getRelayAddresses() const {
       return relayaddr_->getAllAddresses();
   }
 
