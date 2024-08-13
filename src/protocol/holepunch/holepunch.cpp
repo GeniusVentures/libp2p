@@ -71,34 +71,34 @@ namespace libp2p::protocol {
   void Holepunch::onNewConnection(
       const std::weak_ptr<connection::CapableConnection> &conn,
       std::vector<libp2p::multi::Multiaddress> obsaddr) {
-    if (conn.expired()) {
-      return;
-    }
+    //if (conn.expired()) {
+    //  return;
+    //}
 
-    auto remote_peer_res = conn.lock()->remotePeer();
-    if (!remote_peer_res) {
-      return;
-    }
+    //auto remote_peer_res = conn.lock()->remotePeer();
+    //if (!remote_peer_res) {
+    //  return;
+    //}
 
-    auto remote_peer_addr_res = conn.lock()->remoteMultiaddr();
-    if (!remote_peer_addr_res) {
-      return;
-    }
+    //auto remote_peer_addr_res = conn.lock()->remoteMultiaddr();
+    //if (!remote_peer_addr_res) {
+    //  return;
+    //}
 
-    peer::PeerInfo peer_info{std::move(remote_peer_res.value()),
-                             std::vector<multi::Multiaddress>{
-                                 std::move(remote_peer_addr_res.value())}};
+    //peer::PeerInfo peer_info{std::move(remote_peer_res.value()),
+    //                         std::vector<multi::Multiaddress>{
+    //                             std::move(remote_peer_addr_res.value())}};
 
-    msg_processor_->getHost().newStream(
-        peer_info, kHolepunchProto,
-        [self{shared_from_this()}, obsaddr](auto &&stream_res) {
-            if (!stream_res) {
-                self->log_->error("Failed to create new stream: {}", stream_res.error().message());
-                return;
-            }
-            self->log_->info("Sending Autonat request to peer");
-            auto stream = stream_res.value();
-            self->msg_processor_->sendHolepunch(stream, obsaddr);
-        });
+    //msg_processor_->getHost().newStream(
+    //    peer_info, kHolepunchProto,
+    //    [self{shared_from_this()}, obsaddr](auto &&stream_res) {
+    //        if (!stream_res) {
+    //            self->log_->error("Failed to create new stream: {}", stream_res.error().message());
+    //            return;
+    //        }
+    //        self->log_->info("Sending Autonat request to peer");
+    //        auto stream = stream_res.value();
+    //        self->msg_processor_->sendHolepunchConnect(stream, obsaddr);
+    //    });
   }
 }
