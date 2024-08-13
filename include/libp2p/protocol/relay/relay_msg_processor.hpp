@@ -34,6 +34,7 @@ namespace libp2p::protocol {
 
    public:
     using RelayCallback = void(const bool &);
+    using RelayStopCallback = void(const bool&);
 
     RelayMessageProcessor(
         Host &host, network::ConnectionManager &conn_manager);
@@ -46,6 +47,12 @@ namespace libp2p::protocol {
      * @param stream to be identified over
      */
     void sendHopReservation(StreamSPtr stream);
+
+    /**
+     * Receive an Relay message from the provided stream
+     * @param stream to be identified over
+     */
+    void receiveStopRelay(StreamSPtr stream);
 
     /**
      * Receive an Relay message from the provided stream

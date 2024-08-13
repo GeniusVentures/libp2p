@@ -52,11 +52,13 @@ namespace libp2p::protocol {
     peer::Protocol getProtocolId() const override;
 
     /**
-     * In Autonat, handle means we are either getting an autonat response, or request
-     * If it is a request, we are expected to DIAL them from a separate address.
+     * In Relay we onl really expect a stop message, but I would expect a separate helper if we wanted to be a relay.
      */
     void handle(StreamResult stream_res) override;
 
+    void handleStopMessage(StreamResult stream_res);
+    
+    
     /**
      * Start accepting NewConnectionEvent-s and asking each of them for Autonat
      */

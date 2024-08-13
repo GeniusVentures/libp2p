@@ -51,24 +51,31 @@ namespace libp2p::protocol {
     msg_processor_->receiveRelay(std::move(stream_res.value()));
   }
 
+  void Relay::handleStopMessage(StreamResult stream_res) {
+      if (!stream_res) {
+          return;
+      }
+      msg_processor_->receiveRelay(std::move(stream_res.value()));
+  }
+
   void Relay::start() {
     // no double starts
     BOOST_ASSERT(!started_);
     started_ = true;
 
-    host_.setProtocolHandler(
-        kRelayProto,
-        [wp = weak_from_this()](protocol::BaseProtocol::StreamResult rstream) {
-          if (auto self = wp.lock()) {
-            //self->handle(std::move(rstream));
-          }
-        });
+    //host_.setProtocolHandler(
+    //    kRelayProto,
+    //    [wp = weak_from_this()](protocol::BaseProtocol::StreamResult rstream) {
+    //      if (auto self = wp.lock()) {
+    //        //self->handle(std::move(rstream));
+    //      }
+    //    });
 
     host_.setProtocolHandler(
         kRelayStopProto,
         [wp = weak_from_this()](protocol::BaseProtocol::StreamResult rstream) {
             if (auto self = wp.lock()) {
-                //self->handle(std::move(rstream));
+                self->handleStopMessage(std::move(rstream));
             }
         });
 

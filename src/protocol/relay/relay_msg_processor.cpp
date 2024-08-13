@@ -125,13 +125,21 @@ namespace libp2p::protocol {
         auto rw = std::make_shared<basic::ProtobufMessageReadWriter>(stream);
         rw->read<relay::pb::StopMessage>(
             [self{ shared_from_this() }, stream = std::move(stream)](auto&& res) {
-                self->relayConnectReceived(std::forward<decltype(res)>(res), stream);
+                //self->relayConnectReceived(std::forward<decltype(res)>(res), stream);
             });
     }
 
     void RelayMessageProcessor::receiveRelay(StreamSPtr stream) {
         auto rw = std::make_shared<basic::ProtobufMessageReadWriter>(stream);
 
+    }
+
+    void RelayMessageProcessor::receiveStopRelay(StreamSPtr stream) {
+        auto rw = std::make_shared<basic::ProtobufMessageReadWriter>(stream);
+        rw->read<relay::pb::StopMessage>(
+            [self{ shared_from_this() }, stream = std::move(stream)](auto&& res) {
+                self->relayConnectReceived(std::forward<decltype(res)>(res), stream);
+            });
     }
 
     Host& RelayMessageProcessor::getHost() const noexcept {
