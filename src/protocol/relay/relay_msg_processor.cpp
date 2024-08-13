@@ -46,15 +46,6 @@ namespace libp2p::protocol {
         //Create a Hop Message
         relay::pb::HopMessage msg;
         msg.set_type(relay::pb::HopMessage_Type_RESERVE);
-        ////Create a reservation
-        //auto reservation = new relay::pb::Reservation;
-        //uint64_t current_time = std::chrono::seconds(std::time(nullptr)).count();
-        //reservation->set_expire(current_time + time);
-        //for (auto& addr : connaddrs)
-        //{
-        //    reservation->add_addrs(fromMultiaddrToString(addr));
-        //}
-        //msg.set_allocated_reservation(reservation);
 
         // write the resulting Protobuf message
         auto rw = std::make_shared<basic::ProtobufMessageReadWriter>(stream);

@@ -60,8 +60,16 @@ namespace libp2p::protocol {
         kRelayProto,
         [wp = weak_from_this()](protocol::BaseProtocol::StreamResult rstream) {
           if (auto self = wp.lock()) {
-            self->handle(std::move(rstream));
+            //self->handle(std::move(rstream));
           }
+        });
+
+    host_.setProtocolHandler(
+        kRelayStopProto,
+        [wp = weak_from_this()](protocol::BaseProtocol::StreamResult rstream) {
+            if (auto self = wp.lock()) {
+                //self->handle(std::move(rstream));
+            }
         });
 
     sub_ = bus_.getChannel<event::network::OnNewConnectionChannel>().subscribe(
