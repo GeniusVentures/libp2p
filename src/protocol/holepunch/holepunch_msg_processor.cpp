@@ -40,9 +40,10 @@ namespace libp2p::protocol {
         return signal_holepunch_received_.connect(cb);
     }
 
-    void HolepunchMessageProcessor::sendHolepunch(StreamSPtr stream, std::vector<libp2p::multi::Multiaddress> obsaddr) {
+    void HolepunchMessageProcessor::sendHolepunchConnect(StreamSPtr stream, peer::PeerInfo peer_info) {
         holepunch::pb::HolePunch msg;
         msg.set_type(holepunch::pb::HolePunch_Type_CONNECT);
+        auto obsaddr = host_.getObservedAddresses();
         for (auto& addr : obsaddr)
         {
             msg.add_obsaddrs(fromMultiaddrToString(addr));
@@ -73,7 +74,7 @@ namespace libp2p::protocol {
         auto rw = std::make_shared<basic::ProtobufMessageReadWriter>(stream);
         rw->read<holepunch::pb::HolePunch>(
             [self{ shared_from_this() }, stream = std::move(stream)](auto&& res) {
-                self->holepunchReceived(std::forward<decltype(res)>(res), stream);
+                self->holepunchConnectReturn(std::forward<decltype(res)>(res), stream);
             });
     }
 
@@ -120,11 +121,38 @@ namespace libp2p::protocol {
             }
             //Open connection with SYN Packets?
         }
-        //What is SYNC?
+        //If we get a sync, open a new connection to observed addresses previousl recorded
         if (msg.type() == holepunch::pb::HolePunch::SYNC)
         {
 
         }
+    }
+
+    void HolepunchMessageProcessor::holepunchConnectReturn(
+        outcome::result<holepunch::pb::HolePunch> msg_res,
+        const StreamSPtr& stream) {
+        auto [peer_id_str, peer_addr_str] = detail::getPeerIdentity(stream);
+        if (!msg_res) {
+            log_->error("cannot read an holepunch message from peer {}, {}: {}",
+                peer_id_str, peer_addr_str, msg_res.error());
+            return stream->reset();
+        }
+
+        log_->info("received an holepunch message from peer {}, {}", peer_id_str,
+            peer_addr_str);
+
+        auto&& msg = std::move(msg_res.value());
+        //Connect message
+        if (msg.type() == holepunch::pb::HolePunch::CONNECT)
+        {
+            std::vector<libp2p::multi::Multiaddress> connaddrs;
+            for (auto& addr : msg.obsaddrs())
+            {
+                connaddrs.push_back(fromStringToMultiaddr(addr).value());
+            }
+        }
+        //We now need to send a SYNC message to the node, and then initiate a connect after round trip time / 2 
+
     }
 
 }

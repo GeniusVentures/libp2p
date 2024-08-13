@@ -17,6 +17,7 @@ namespace libp2p::protocol {
    */
   class Holepunch : public BaseProtocol,
                    public std::enable_shared_from_this<Holepunch> {
+      using StreamSPtr = std::shared_ptr<connection::Stream>;
    public:
     /**
      * Create an Auto instance; it will immediately start watching
@@ -59,7 +60,7 @@ namespace libp2p::protocol {
     /**
      * Start accepting NewConnectionEvent-s and asking each of them for Autonat
      */
-    void start(std::vector<libp2p::multi::Multiaddress> obsaddr);
+    void start(StreamSPtr stream, peer::PeerInfo peer_info);
 
    private:
     /**

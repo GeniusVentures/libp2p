@@ -47,7 +47,7 @@ namespace libp2p::protocol {
     msg_processor_->receiveHolepunch(std::move(stream_res.value()));
   }
 
-  void Holepunch::start(std::vector<libp2p::multi::Multiaddress> obsaddr) {
+  void Holepunch::start(StreamSPtr stream, peer::PeerInfo peer_info) {
     // no double starts
     BOOST_ASSERT(!started_);
     started_ = true;
@@ -59,13 +59,13 @@ namespace libp2p::protocol {
             self->handle(std::move(rstream));
           }
         });
-
-    sub_ = bus_.getChannel<event::network::OnNewConnectionChannel>().subscribe(
-        [wp = weak_from_this(), obsaddr](auto &&conn) {
-          if (auto self = wp.lock()) {
-            return self->onNewConnection(conn, obsaddr);
-          }
-        });
+    msg_processor_->sendHolepunchConnect(stream, peer_info);
+    //sub_ = bus_.getChannel<event::network::OnNewConnectionChannel>().subscribe(
+    //    [wp = weak_from_this(), obsaddr](auto &&conn) {
+    //      if (auto self = wp.lock()) {
+    //        return self->onNewConnection(conn, obsaddr);
+    //      }
+    //    });
   }
 
   void Holepunch::onNewConnection(
