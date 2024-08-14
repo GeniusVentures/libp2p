@@ -60,7 +60,12 @@ namespace libp2p::protocol {
     /**
      * Start accepting NewConnectionEvent-s and asking each of them for Autonat
      */
-    void start(StreamSPtr stream, peer::PeerInfo peer_info);
+    void start();
+
+    /**
+     * Initiate a holepunch connection to another node
+     */
+    void initiateHolePunch(StreamSPtr stream, peer::PeerInfo peer_info);
 
    private:
     /**

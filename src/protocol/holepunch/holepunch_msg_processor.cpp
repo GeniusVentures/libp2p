@@ -40,7 +40,7 @@ namespace libp2p::protocol {
         return signal_holepunch_received_.connect(cb);
     }
 
-    void HolepunchMessageProcessor::sendHolepunchConnect(StreamSPtr stream, peer::PeerInfo peer_info) {
+    void HolepunchMessageProcessor::sendHolepunchConnect(StreamSPtr stream, peer::PeerId peer_id) {
         holepunch::pb::HolePunch msg;
         msg.set_type(holepunch::pb::HolePunch_Type_CONNECT);
         auto obsaddr = host_.getObservedAddresses();
@@ -54,13 +54,14 @@ namespace libp2p::protocol {
         rw->write<holepunch::pb::HolePunch>(
             msg,
             [self{ shared_from_this() },
-            stream = std::move(stream)](auto&& res) mutable {
-                self->holepunchSent(std::forward<decltype(res)>(res), stream);
+            stream = std::move(stream), peer_id](auto&& res) mutable {
+                self->holepunchSent(std::forward<decltype(res)>(res), stream, peer_id);
             });
     }
 
     void HolepunchMessageProcessor::holepunchSent(
-        outcome::result<size_t> written_bytes, const StreamSPtr& stream) {
+        outcome::result<size_t> written_bytes, const StreamSPtr& stream,
+        peer::PeerId peer_id) {
         auto [peer_id, peer_addr] = detail::getPeerIdentity(stream);
         if (!written_bytes) {
             log_->error("cannot write Autonat message to stream to peer {}, {}: {}",
@@ -70,11 +71,13 @@ namespace libp2p::protocol {
 
         log_->info("successfully written an Autonat message to peer {}, {}",
             peer_id, peer_addr);
+        //Create a timestamp
+        auto start_time = std::chrono::steady_clock::now();
         // Handle incoming responses
         auto rw = std::make_shared<basic::ProtobufMessageReadWriter>(stream);
         rw->read<holepunch::pb::HolePunch>(
-            [self{ shared_from_this() }, stream = std::move(stream)](auto&& res) {
-                self->holepunchConnectReturn(std::forward<decltype(res)>(res), stream);
+            [self{ shared_from_this() }, stream = std::move(stream), start_time, peer_id](auto&& res) {
+                self->holepunchConnectReturn(std::forward<decltype(res)>(res), stream, start_time, peer_id);
             });
     }
 
@@ -130,8 +133,11 @@ namespace libp2p::protocol {
 
     void HolepunchMessageProcessor::holepunchConnectReturn(
         outcome::result<holepunch::pb::HolePunch> msg_res,
-        const StreamSPtr& stream) {
+        const StreamSPtr& stream,
+        std::chrono::steady_clock::time_point start_time,
+        peer::PeerId peer_id) {
         auto [peer_id_str, peer_addr_str] = detail::getPeerIdentity(stream);
+        
         if (!msg_res) {
             log_->error("cannot read an holepunch message from peer {}, {}: {}",
                 peer_id_str, peer_addr_str, msg_res.error());
@@ -143,16 +149,38 @@ namespace libp2p::protocol {
 
         auto&& msg = std::move(msg_res.value());
         //Connect message
+        std::vector<libp2p::multi::Multiaddress> connaddrs;
         if (msg.type() == holepunch::pb::HolePunch::CONNECT)
         {
-            std::vector<libp2p::multi::Multiaddress> connaddrs;
             for (auto& addr : msg.obsaddrs())
             {
                 connaddrs.push_back(fromStringToMultiaddr(addr).value());
+                return;
             }
         }
-        //We now need to send a SYNC message to the node, and then initiate a connect after round trip time / 2 
 
+        auto peer_info = peer::PeerInfo{ peer_id, connaddrs };
+
+        //Calculate RTT
+        auto end_time = std::chrono::steady_clock::now();
+        auto rtt = std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time).count();
+
+        //We now need to send a SYNC message to the node, and then initiate a connect after round trip time / 2 
+        holepunch::pb::HolePunch msg;
+        msg.set_type(holepunch::pb::HolePunch_Type_SYNC);
+
+        //Send SYNC
+        auto rw = std::make_shared<basic::ProtobufMessageReadWriter>(stream);
+        rw->read<holepunch::pb::HolePunch>(
+            [self{ shared_from_this() }, stream = std::move(stream), rtt, peer_info](auto&& res) {
+                // Calculate the delay time (RTT / 2)
+                auto delay_duration = std::chrono::milliseconds(rtt / 2);
+                // Wait for RTT / 2
+                std::this_thread::sleep_for(delay_duration);
+                // Now attempt to connect to the peer
+                self->host_.connect(peer_info);
+            });
+        
     }
 
 }

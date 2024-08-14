@@ -43,7 +43,7 @@ namespace libp2p::protocol {
      * Send an autonat message over the provided stream
      * @param stream to be identified over
      */
-    void sendHolepunchConnect(StreamSPtr stream, peer::PeerInfo peer_info);
+    void sendHolepunchConnect(StreamSPtr stream, peer::PeerId peer_id);
 
     /**
      * Receive an Autonat message from the provided stream
@@ -76,7 +76,8 @@ namespace libp2p::protocol {
      * @param stream with the other side
      */
     void holepunchSent(outcome::result<size_t> written_bytes,
-                      const StreamSPtr &stream);
+                      const StreamSPtr &stream,
+        peer::PeerId peer_id);
 
     /**
      * Called, when an autonat message is received from the other peer
@@ -87,7 +88,8 @@ namespace libp2p::protocol {
                           const StreamSPtr &stream);
 
     void holepunchConnectReturn(outcome::result<holepunch::pb::HolePunch> msg_res,
-        const StreamSPtr& stream);
+        const StreamSPtr& stream, std::chrono::steady_clock::time_point start_time,
+        peer::PeerId peer_id);
 
 
     Host &host_;
