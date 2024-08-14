@@ -43,13 +43,13 @@ namespace libp2p::protocol {
         const std::function<RelayCallback> &cb);
 
     /**
-     * Send an relay message over the provided stream
+     * Send an relay message over the provided stream to make a reservation
      * @param stream to be identified over
      */
     void sendHopReservation(StreamSPtr stream);
 
     /**
-     * Receive an Relay message from the provided stream
+     * Receive a stop Relay message from the provided stream which should inficate someone is trying to connect to us
      * @param stream to be identified over
      */
     void receiveStopRelay(StreamSPtr stream);
@@ -80,7 +80,7 @@ namespace libp2p::protocol {
 
    private:
     /**
-     * Called, when an relay message is written to the stream
+     * Called when a reservation data has been sent to a circuit relay provider
      * @param written_bytes - how much bytes were written
      * @param stream with the other side
      */
@@ -88,14 +88,14 @@ namespace libp2p::protocol {
                       const StreamSPtr &stream);
 
     /**
-     * Called, when an relay message is written to the stream
+     * Called when data was sent to make a connection
      * @param written_bytes - how much bytes were written
      * @param stream with the other side
      */
     void relayConnectSent(outcome::result<size_t> written_bytes,
         const StreamSPtr& stream);
     /**
-     * Called, when an relay message is received from the other peer
+     * Called when we get back a reservation message after attempting to make one
      * @param msg, which was read
      * @param stream, over which it was received
      */
@@ -103,7 +103,7 @@ namespace libp2p::protocol {
                           const StreamSPtr &stream);
 
     /**
-     * Called, when an relay message is received from the other peer
+     * Called when we get a Stop message indicating a connect should occur with a specific node. Stream should now be the one used for that.
      * @param msg, which was read
      * @param stream, over which it was received
      */
@@ -112,15 +112,16 @@ namespace libp2p::protocol {
 
     /**
      * Called, when an relay message is received from the other peer
-     * @param msg, which was read
      * @param stream, over which it was received
      */
     void relayConnectResponse(const StreamSPtr& stream);
     /**
-     * Send an relay message over the provided stream
+     * Send an relay message over the provided stream indicating we want to connect to someone with a reservation through them
      * @param stream to be identified over
+     * @param Circuit relay address we are connecting to
+     * @param peer id to connect to
      */
-    void sendConnectRelay(const StreamSPtr& stream, std::vector<libp2p::multi::Multiaddress> connaddrs, libp2p::peer::PeerId mypeer_id);
+    void sendConnectRelay(const StreamSPtr& stream, std::vector<libp2p::multi::Multiaddress> connaddrs, libp2p::peer::PeerId peer_id);
 
     Host &host_;
     network::ConnectionManager &conn_manager_;

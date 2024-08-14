@@ -11,9 +11,9 @@ namespace libp2p::multi {
 
 namespace libp2p::protocol {
   /**
-   * Implementation of an autonat protocol, which is a way to say
-   * determine whether or not we are behind a nat, and get a valid address in return.
-   * Read more: https://github.com/libp2p/specs/tree/master/autonat
+   * Implementation of an holepunch protocol, which is a way to 
+   * Initiate a connection from behind a nat be connecting at the same time using an observed address.
+   * Read more: https://github.com/libp2p/specs/blob/master/relay/DCUtR.md
    */
   class Holepunch : public BaseProtocol,
                    public std::enable_shared_from_this<Holepunch> {
@@ -52,13 +52,13 @@ namespace libp2p::protocol {
     peer::Protocol getProtocolId() const override;
 
     /**
-     * In Autonat, handle means we are either getting an autonat response, or request
-     * If it is a request, we are expected to DIAL them from a separate address.
+     * If we get a holepunch CONNECT message, someone is trying to initiate a holepunch with us via a circuit relay
+     * This handler sends this to message processor
      */
     void handle(StreamResult stream_res) override;
 
     /**
-     * Start accepting NewConnectionEvent-s and asking each of them for Autonat
+     * We only create a protocol handler here accepting holepunch dcutr.
      */
     void start();
 

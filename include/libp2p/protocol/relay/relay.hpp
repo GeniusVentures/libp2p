@@ -52,10 +52,14 @@ namespace libp2p::protocol {
     peer::Protocol getProtocolId() const override;
 
     /**
-     * In Relay we onl really expect a stop message, but I would expect a separate helper if we wanted to be a relay.
+     * Stub in case we want to enable acting as a relay
      */
     void handle(StreamResult stream_res) override;
 
+    /**
+     * If we have an incoming stop message, someone is trying to connect to us via circuit relay
+     * @param stream contains the stream that negotiated a stop protocol with us.
+     */
     void handleStopMessage(StreamResult stream_res);
     
     

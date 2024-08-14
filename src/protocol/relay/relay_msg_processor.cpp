@@ -57,34 +57,34 @@ namespace libp2p::protocol {
             });
     }
 
-    void RelayMessageProcessor::sendConnectRelay(const StreamSPtr& stream, std::vector<libp2p::multi::Multiaddress> connaddrs, libp2p::peer::PeerId mypeer_id)
+    void RelayMessageProcessor::sendConnectRelay(const StreamSPtr& stream, std::vector<libp2p::multi::Multiaddress> connaddrs, libp2p::peer::PeerId peer_id)
     {
-        relay::pb::StopMessage msg;
-        msg.set_type(relay::pb::StopMessage_Type_CONNECT);
+        relay::pb::HopMessage msg;
+        msg.set_type(relay::pb::HopMessage_Type_CONNECT);
 
         //Create a new peer for connection
         auto peer = new relay::pb::Peer;
-        peer->set_id(std::string(mypeer_id.toVector().begin(), mypeer_id.toVector().end()));
+        peer->set_id(std::string(peer_id.toVector().begin(), peer_id.toVector().end()));
         for (auto& addr : connaddrs)
         {
             peer->add_addrs(fromMultiaddrToString(addr));
         }
 
         //Optional Set Limits - Duration in seconds and Data in bytes.
-        auto limits = new relay::pb::Limit;
+        //auto limits = new relay::pb::Limit;
         //limits->set_duration(2345345346345);
         //limits->set_data(123452345235);
 
         //Set Peer and Limits
-        msg.set_allocated_peer(peer);
-        msg.set_allocated_limit(limits);
+        //msg.set_allocated_peer(peer);
+        //msg.set_allocated_limit(limits);
 
         // write the resulting Protobuf message
         auto rw = std::make_shared<basic::ProtobufMessageReadWriter>(stream);
-        rw->write<relay::pb::StopMessage>(
+        rw->write<relay::pb::HopMessage>(
             msg,
             [self{ shared_from_this() },
-            stream, mypeer_id, connaddrs](auto&& res) mutable {
+            stream](auto&& res) mutable {
                 self->relayConnectSent(std::forward<decltype(res)>(res), stream);
             });
     }
