@@ -44,7 +44,7 @@ namespace libp2p::protocol {
     if (!stream_res) {
       return;
     }
-    msg_processor_->receiveHolepunch(std::move(stream_res.value()));
+    msg_processor_->receiveIncomingHolepunch(std::move(stream_res.value()));
   }
 
   void Holepunch::start() {

@@ -49,7 +49,7 @@ namespace libp2p::protocol {
      * Receive an Autonat message from the provided stream
      * @param stream to be identified over
      */
-    void receiveHolepunch(StreamSPtr stream);
+    void receiveIncomingHolepunch(StreamSPtr stream);
 
     /**
      * Get a Host of this processor
@@ -75,21 +75,29 @@ namespace libp2p::protocol {
      * @param written_bytes - how much bytes were written
      * @param stream with the other side
      */
-    void holepunchSent(outcome::result<size_t> written_bytes,
+    void holepunchConnectSent(outcome::result<size_t> written_bytes,
                       const StreamSPtr &stream,
         peer::PeerId peer_id);
+
+    void holepunchConResponseSent(outcome::result<size_t> written_bytes,
+        const StreamSPtr& stream,
+        std::vector<libp2p::multi::Multiaddress> obsaddr);
 
     /**
      * Called, when an autonat message is received from the other peer
      * @param msg, which was read
      * @param stream, over which it was received
      */
-    void holepunchReceived(outcome::result<holepunch::pb::HolePunch> msg_res,
+    void holepunchIncomingReceived(outcome::result<holepunch::pb::HolePunch> msg_res,
                           const StreamSPtr &stream);
 
     void holepunchConnectReturn(outcome::result<holepunch::pb::HolePunch> msg_res,
         const StreamSPtr& stream, std::chrono::steady_clock::time_point start_time,
         peer::PeerId peer_id);
+
+    void holepunchSyncResponseReturn(outcome::result<holepunch::pb::HolePunch> msg_res,
+        const StreamSPtr& stream,
+        std::vector<libp2p::multi::Multiaddress> connaddrs);
 
 
     Host &host_;
