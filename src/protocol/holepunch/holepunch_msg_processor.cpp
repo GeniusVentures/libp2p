@@ -59,6 +59,14 @@ namespace libp2p::protocol {
             });
     }
 
+    void HolepunchMessageProcessor::receiveIncomingHolepunch(StreamSPtr stream) {
+        auto rw = std::make_shared<basic::ProtobufMessageReadWriter>(stream);
+        rw->read<holepunch::pb::HolePunch>(
+            [self{ shared_from_this() }, s = std::move(stream)](auto&& res) {
+                self->holepunchIncomingReceived(std::forward<decltype(res)>(res), s);
+            });
+    }
+
     void HolepunchMessageProcessor::holepunchConnectSent(
         outcome::result<size_t> written_bytes, const StreamSPtr& stream,
         peer::PeerId peer_id) {
@@ -81,12 +89,80 @@ namespace libp2p::protocol {
             });
     }
 
-    void HolepunchMessageProcessor::receiveIncomingHolepunch(StreamSPtr stream) {
+    void HolepunchMessageProcessor::holepunchConnectReturn(
+        outcome::result<holepunch::pb::HolePunch> msg_res,
+        const StreamSPtr& stream,
+        std::chrono::steady_clock::time_point start_time,
+        peer::PeerId peer_id) {
+        auto [peer_id_str, peer_addr_str] = detail::getPeerIdentity(stream);
+
+        if (!msg_res) {
+            log_->error("cannot read an holepunch message from peer {}, {}: {}",
+                peer_id_str, peer_addr_str, msg_res.error());
+            return stream->reset();
+        }
+
+        log_->info("received an holepunch message from peer {}, {}", peer_id_str,
+            peer_addr_str);
+
+        auto&& msg = std::move(msg_res.value());
+        //Connect message
+        std::vector<libp2p::multi::Multiaddress> connaddrs;
+        if (msg.type() == holepunch::pb::HolePunch::CONNECT)
+        {
+            for (auto& addr : msg.obsaddrs())
+            {
+                connaddrs.push_back(fromStringToMultiaddr(addr).value());
+            }
+        }
+
+        auto peer_info = peer::PeerInfo{ peer_id, connaddrs };
+
+        //Calculate RTT
+        auto end_time = std::chrono::steady_clock::now();
+        auto rtt = std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time).count();
+
+        //We now need to send a SYNC message to the node, and then initiate a connect after round trip time / 2 
+        holepunch::pb::HolePunch msg;
+        msg.set_type(holepunch::pb::HolePunch_Type_SYNC);
+
+        //Send SYNC - Change to use async version below once we can get the io context into this class.
         auto rw = std::make_shared<basic::ProtobufMessageReadWriter>(stream);
         rw->read<holepunch::pb::HolePunch>(
-            [self{ shared_from_this() }, s = std::move(stream)](auto&& res) {
-                self->holepunchIncomingReceived(std::forward<decltype(res)>(res), s);
+            [self{ shared_from_this() }, stream = std::move(stream), rtt, peer_info](auto&& res) {
+                // Calculate the delay time (RTT / 2)
+                auto delay_duration = std::chrono::milliseconds(rtt / 2);
+                // Wait for RTT / 2
+                std::this_thread::sleep_for(delay_duration);
+                // Now attempt to connect to the peer
+                self->host_.connect(peer_info);
             });
+
+        //rw->read<holepunch::pb::HolePunch>(
+        //    [self{ shared_from_this() }, stream = std::move(stream), rtt, peer_info](auto&& res) {
+        //        if (!res) {
+        //            self->log_->error("Failed to read HolePunch message: {}", res.error().message());
+        //            return;
+        //        }
+
+        //        // Calculate the delay time (RTT / 2)
+        //        auto delay_duration = std::chrono::milliseconds(rtt / 2);
+
+        //        // Create an asynchronous timer
+        //        auto timer = std::make_shared<boost::asio::steady_timer>(self->io_context_, delay_duration);
+
+        //        // Set the timer to wait for RTT / 2 asynchronously
+        //        timer->async_wait([self, timer, peer_info](const boost::system::error_code& ec) {
+        //            if (!ec) {
+        //                // Now attempt to connect to the peer
+        //                self->host_.connect(peer_info);
+        //            }
+        //            else {
+        //                self->log_->error("Error during RTT wait: {}", ec.message());
+        //            }
+        //            });
+        //    });
+
     }
 
     Host& HolepunchMessageProcessor::getHost() const noexcept {
@@ -199,82 +275,6 @@ namespace libp2p::protocol {
         
         //Connect immediately since we got a SYNC message.
         host_.connect(peer_info);
-    }
-
-    void HolepunchMessageProcessor::holepunchConnectReturn(
-        outcome::result<holepunch::pb::HolePunch> msg_res,
-        const StreamSPtr& stream,
-        std::chrono::steady_clock::time_point start_time,
-        peer::PeerId peer_id) {
-        auto [peer_id_str, peer_addr_str] = detail::getPeerIdentity(stream);
-        
-        if (!msg_res) {
-            log_->error("cannot read an holepunch message from peer {}, {}: {}",
-                peer_id_str, peer_addr_str, msg_res.error());
-            return stream->reset();
-        }
-
-        log_->info("received an holepunch message from peer {}, {}", peer_id_str,
-            peer_addr_str);
-
-        auto&& msg = std::move(msg_res.value());
-        //Connect message
-        std::vector<libp2p::multi::Multiaddress> connaddrs;
-        if (msg.type() == holepunch::pb::HolePunch::CONNECT)
-        {
-            for (auto& addr : msg.obsaddrs())
-            {
-                connaddrs.push_back(fromStringToMultiaddr(addr).value());
-            }
-        }
-
-        auto peer_info = peer::PeerInfo{ peer_id, connaddrs };
-
-        //Calculate RTT
-        auto end_time = std::chrono::steady_clock::now();
-        auto rtt = std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time).count();
-
-        //We now need to send a SYNC message to the node, and then initiate a connect after round trip time / 2 
-        holepunch::pb::HolePunch msg;
-        msg.set_type(holepunch::pb::HolePunch_Type_SYNC);
-
-        //Send SYNC - Change to use async version below once we can get the io context into this class.
-        auto rw = std::make_shared<basic::ProtobufMessageReadWriter>(stream);
-        rw->read<holepunch::pb::HolePunch>(
-            [self{ shared_from_this() }, stream = std::move(stream), rtt, peer_info](auto&& res) {
-                // Calculate the delay time (RTT / 2)
-                auto delay_duration = std::chrono::milliseconds(rtt / 2);
-                // Wait for RTT / 2
-                std::this_thread::sleep_for(delay_duration);
-                // Now attempt to connect to the peer
-                self->host_.connect(peer_info);
-            });
-
-        //rw->read<holepunch::pb::HolePunch>(
-        //    [self{ shared_from_this() }, stream = std::move(stream), rtt, peer_info](auto&& res) {
-        //        if (!res) {
-        //            self->log_->error("Failed to read HolePunch message: {}", res.error().message());
-        //            return;
-        //        }
-
-        //        // Calculate the delay time (RTT / 2)
-        //        auto delay_duration = std::chrono::milliseconds(rtt / 2);
-
-        //        // Create an asynchronous timer
-        //        auto timer = std::make_shared<boost::asio::steady_timer>(self->io_context_, delay_duration);
-
-        //        // Set the timer to wait for RTT / 2 asynchronously
-        //        timer->async_wait([self, timer, peer_info](const boost::system::error_code& ec) {
-        //            if (!ec) {
-        //                // Now attempt to connect to the peer
-        //                self->host_.connect(peer_info);
-        //            }
-        //            else {
-        //                self->log_->error("Error during RTT wait: {}", ec.message());
-        //            }
-        //            });
-        //    });
-        
     }
 
 }

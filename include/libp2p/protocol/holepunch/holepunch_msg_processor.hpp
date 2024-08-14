@@ -40,14 +40,15 @@ namespace libp2p::protocol {
         const std::function<HolepunchCallback> &cb);
 
     /**
-     * Send an autonat message over the provided stream
-     * @param stream to be identified over
+     * Send a holepunch request to a node
+     * @param Stream over which to do the exchange provided by circuit relay
+     * @param peer_id of other node
      */
     void sendHolepunchConnect(StreamSPtr stream, peer::PeerId peer_id);
 
     /**
-     * Receive an Autonat message from the provided stream
-     * @param stream to be identified over
+     * Receive a holepunch request over specified stream
+     * @param stream to get a holepunch CONNECT
      */
     void receiveIncomingHolepunch(StreamSPtr stream);
 
@@ -71,30 +72,57 @@ namespace libp2p::protocol {
 
    private:
     /**
-     * Called, when an autonat message is written to the stream
+    Functions below happen when a holepunch connection is sent to another node
+    */
+    /**
+     * Called when a holepunch CONNECT message is sent
      * @param written_bytes - how much bytes were written
      * @param stream with the other side
+     * @param peer_id we are connecting to
      */
     void holepunchConnectSent(outcome::result<size_t> written_bytes,
                       const StreamSPtr &stream,
         peer::PeerId peer_id);
 
-    void holepunchConResponseSent(outcome::result<size_t> written_bytes,
-        const StreamSPtr& stream,
-        std::vector<libp2p::multi::Multiaddress> obsaddr);
+    /**
+     * Called when we get a CONNECT message back, we will send a dcutr SYNC and connect to the other node
+     * @param msg_res a protobuf message we expect to be a dcutr CONNECT
+     * @param stream with the other side
+     * @param timestamp indicating when we sent the original connect request
+     * @param peer_id we are connecting to
+     */
+    void holepunchConnectReturn(outcome::result<holepunch::pb::HolePunch> msg_res,
+        const StreamSPtr& stream, std::chrono::steady_clock::time_point start_time,
+        peer::PeerId peer_id);
 
+    /**
+    Functions below happen when a holepunch connection is initated with us
+    */
+    
     /**
      * Called, when an autonat message is received from the other peer
      * @param msg, which was read
      * @param stream, over which it was received
      */
     void holepunchIncomingReceived(outcome::result<holepunch::pb::HolePunch> msg_res,
-                          const StreamSPtr &stream);
+        const StreamSPtr& stream);
 
-    void holepunchConnectReturn(outcome::result<holepunch::pb::HolePunch> msg_res,
-        const StreamSPtr& stream, std::chrono::steady_clock::time_point start_time,
-        peer::PeerId peer_id);
+    /**
+     * Called, when a holepunch CONNECT is sent back to a node that initiated a holepunch
+     * @param written_bytes - how much bytes were written
+     * @param stream with the other side
+     * @param Addresses we will connect to upon getting a sync
+     */
+    void holepunchConResponseSent(outcome::result<size_t> written_bytes,
+        const StreamSPtr& stream,
+        std::vector<libp2p::multi::Multiaddress> connaddrs);
 
+    /**
+     * Called, when a holepunch SYNC is received, we should connect to this node immediately. 
+     * @param Protobuf message containing an assumed SYNC message
+     * @param stream with the other side
+     * @param Addresses we will connect to upon getting a sync
+     */
     void holepunchSyncResponseReturn(outcome::result<holepunch::pb::HolePunch> msg_res,
         const StreamSPtr& stream,
         std::vector<libp2p::multi::Multiaddress> connaddrs);
