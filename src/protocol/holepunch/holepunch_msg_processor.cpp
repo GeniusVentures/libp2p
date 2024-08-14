@@ -108,13 +108,17 @@ namespace libp2p::protocol {
         auto&& msg = std::move(msg_res.value());
         //Connect message
         std::vector<libp2p::multi::Multiaddress> connaddrs;
-        if (msg.type() == holepunch::pb::HolePunch::CONNECT)
+        if (msg.type() != holepunch::pb::HolePunch::CONNECT)
         {
-            for (auto& addr : msg.obsaddrs())
-            {
-                connaddrs.push_back(fromStringToMultiaddr(addr).value());
-            }
+            log_->error("We were expecting a holepunch CONNECT but got something else {}, {}",
+                peer_id_str, peer_addr_str);
+            return;
         }
+        for (auto& addr : msg.obsaddrs())
+        {
+            connaddrs.push_back(fromStringToMultiaddr(addr).value());
+        }
+        
 
         auto peer_info = peer::PeerInfo{ peer_id, connaddrs };
 
@@ -195,13 +199,15 @@ namespace libp2p::protocol {
         auto&& msg = std::move(msg_res.value());
         //Connect message
         std::vector<libp2p::multi::Multiaddress> connaddrs;
-        if (msg.type() == holepunch::pb::HolePunch::CONNECT)
+        if (msg.type() != holepunch::pb::HolePunch::CONNECT)
         {
-            
-            for (auto& addr : msg.obsaddrs())
-            {
-                connaddrs.push_back(fromStringToMultiaddr(addr).value());
-            }
+            log_->error("We were expecting a holepunch CONNECT but got something else {}, {}",
+                peer_id_str, peer_addr_str);
+            return;
+        }
+        for (auto& addr : msg.obsaddrs())
+        {
+            connaddrs.push_back(fromStringToMultiaddr(addr).value());
         }
         //Send a connect message back.
         holepunch::pb::HolePunch msg;
