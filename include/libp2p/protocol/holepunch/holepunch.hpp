@@ -22,7 +22,7 @@ namespace libp2p::protocol {
     /**
      * Create an Auto instance; it will immediately start watching
      * connection events and react to them
-     * @param msg_processor to work with Autonat messages
+     * @param msg_processor to work with Holepunch messages
      * @param event_bus - bus, over which the events arrive
      */
     Holepunch(Host &host,

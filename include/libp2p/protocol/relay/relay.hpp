@@ -12,9 +12,10 @@ namespace libp2p::multi {
 
 namespace libp2p::protocol {
   /**
-   * Implementation of an autonat protocol, which is a way to say
-   * determine whether or not we are behind a nat, and get a valid address in return.
-   * Read more: https://github.com/libp2p/specs/tree/master/autonat
+   * Implementation of the circuit relay protocol
+   * Allows us to used opened streams to relay data through another node to communicate to other nodes.
+   * Also allows us to holepunch
+   * Read more: https://github.com/libp2p/specs/blob/master/relay/circuit-v2.md
    */
   class Relay : public BaseProtocol,
                    public std::enable_shared_from_this<Relay> {
@@ -22,7 +23,7 @@ namespace libp2p::protocol {
     /**
      * Create an Auto instance; it will immediately start watching
      * connection events and react to them
-     * @param msg_processor to work with Autonat messages
+     * @param msg_processor to work with Relay messages
      * @param event_bus - bus, over which the events arrive
      */
     Relay(Host &host,
