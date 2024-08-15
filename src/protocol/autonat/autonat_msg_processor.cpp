@@ -102,7 +102,7 @@ namespace libp2p::protocol {
                 // Handle incoming responses
         auto rw = std::make_shared<basic::ProtobufMessageReadWriter>(stream);
         rw->read<autonat::pb::Message>(
-            [self{ shared_from_this() }, stream = std::move(stream)](auto&& res) {
+            [self{ shared_from_this() }, stream](auto&& res) {
                 self->autonatReceived(std::forward<decltype(res)>(res), stream);
             });
     }
@@ -227,7 +227,7 @@ namespace libp2p::protocol {
                             responsemsg.set_allocated_dialresponse(dialrmsg);
                             rw->write<autonat::pb::Message>(
                                 responsemsg,
-                                [self, stream = std::move(stream)](auto&& res) mutable {
+                                [self, stream](auto&& res) mutable {
                                     self->log_->info("Sent a negative DIAL_RESPONSE to autonat request");
                                 });
                             return;
@@ -241,7 +241,7 @@ namespace libp2p::protocol {
 
                         rw->write<autonat::pb::Message>(
                             responsemsg,
-                            [self, stream = std::move(stream)](auto&& res) mutable {
+                            [self, stream](auto&& res) mutable {
                                 self->log_->info("Sent a positive DIAL_RESPONSE to autonat request");
                             });
                         //Close this stream.

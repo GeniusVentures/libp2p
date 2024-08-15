@@ -94,6 +94,15 @@ namespace libp2p::protocol {
      */
     void relayConnectSent(outcome::result<size_t> written_bytes,
         const StreamSPtr& stream);
+
+    /**
+     * Called when a response is sent from an attempted relay connection initiation
+     * @param msg, which was read
+     * @param stream, over which it was received
+     */
+    void relayConnectStatus(outcome::result<relay::pb::HopMessage> msg_res,
+        const StreamSPtr& stream);
+
     /**
      * Called when we get back a reservation message after attempting to make one
      * @param msg, which was read

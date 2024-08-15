@@ -70,15 +70,6 @@ namespace libp2p::protocol {
             peer->add_addrs(fromMultiaddrToString(addr));
         }
 
-        //Optional Set Limits - Duration in seconds and Data in bytes.
-        //auto limits = new relay::pb::Limit;
-        //limits->set_duration(2345345346345);
-        //limits->set_data(123452345235);
-
-        //Set Peer and Limits
-        //msg.set_allocated_peer(peer);
-        //msg.set_allocated_limit(limits);
-
         // write the resulting Protobuf message
         auto rw = std::make_shared<basic::ProtobufMessageReadWriter>(stream);
         rw->write<relay::pb::HopMessage>(
@@ -123,11 +114,41 @@ namespace libp2p::protocol {
 
         // Handle incoming responses
         auto rw = std::make_shared<basic::ProtobufMessageReadWriter>(stream);
-        rw->read<relay::pb::StopMessage>(
-            [self{ shared_from_this() }, stream = std::move(stream)](auto&& res) {
-                //self->relayConnectReceived(std::forward<decltype(res)>(res), stream);
+        rw->read<relay::pb::HopMessage>(
+            [self{ shared_from_this() }, stream](auto&& res) {
+                self->relayConnectStatus(std::forward<decltype(res)>(res), stream);
             });
     }
+
+    void RelayMessageProcessor::relayConnectStatus(
+        outcome::result<relay::pb::HopMessage> msg_res,
+        const StreamSPtr& stream) {
+        auto [peer_id_str, peer_addr_str] = detail::getPeerIdentity(stream);
+        if (!msg_res) {
+            log_->error("cannot read an relay message from peer {}, {}: {}",
+                peer_id_str, peer_addr_str, msg_res.error());
+            return stream->reset();
+        }
+
+        auto&& msg = std::move(msg_res.value());
+        //Make sure we got a STATUS response
+        if (msg.type() != relay::pb::HopMessage_Type_STATUS)
+        {
+            log_->error("Relay got a type other than STATUS when expecting status for a connection we initiated from: {}, {}", peer_id_str,
+                peer_addr_str);
+            return stream->reset();
+        }
+        //Make sure connection is OK
+        if (msg.status() != relay::pb::OK)
+        {
+            log_->error("Relay got status that indicates connections are unavailable from: {}, {}", peer_id_str,
+                peer_addr_str);
+            return stream->reset();
+        }
+
+
+    }
+
 
     void RelayMessageProcessor::receiveRelay(StreamSPtr stream) {
         auto rw = std::make_shared<basic::ProtobufMessageReadWriter>(stream);
@@ -271,7 +292,7 @@ namespace libp2p::protocol {
         rw->write<relay::pb::StopMessage>(
             msg,
             [self{ shared_from_this() },
-            stream = std::move(stream)](auto&& res) mutable {
+            stream](auto&& res) mutable {
                 self->relayReservationSent(std::forward<decltype(res)>(res), stream);
             });
     }

@@ -84,7 +84,7 @@ namespace libp2p::protocol {
         // Handle incoming responses
         auto rw = std::make_shared<basic::ProtobufMessageReadWriter>(stream);
         rw->read<holepunch::pb::HolePunch>(
-            [self{ shared_from_this() }, stream = std::move(stream), start_time, peer_id](auto&& res) {
+            [self{ shared_from_this() }, stream, start_time, peer_id](auto&& res) {
                 self->holepunchConnectReturn(std::forward<decltype(res)>(res), stream, start_time, peer_id);
             });
     }
@@ -133,7 +133,7 @@ namespace libp2p::protocol {
         //Send SYNC - Change to use async version below once we can get the io context into this class.
         auto rw = std::make_shared<basic::ProtobufMessageReadWriter>(stream);
         rw->read<holepunch::pb::HolePunch>(
-            [self{ shared_from_this() }, stream = std::move(stream), rtt, peer_info](auto&& res) {
+            [self{ shared_from_this() }, stream, rtt, peer_info](auto&& res) {
                 // Calculate the delay time (RTT / 2)
                 auto delay_duration = std::chrono::milliseconds(rtt / 2);
                 // Wait for RTT / 2
@@ -143,7 +143,7 @@ namespace libp2p::protocol {
             });
 
         //rw->read<holepunch::pb::HolePunch>(
-        //    [self{ shared_from_this() }, stream = std::move(stream), rtt, peer_info](auto&& res) {
+        //    [self{ shared_from_this() }, stream, rtt, peer_info](auto&& res) {
         //        if (!res) {
         //            self->log_->error("Failed to read HolePunch message: {}", res.error().message());
         //            return;
@@ -223,7 +223,7 @@ namespace libp2p::protocol {
         rw->write<holepunch::pb::HolePunch>(
             msg,
             [self{ shared_from_this() },
-            stream = std::move(stream), connaddrs](auto&& res) mutable {
+            stream, connaddrs](auto&& res) mutable {
                 self->holepunchConResponseSent(std::forward<decltype(res)>(res), stream, connaddrs);
             });
 
@@ -244,7 +244,7 @@ namespace libp2p::protocol {
         // Handle incoming responses
         auto rw = std::make_shared<basic::ProtobufMessageReadWriter>(stream);
         rw->read<holepunch::pb::HolePunch>(
-            [self{ shared_from_this() }, stream = std::move(stream), connaddrs](auto&& res) {
+            [self{ shared_from_this() }, stream, connaddrs](auto&& res) {
                 self->holepunchSyncResponseReturn(std::forward<decltype(res)>(res), stream, connaddrs);
             });
     }
