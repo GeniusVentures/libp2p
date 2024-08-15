@@ -40,7 +40,13 @@ namespace libp2p::protocol {
         return signal_holepunch_received_.connect(cb);
     }
 
-    void HolepunchMessageProcessor::sendHolepunchConnect(StreamSPtr stream, peer::PeerId peer_id) {
+    void HolepunchMessageProcessor::sendHolepunchConnect(StreamSPtr stream, peer::PeerId peer_id, int retry_count) {
+        if (retry_count > kMaxRetries)
+        {
+            log_->error("Attemps at holepunching with {}, have exceeded the maximum retry count of {}",
+                peer_id.toBase58(), kMaxRetries);
+            return;
+        }
         holepunch::pb::HolePunch msg;
         msg.set_type(holepunch::pb::HolePunch_Type_CONNECT);
         auto obsaddr = host_.getObservedAddresses();
@@ -54,8 +60,8 @@ namespace libp2p::protocol {
         rw->write<holepunch::pb::HolePunch>(
             msg,
             [self{ shared_from_this() },
-            stream = std::move(stream), peer_id](auto&& res) mutable {
-                self->holepunchConnectSent(std::forward<decltype(res)>(res), stream, peer_id);
+            stream = std::move(stream), peer_id, retry_count](auto&& res) mutable {
+                self->holepunchConnectSent(std::forward<decltype(res)>(res), stream, peer_id, retry_count);
             });
     }
 
@@ -69,7 +75,7 @@ namespace libp2p::protocol {
 
     void HolepunchMessageProcessor::holepunchConnectSent(
         outcome::result<size_t> written_bytes, const StreamSPtr& stream,
-        peer::PeerId peer_id) {
+        peer::PeerId peer_id, int retry_count) {
         auto [peer_id_str, peer_addr_str] = detail::getPeerIdentity(stream);
         if (!written_bytes) {
             log_->error("cannot write Autonat message to stream to peer {}, {}: {}",
@@ -84,8 +90,8 @@ namespace libp2p::protocol {
         // Handle incoming responses
         auto rw = std::make_shared<basic::ProtobufMessageReadWriter>(stream);
         rw->read<holepunch::pb::HolePunch>(
-            [self{ shared_from_this() }, stream, start_time, peer_id](auto&& res) {
-                self->holepunchConnectReturn(std::forward<decltype(res)>(res), stream, start_time, peer_id);
+            [self{ shared_from_this() }, stream, start_time, peer_id, retry_count](auto&& res) {
+                self->holepunchConnectReturn(std::forward<decltype(res)>(res), stream, start_time, peer_id, retry_count);
             });
     }
 
@@ -93,7 +99,7 @@ namespace libp2p::protocol {
         outcome::result<holepunch::pb::HolePunch> msg_res,
         const StreamSPtr& stream,
         std::chrono::steady_clock::time_point start_time,
-        peer::PeerId peer_id) {
+        peer::PeerId peer_id, int retry_count) {
         auto [peer_id_str, peer_addr_str] = detail::getPeerIdentity(stream);
 
         if (!msg_res) {
@@ -144,7 +150,16 @@ namespace libp2p::protocol {
                         // Wait for RTT / 2
                         std::this_thread::sleep_for(delay_duration);
                         // Now attempt to connect to the peer
-                        self->host_.connect(peer_info);
+                        self->host_.connect(peer_info, [self, stream, peer_info](auto&& result) {
+                            if (result)
+                            {
+                                self->log_->info("Successfully opened a hole punch to peer {}", peer_info.id.toBase58());
+                            }
+                            else {
+                                self->log_->error("Failed to connect to peer {}: {}", peer_info.id.toBase58(), result.error().message());
+                                self->sendHolepunchConnect(stream, peer_info.id);
+                            }
+                            });
                     });
             });
 

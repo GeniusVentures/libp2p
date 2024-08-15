@@ -44,7 +44,7 @@ namespace libp2p::protocol {
      * @param Stream over which to do the exchange provided by circuit relay
      * @param peer_id of other node
      */
-    void sendHolepunchConnect(StreamSPtr stream, peer::PeerId peer_id);
+    void sendHolepunchConnect(StreamSPtr stream, peer::PeerId peer_id, int retry_count = 0);
 
     /**
      * Receive a holepunch request over specified stream
@@ -82,7 +82,7 @@ namespace libp2p::protocol {
      */
     void holepunchConnectSent(outcome::result<size_t> written_bytes,
                       const StreamSPtr &stream,
-        peer::PeerId peer_id);
+        peer::PeerId peer_id, int retry_count);
 
     /**
      * Called when we get a CONNECT message back, we will send a dcutr SYNC and connect to the other node
@@ -93,7 +93,7 @@ namespace libp2p::protocol {
      */
     void holepunchConnectReturn(outcome::result<holepunch::pb::HolePunch> msg_res,
         const StreamSPtr& stream, std::chrono::steady_clock::time_point start_time,
-        peer::PeerId peer_id);
+        peer::PeerId peer_id, int retry_count);
 
     /**
     Functions below happen when a holepunch connection is initated with us
@@ -132,6 +132,7 @@ namespace libp2p::protocol {
     network::ConnectionManager &conn_manager_;
     ObservedAddresses observed_addresses_;
     boost::signals2::signal<HolepunchCallback> signal_holepunch_received_;
+    int kMaxRetries = 5;
 
 
     log::Logger log_ = log::createLogger("HolepunchMsgProcessor");
