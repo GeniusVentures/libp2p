@@ -12,6 +12,7 @@
 #include <libp2p/event/bus.hpp>
 #include <libp2p/protocol/base_protocol.hpp>
 #include <libp2p/protocol/identify/identify_msg_processor.hpp>
+#include <libp2p/protocol/autonat/autonat.hpp>
 
 namespace libp2p::multi {
   class Multiaddress;
@@ -81,7 +82,8 @@ namespace libp2p::protocol {
     std::shared_ptr<IdentifyMessageProcessor> msg_processor_;
     event::Bus &bus_;
     event::Handle sub_;  // will unsubscribe during destruction by itself
-
+    std::shared_ptr<libp2p::protocol::AutonatMessageProcessor> autonat_msg_processor_;
+    std::shared_ptr<libp2p::protocol::Autonat> autonat_;
     bool started_ = false;
   };
 }  // namespace libp2p::protocol

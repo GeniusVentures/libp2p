@@ -4,6 +4,7 @@
 #include <libp2p/event/bus.hpp>
 #include <libp2p/protocol/base_protocol.hpp>
 #include <libp2p/protocol/autonat/autonat_msg_processor.hpp>
+#include <libp2p/protocol/relay/relay.hpp>
 
 namespace libp2p::multi {
   class Multiaddress;
@@ -73,6 +74,8 @@ namespace libp2p::protocol {
     std::shared_ptr<AutonatMessageProcessor> msg_processor_;
     event::Bus &bus_;
     event::Handle sub_;  // will unsubscribe during destruction by itself
+    std::shared_ptr<libp2p::protocol::RelayMessageProcessor> relay_msg_processor_;
+    std::shared_ptr<libp2p::protocol::Relay> relay_;
     bool natstatus_ = false; //False if we are behind a NAT, true if not.
     log::Logger log_ = log::createLogger("Autonat");
 

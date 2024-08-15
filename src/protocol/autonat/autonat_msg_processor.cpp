@@ -29,16 +29,11 @@ namespace {
 
 namespace libp2p::protocol {
     AutonatMessageProcessor::AutonatMessageProcessor(
-        Host& host, network::ConnectionManager& conn_manager,
-        peer::IdentityManager& identity_manager,
-        std::shared_ptr<crypto::marshaller::KeyMarshaller> key_marshaller)
+        Host& host, network::ConnectionManager& conn_manager)
         : host_{ host },
         conn_manager_{ conn_manager },
-        identity_manager_{ identity_manager },
-        key_marshaller_{ std::move(key_marshaller) },
         successful_addresses_(),
         unsuccessful_addresses_() {
-        BOOST_ASSERT(key_marshaller_);
     }
 
     boost::signals2::connection AutonatMessageProcessor::onAutonatReceived(

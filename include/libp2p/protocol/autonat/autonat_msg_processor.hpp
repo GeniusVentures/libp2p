@@ -34,9 +34,7 @@ namespace libp2p::protocol {
     using AutonatCallback = void(const bool &);
 
     AutonatMessageProcessor(
-        Host &host, network::ConnectionManager &conn_manager,
-        peer::IdentityManager &identity_manager,
-        std::shared_ptr<crypto::marshaller::KeyMarshaller> key_marshaller);
+        Host &host, network::ConnectionManager &conn_manager);
 
     boost::signals2::connection onAutonatReceived(
         const std::function<AutonatCallback> &cb);
@@ -114,8 +112,6 @@ namespace libp2p::protocol {
 
     Host &host_;
     network::ConnectionManager &conn_manager_;
-    peer::IdentityManager &identity_manager_;
-    std::shared_ptr<crypto::marshaller::KeyMarshaller> key_marshaller_;
     ObservedAddresses observed_addresses_;
     boost::signals2::signal<AutonatCallback> signal_autonat_received_;
     //int successful_addresses_;
