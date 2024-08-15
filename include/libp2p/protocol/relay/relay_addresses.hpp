@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef LIBP2P_OBSERVED_ADDRESSES_HPP
+#ifndef LIBP2P_RELAY_ADDRESSES_HPP
 #define LIBP2P_RELAY_ADDRESSES_HPP
 
 #include <chrono>

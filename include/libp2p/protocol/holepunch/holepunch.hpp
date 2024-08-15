@@ -65,7 +65,7 @@ namespace libp2p::protocol {
     /**
      * Initiate a holepunch connection to another node
      */
-    void initiateHolePunch(StreamSPtr stream, peer::PeerInfo peer_info);
+    void initiateHolePunch(StreamSPtr stream, peer::PeerId peer_id);
 
    private:
     /**

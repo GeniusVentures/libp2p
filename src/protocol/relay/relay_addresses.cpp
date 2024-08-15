@@ -55,7 +55,7 @@ namespace libp2p::protocol {
       auto observed_addr_it =
           std::find_if(addresses.begin(), addresses.end(),
                      [&address](const auto &observed_addr) {
-                       return observed_addr.address == observed;
+                       return observed_addr.address == address;
                      });
     
       if (observed_addr_it == addresses.end()) {

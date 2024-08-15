@@ -86,6 +86,7 @@ namespace libp2p::protocol {
         if (!written_bytes) {
             log_->error("cannot write Relay message to stream to peer {}, {}: {}",
                 peer_id, peer_addr, written_bytes.error().message());
+            signal_relay_received_(false);
             return stream->reset();
         }
 
@@ -184,6 +185,7 @@ namespace libp2p::protocol {
         if (!msg_res) {
             log_->error("cannot read an relay message from peer {}, {}: {}",
                 peer_id_str, peer_addr_str, msg_res.error());
+            signal_relay_received_(false);
             return stream->reset();
         }
         // in order for observed addresses feature to work, all those parameters
@@ -192,7 +194,9 @@ namespace libp2p::protocol {
         auto local_addr_res = stream->localMultiaddr();
         auto is_initiator_res = stream->isInitiator();
         if (!remote_addr_res || !local_addr_res || !is_initiator_res) {
-            return log_->error("We appear to be missing an address on the stream containing relay info");
+            signal_relay_received_(false);
+            log_->error("We appear to be missing an address on the stream containing relay info");
+            return stream->reset();
         }
 
         log_->info("received an relay message from peer {}, {}", peer_id_str,
@@ -203,6 +207,7 @@ namespace libp2p::protocol {
         //Make sure we got a STATUS response
         if (msg.type() != relay::pb::HopMessage_Type_STATUS)
         {
+            signal_relay_received_(false);
             log_->info("Relay got a type other than STATUS when expecting status from: {}, {}", peer_id_str,
                 peer_addr_str);
             return stream->reset();
@@ -210,6 +215,7 @@ namespace libp2p::protocol {
         //Make sure reservation is OK
         if (msg.status() != relay::pb::OK)
         {
+            signal_relay_received_(false);
             log_->info("Relay got status that indicates reservations are unavailable from: {}, {}", peer_id_str,
                 peer_addr_str);
             return stream->reset();
@@ -227,9 +233,10 @@ namespace libp2p::protocol {
                 local_addr_res.value())
             != listen_addresses.end();
         if (!addr_in_addresses) {
-            return log_->error("Relay stream address does not contain a valid listening address:  {}",
+            signal_relay_received_(false);
+            log_->error("Relay stream address does not contain a valid listening address:  {}",
                 local_addr_res.value().getStringAddress());
-            return;
+            return stream->reset();
         }
 
         //Get Reservation info
@@ -240,9 +247,15 @@ namespace libp2p::protocol {
             auto addrma = fromStringToMultiaddr(addr);
             if (!addrma.has_error())
             {
+                signal_relay_received_(true);
                 std::string circuitaddress = std::string(addrma.value().getStringAddress()) + "/p2p-circuit/p2p/" + host_.getId().toBase58();
                 auto circuitma = libp2p::multi::Multiaddress::create(circuitaddress);
                 host_.getRelayRepository().add(local_addr_res.value(), circuitma.value(), reservation.expire());
+            }
+            else {
+                signal_relay_received_(false);
+                log_->error("Could not resolve an address from reservation");
+                return stream->reset();
             }
         }
     }

@@ -68,9 +68,9 @@ namespace libp2p::protocol {
     //    });
   }
 
-  void Holepunch::initiateHolePunch(StreamSPtr stream, peer::PeerInfo peer_info) {
+  void Holepunch::initiateHolePunch(StreamSPtr stream, peer::PeerId peer_id) {
         //Send out connect message
-      msg_processor_->sendHolepunchConnect(stream, peer_info);
+      msg_processor_->sendHolepunchConnect(stream, peer_id);
   }
 
   void Holepunch::onNewConnection(

@@ -70,15 +70,15 @@ namespace libp2p::protocol {
     void HolepunchMessageProcessor::holepunchConnectSent(
         outcome::result<size_t> written_bytes, const StreamSPtr& stream,
         peer::PeerId peer_id) {
-        auto [peer_id, peer_addr] = detail::getPeerIdentity(stream);
+        auto [peer_id_str, peer_addr_str] = detail::getPeerIdentity(stream);
         if (!written_bytes) {
             log_->error("cannot write Autonat message to stream to peer {}, {}: {}",
-                peer_id, peer_addr, written_bytes.error().message());
+                peer_id_str, peer_addr_str, written_bytes.error().message());
             return stream->reset();
         }
 
         log_->info("successfully written an Autonat message to peer {}, {}",
-            peer_id, peer_addr);
+            peer_id_str, peer_addr_str);
         //Create a timestamp
         auto start_time = std::chrono::steady_clock::now();
         // Handle incoming responses
@@ -127,20 +127,27 @@ namespace libp2p::protocol {
         auto rtt = std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time).count();
 
         //We now need to send a SYNC message to the node, and then initiate a connect after round trip time / 2 
-        holepunch::pb::HolePunch msg;
-        msg.set_type(holepunch::pb::HolePunch_Type_SYNC);
+        holepunch::pb::HolePunch outmsg;
+        outmsg.set_type(holepunch::pb::HolePunch_Type_SYNC);
 
         //Send SYNC - Change to use async version below once we can get the io context into this class.
         auto rw = std::make_shared<basic::ProtobufMessageReadWriter>(stream);
-        rw->read<holepunch::pb::HolePunch>(
-            [self{ shared_from_this() }, stream, rtt, peer_info](auto&& res) {
-                // Calculate the delay time (RTT / 2)
-                auto delay_duration = std::chrono::milliseconds(rtt / 2);
-                // Wait for RTT / 2
-                std::this_thread::sleep_for(delay_duration);
-                // Now attempt to connect to the peer
-                self->host_.connect(peer_info);
+        rw->write<holepunch::pb::HolePunch>(
+            outmsg,
+            [self{ shared_from_this() },
+            stream, connaddrs, rtt, peer_info](auto&& res) mutable {
+                auto rw = std::make_shared<basic::ProtobufMessageReadWriter>(stream);
+                rw->read<holepunch::pb::HolePunch>(
+                    [self, stream, rtt, peer_info](auto&& res) {
+                        // Calculate the delay time (RTT / 2)
+                        auto delay_duration = std::chrono::milliseconds(rtt / 2);
+                        // Wait for RTT / 2
+                        std::this_thread::sleep_for(delay_duration);
+                        // Now attempt to connect to the peer
+                        self->host_.connect(peer_info);
+                    });
             });
+
 
         //rw->read<holepunch::pb::HolePunch>(
         //    [self{ shared_from_this() }, stream, rtt, peer_info](auto&& res) {
@@ -210,18 +217,18 @@ namespace libp2p::protocol {
             connaddrs.push_back(fromStringToMultiaddr(addr).value());
         }
         //Send a connect message back.
-        holepunch::pb::HolePunch msg;
-        msg.set_type(holepunch::pb::HolePunch_Type_CONNECT);
+        holepunch::pb::HolePunch outmsg;
+        outmsg.set_type(holepunch::pb::HolePunch_Type_CONNECT);
         auto obsaddr = host_.getObservedAddresses();
         for (auto& addr : obsaddr)
         {
-            msg.add_obsaddrs(fromMultiaddrToString(addr));
+            outmsg.add_obsaddrs(fromMultiaddrToString(addr));
         }
 
         //Write to stream
         auto rw = std::make_shared<basic::ProtobufMessageReadWriter>(stream);
         rw->write<holepunch::pb::HolePunch>(
-            msg,
+            outmsg,
             [self{ shared_from_this() },
             stream, connaddrs](auto&& res) mutable {
                 self->holepunchConResponseSent(std::forward<decltype(res)>(res), stream, connaddrs);
