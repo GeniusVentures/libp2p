@@ -289,7 +289,7 @@ namespace libp2p::protocol {
         }
         if (!msg.dialresponse().has_status()) {
             log_->error("DIAL_RESPONSE missing status. {}", msg.dialresponse().statustext());
-            signal_autonat_received_(false);
+            //signal_autonat_received_(false);
             return;
         }
         auto response_address = msg.dialresponse().addr();

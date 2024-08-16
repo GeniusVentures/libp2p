@@ -22,6 +22,10 @@ namespace libp2p::protocol {
     BOOST_ASSERT(msg_processor_);
     msg_processor_->onAutonatReceived([this](const bool& status) {
         natstatus_ = status;
+        if (!status)
+        {
+            relay_->start();
+        }
         log_->error("Autonat result: {}", status);
         if (requestautonat_ == false) return;
         // Set requestautonat_ to false

@@ -23,6 +23,12 @@ namespace libp2p::protocol {
       autonat_(std::make_shared<libp2p::protocol::Autonat>(host_, autonat_msg_processor_, host_.getBus()))
   {
     BOOST_ASSERT(msg_processor_);
+    msg_processor_->onIdentifyReceived([this](const peer::PeerId& peer_id) {
+        if (getAllObservedAddresses().size() > 0)
+        {
+            autonat_->start();
+        }
+        });
   }
 
   boost::signals2::connection Identify::onIdentifyReceived(
