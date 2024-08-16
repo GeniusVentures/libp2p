@@ -68,7 +68,7 @@ namespace libp2p::protocol {
      * Get an ObservedAddresses of this processor
      * @return ObservedAddresses
      */
-    const ObservedAddresses &getObservedAddresses() const noexcept;
+    //const ObservedAddresses &getObservedAddresses() const noexcept;
 
    private:
     /**
@@ -130,7 +130,7 @@ namespace libp2p::protocol {
 
     Host &host_;
     network::ConnectionManager &conn_manager_;
-    ObservedAddresses observed_addresses_;
+
     boost::signals2::signal<HolepunchCallback> signal_holepunch_received_;
     int kMaxRetries = 5;
 

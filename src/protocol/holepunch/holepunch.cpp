@@ -27,14 +27,14 @@ namespace libp2p::protocol {
     return msg_processor_->onHolepunchReceived(cb);
   }
 
-  std::vector<multi::Multiaddress> Holepunch::getAllObservedAddresses() const {
-    return msg_processor_->getObservedAddresses().getAllAddresses();
-  }
+  //std::vector<multi::Multiaddress> Holepunch::getAllObservedAddresses() const {
+  //  return msg_processor_->getObservedAddresses().getAllAddresses();
+  //}
 
-  std::vector<multi::Multiaddress> Holepunch::getObservedAddressesFor(
-      const multi::Multiaddress &address) const {
-    return msg_processor_->getObservedAddresses().getAddressesFor(address);
-  }
+  //std::vector<multi::Multiaddress> Holepunch::getObservedAddressesFor(
+  //    const multi::Multiaddress &address) const {
+  //  return msg_processor_->getObservedAddresses().getAddressesFor(address);
+  //}
 
   peer::Protocol Holepunch::getProtocolId() const {
     return kHolepunchProto;

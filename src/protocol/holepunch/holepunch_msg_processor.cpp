@@ -200,10 +200,10 @@ namespace libp2p::protocol {
         return conn_manager_;
     }
 
-    const ObservedAddresses& HolepunchMessageProcessor::getObservedAddresses()
-        const noexcept {
-        return observed_addresses_;
-    }
+    //const ObservedAddresses& HolepunchMessageProcessor::getObservedAddresses()
+    //    const noexcept {
+    //    return observed_addresses_;
+    //}
 
     void HolepunchMessageProcessor::holepunchIncomingReceived(
         outcome::result<holepunch::pb::HolePunch> msg_res,

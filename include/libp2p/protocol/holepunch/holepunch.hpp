@@ -38,7 +38,7 @@ namespace libp2p::protocol {
      * Get addresses other peers reported we have dialed from
      * @return set of addresses
      */
-    std::vector<multi::Multiaddress> getAllObservedAddresses() const;
+    //std::vector<multi::Multiaddress> getAllObservedAddresses() const;
 
     /**
      * Get addresses other peers reported we have dialed from, when they
@@ -46,8 +46,8 @@ namespace libp2p::protocol {
      * @param address, for which to retrieve observed addresses
      * @return set of addresses
      */
-    std::vector<multi::Multiaddress> getObservedAddressesFor(
-        const multi::Multiaddress &address) const;
+    //std::vector<multi::Multiaddress> getObservedAddressesFor(
+    //    const multi::Multiaddress &address) const;
 
     peer::Protocol getProtocolId() const override;
 
