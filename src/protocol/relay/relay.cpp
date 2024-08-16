@@ -19,7 +19,8 @@ namespace libp2p::protocol {
       : host_{host}, msg_processor_{std::move(msg_processor)}, bus_{event_bus},
       holepunchmsg_proc_(std::make_shared<libp2p::protocol::HolepunchMessageProcessor>(
           host_, host_.getNetwork().getConnectionManager())),
-      holepunch_(std::make_shared<libp2p::protocol::Holepunch>(host_, holepunchmsg_proc_, host_.getBus()))
+      holepunch_(std::make_shared<libp2p::protocol::Holepunch>(host_, holepunchmsg_proc_, host_.getBus())),
+      relayconnections(0)
   {
     BOOST_ASSERT(msg_processor_);
     msg_processor_->onRelayReceived([this](const bool& status) {
