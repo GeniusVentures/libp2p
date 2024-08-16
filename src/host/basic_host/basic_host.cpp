@@ -21,7 +21,9 @@ namespace libp2p::host {
         network_(std::move(network)),
         repo_(std::move(repo)),
         bus_(std::move(bus)),
-        transport_manager_(std::move(transport_manager)) {
+        transport_manager_(std::move(transport_manager)),
+        relayaddr_(std::make_unique<libp2p::protocol::RelayAddresses>())
+  {
     BOOST_ASSERT(idmgr_ != nullptr);
     BOOST_ASSERT(network_ != nullptr);
     BOOST_ASSERT(repo_ != nullptr);

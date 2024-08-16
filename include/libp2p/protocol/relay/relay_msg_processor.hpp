@@ -76,7 +76,7 @@ namespace libp2p::protocol {
      * Get an ObservedAddresses of this processor
      * @return ObservedAddresses
      */
-    const ObservedAddresses &getObservedAddresses() const noexcept;
+    //const RelayAddresses &getObservedAddresses() const noexcept;
 
    private:
     /**
@@ -134,7 +134,7 @@ namespace libp2p::protocol {
 
     Host &host_;
     network::ConnectionManager &conn_manager_;
-    ObservedAddresses observed_addresses_;
+    //RelayAddresses relay_addresses_;
     boost::signals2::signal<RelayCallback> signal_relay_received_;
 
 

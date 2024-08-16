@@ -9,6 +9,7 @@
 #include <chrono>
 #include <unordered_map>
 #include <vector>
+#include <iostream>
 
 #include <libp2p/multi/multiaddress.hpp>
 #include <libp2p/peer/address_repository.hpp>
@@ -23,6 +24,11 @@ namespace libp2p::protocol {
     using Milliseconds = std::chrono::milliseconds;
 
    public:
+       RelayAddresses()
+           : relay_addresses_()
+       {
+           std::cout << "Initialized relay addresses" << std::endl;
+       }
     /**
      * Get a set of addresses, associated with a specific address for relays
      * @param address, for which the mapping is to be extracted

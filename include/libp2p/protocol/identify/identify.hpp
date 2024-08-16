@@ -84,6 +84,7 @@ namespace libp2p::protocol {
     event::Handle sub_;  // will unsubscribe during destruction by itself
     std::shared_ptr<libp2p::protocol::AutonatMessageProcessor> autonat_msg_processor_;
     std::shared_ptr<libp2p::protocol::Autonat> autonat_;
+    log::Logger log_ = log::createLogger("Identify");
     bool started_ = false;
   };
 }  // namespace libp2p::protocol

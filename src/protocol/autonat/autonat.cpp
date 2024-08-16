@@ -24,10 +24,12 @@ namespace libp2p::protocol {
         natstatus_ = status;
         if (!status)
         {
+            log_->info("Starting relay after deciding we are behind a nat");
             relay_->start();
         }
         log_->error("Autonat result: {}", status);
         if (requestautonat_ == false) return;
+        log_->info("Starting autonat requests again");
         // Set requestautonat_ to false
         requestautonat_ = false;
 

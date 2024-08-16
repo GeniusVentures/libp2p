@@ -173,10 +173,10 @@ namespace libp2p::protocol {
         return conn_manager_;
     }
 
-    const ObservedAddresses& RelayMessageProcessor::getObservedAddresses()
-        const noexcept {
-        return observed_addresses_;
-    }
+    //const RelayAddresses& RelayMessageProcessor::getObservedAddresses()
+    //    const noexcept {
+    //    return relay_addresses_;
+    //}
 
     void RelayMessageProcessor::relayReservationReceived(
         outcome::result<relay::pb::HopMessage> msg_res,
