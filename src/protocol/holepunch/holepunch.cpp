@@ -48,8 +48,9 @@ namespace libp2p::protocol {
   }
 
   void Holepunch::start() {
+      if (started_) return;
     // no double starts
-    BOOST_ASSERT(!started_);
+    //BOOST_ASSERT(!started_);
     started_ = true;
 
     host_.setProtocolHandler(

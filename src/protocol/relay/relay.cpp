@@ -16,10 +16,10 @@ namespace libp2p::protocol {
   Relay::Relay(Host &host,
                      std::shared_ptr<RelayMessageProcessor> msg_processor,
                      event::Bus &event_bus)
-      : host_{host}, msg_processor_{std::move(msg_processor)}, bus_{event_bus},
-      holepunchmsg_proc_(std::make_shared<libp2p::protocol::HolepunchMessageProcessor>(
-          host_, host_.getNetwork().getConnectionManager())),
-      holepunch_(std::make_shared<libp2p::protocol::Holepunch>(host_, holepunchmsg_proc_, host_.getBus())),
+      : host_{host}, msg_processor_{std::move(msg_processor)}, bus_{event_bus}
+      ,
+      //holepunch_msg_proc_(std::make_shared<libp2p::protocol::HolepunchMessageProcessor>(host, host.getNetwork().getConnectionManager())),
+      //holepunch_(std::make_shared<libp2p::protocol::Holepunch>(host, holepunch_msg_proc_, host.getBus())),
       relayconnections(0)
   {
     BOOST_ASSERT(msg_processor_);
@@ -70,6 +70,7 @@ namespace libp2p::protocol {
   }
 
   void Relay::start() {
+      if (started_) return;
     // no double starts
     BOOST_ASSERT(!started_);
     started_ = true;
