@@ -85,7 +85,7 @@ namespace libp2p::protocol {
     std::shared_ptr<libp2p::protocol::HolepunchMessageProcessor> holepunch_msg_proc_;
     log::Logger log_ = log::createLogger("Relay");
     int maxrelays = 3;
-    int relayconnections;
+    int relayconnections = 0;
 
     bool started_ = false;
   };

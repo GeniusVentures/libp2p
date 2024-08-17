@@ -33,6 +33,7 @@ namespace libp2p::protocol {
         : host_{ host },
         conn_manager_{ conn_manager }
     {
+        std::cout << "Initialized Holepunch Message Processor" << std::endl;
     }
 
     boost::signals2::connection HolepunchMessageProcessor::onHolepunchReceived(

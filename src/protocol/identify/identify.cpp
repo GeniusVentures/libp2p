@@ -15,13 +15,14 @@ namespace {
 }  // namespace
 
 namespace libp2p::protocol {
-  Identify::Identify(Host &host,
-                     std::shared_ptr<IdentifyMessageProcessor> msg_processor,
-                     event::Bus &event_bus)
-      : host_{host}, msg_processor_{std::move(msg_processor)}, bus_{event_bus},
-      autonat_msg_processor_(std::make_shared<libp2p::protocol::AutonatMessageProcessor>(host, host.getNetwork().getConnectionManager())),
-      autonat_(std::make_shared<libp2p::protocol::Autonat>(host, autonat_msg_processor_, host.getBus()))
-  {
+    Identify::Identify(Host& host,
+        std::shared_ptr<IdentifyMessageProcessor> msg_processor,
+        event::Bus& event_bus)
+        : host_{ host }, msg_processor_{ std::move(msg_processor) }, bus_{ event_bus },
+        autonat_msg_processor_(std::make_shared<libp2p::protocol::AutonatMessageProcessor>(host, host.getNetwork().getConnectionManager()))
+
+    {
+        autonat_ = std::make_shared<libp2p::protocol::Autonat>(host, autonat_msg_processor_, host.getBus());
       //autonat_msg_processor_ = std::make_shared<libp2p::protocol::AutonatMessageProcessor>(host, host.getNetwork().getConnectionManager());
       //autonat_ = std::make_shared<libp2p::protocol::Autonat>(host, autonat_msg_processor_, host.getBus());
     BOOST_ASSERT(msg_processor_);
