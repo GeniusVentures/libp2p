@@ -12,17 +12,16 @@ namespace {
 }  // namespace
 
 namespace libp2p::protocol {
-  Autonat::Autonat(Host &host,
-                     std::shared_ptr<AutonatMessageProcessor> msg_processor,
-                     event::Bus &event_bus)
-      : host_{host}, msg_processor_{std::move(msg_processor)}, bus_{event_bus}
-      ,
-      relay_msg_processor_(std::make_shared<libp2p::protocol::RelayMessageProcessor>(host, host.getNetwork().getConnectionManager()))
-      
+    Autonat::Autonat(Host& host,
+        std::shared_ptr<AutonatMessageProcessor> msg_processor,
+        event::Bus& event_bus)
+        : host_{ host }, msg_processor_{ std::move(msg_processor) }, bus_{ event_bus }
   {
+      relay_msg_processor_ = std::make_shared<libp2p::protocol::RelayMessageProcessor>(host, host.getNetwork().getConnectionManager());
       relay_ = std::make_shared<libp2p::protocol::Relay>(host, relay_msg_processor_, host.getBus());
-    BOOST_ASSERT(msg_processor_);
-    msg_processor_->onAutonatReceived([this](const bool& status) {
+      BOOST_ASSERT(msg_processor_);
+    
+      msg_processor_->onAutonatReceived([this](const bool& status) {
         natstatus_ = status;
         if (!status)
         {
