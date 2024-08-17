@@ -47,6 +47,8 @@ namespace libp2p::protocol {
         relay::pb::HopMessage msg;
         msg.set_type(relay::pb::HopMessage_Type_RESERVE);
 
+        log_->info("Sending a reservation request to {}",
+            stream->remotePeerId().value().toBase58());
         // write the resulting Protobuf message
         auto rw = std::make_shared<basic::ProtobufMessageReadWriter>(stream);
         rw->write<relay::pb::HopMessage>(
