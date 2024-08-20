@@ -28,7 +28,7 @@ namespace libp2p::protocol {
         msg_processor_->onIdentifyReceived([this](const peer::PeerId& peer_id) {
         if (getAllObservedAddresses().size() > 0)
         {
-            log_->info("Starting autonat after getting observed addresses");
+            //log_->info("Starting autonat after getting observed addresses");
             autonat_->start();
         }
         });

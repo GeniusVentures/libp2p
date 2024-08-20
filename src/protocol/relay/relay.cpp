@@ -74,19 +74,21 @@ namespace libp2p::protocol {
     // no double starts
     BOOST_ASSERT(!started_);
     started_ = true;
-    log_->error("Started Relay Protocol");
-    //host_.setProtocolHandler(
-    //    kRelayProto,
-    //    [wp = weak_from_this()](protocol::BaseProtocol::StreamResult rstream) {
-    //      if (auto self = wp.lock()) {
-    //        //self->handle(std::move(rstream));
-    //      }
-    //    });
+    log_->info("Started Relay Protocol");
+    host_.setProtocolHandler(
+        kRelayProto,
+        [wp = weak_from_this()](protocol::BaseProtocol::StreamResult rstream) {
+          if (auto self = wp.lock()) {
+            //self->handle(std::move(rstream));
+              self->log_->info("Handle hop protocol");
+          }
+        });
 
     host_.setProtocolHandler(
         kRelayStopProto,
         [wp = weak_from_this()](protocol::BaseProtocol::StreamResult rstream) {
             if (auto self = wp.lock()) {
+                self->log_->info("Handle stop protocol");
                 self->handleStopMessage(std::move(rstream));
             }
         });
@@ -101,7 +103,7 @@ namespace libp2p::protocol {
 
   void Relay::onNewConnection(
       const std::weak_ptr<connection::CapableConnection> &conn) {
-      log_->error("Relay got new connection");
+      log_->info("Relay got new connection");
     if (conn.expired()) {
       return;
     }
