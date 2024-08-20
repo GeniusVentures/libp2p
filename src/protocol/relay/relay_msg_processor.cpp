@@ -251,8 +251,8 @@ namespace libp2p::protocol {
             {
                 log_->info("Reservation Address {}", addrma.value().getStringAddress());
                 std::string circuitaddress = std::string(addrma.value().getStringAddress()) + "/p2p-circuit/p2p/" + host_.getId().toBase58();
-                //auto circuitma = libp2p::multi::Multiaddress::create(circuitaddress);
-                auto circuitma = fromStringToMultiaddr(circuitaddress);
+                auto circuitma = libp2p::multi::Multiaddress::create(circuitaddress);
+                //auto circuitma = fromStringToMultiaddr(circuitaddress);
                 if (!circuitma.has_error())
                 {
                     log_->info("Recording circuit relay address {}", circuitma.value().getStringAddress());

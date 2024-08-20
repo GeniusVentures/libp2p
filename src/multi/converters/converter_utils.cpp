@@ -107,7 +107,7 @@ namespace libp2p::multi::converters {
       case Protocol::Code::P2P_STARDUST:
       case Protocol::Code::P2P_WEBRTC_DIRECT:
       case Protocol::Code::P2P_CIRCUIT:
-        return ConversionError::NOT_IMPLEMENTED;
+        //return ConversionError::NOT_IMPLEMENTED;
       default:
         return ConversionError::NO_SUCH_PROTOCOL;
     }
