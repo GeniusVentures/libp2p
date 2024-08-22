@@ -10,6 +10,7 @@
 #include <libp2p/peer/address_repository.hpp>
 #include <libp2p/protocol/identify/utils.hpp>
 #include "libp2p/injector/host_injector.hpp"
+#include <thread>
 #include <iostream>
 
 namespace {
