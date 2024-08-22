@@ -29,50 +29,48 @@ namespace libp2p::multi::converters {
   using common::ByteArray;
 
   outcome::result<ByteArray> multiaddrToBytes(std::string_view str) {
-    if (str.empty() || str[0] != '/') {
-      return ConversionError::ADDRESS_DOES_NOT_BEGIN_WITH_SLASH;
-    }
-
-    str.remove_prefix(1);
-    if (str.empty()) {
-      return ConversionError::INVALID_ADDRESS;
-    }
-
-    if (str.back() == '/') {
-      // for split does not recognize an empty token in the end
-      str.remove_suffix(1);
-    }
-
-    std::string processed;
-
-    enum class WordType { PROTOCOL, ADDRESS };
-    WordType type = WordType::PROTOCOL;
-
-    Protocol const *protx = nullptr;
-
-    std::list<std::string> tokens;
-    boost::algorithm::split(tokens, str, boost::algorithm::is_any_of("/"));
-
-    for (auto &word : tokens) {
-      if (type == WordType::PROTOCOL) {
-        protx = ProtocolList::get(word);
-        if (protx != nullptr) {
-          processed += UVarint(static_cast<uint64_t>(protx->code)).toHex();
-          type = WordType::ADDRESS;  // Since the next word will be an address
-        } else {
-          return ConversionError::NO_SUCH_PROTOCOL;
-        }
-      } else {
-        OUTCOME_TRY((auto &&, val), addressToHex(*protx, word));
-        processed += val;
-        protx = nullptr;  // Since right now it doesn't need that
-        // assignment anymore.
-        type = WordType::PROTOCOL;  // Since the next word will be an protocol
+      if (str.empty() || str[0] != '/') {
+          return ConversionError::ADDRESS_DOES_NOT_BEGIN_WITH_SLASH;
       }
-    }
 
-    // TODO(xDimon): Replace hex-unhex steps by using bytes directly
-    return unhex(processed);
+      str.remove_prefix(1);
+      if (str.empty()) {
+          return ConversionError::INVALID_ADDRESS;
+      }
+
+      if (str.back() == '/') {
+          // for split does not recognize an empty token in the end
+          str.remove_suffix(1);
+      }
+
+      std::string processed;
+
+      Protocol const* protx = nullptr;
+      Protocol const* lastproto = nullptr;
+
+      std::list<std::string> tokens;
+      boost::algorithm::split(tokens, str, boost::algorithm::is_any_of("/"));
+
+      for (auto& word : tokens) {
+          protx = ProtocolList::get(word);
+          if (protx != nullptr) {
+              // It's a protocol
+              processed += UVarint(static_cast<uint64_t>(protx->code)).toHex();
+              lastproto = protx;
+          }
+          else {
+              // It's an address
+              if (!lastproto) {
+                  return ConversionError::INVALID_ADDRESS; // No preceding protocol
+              }
+              OUTCOME_TRY((auto&&, val), addressToHex(*lastproto, word));
+              processed += val;
+              lastproto = nullptr;
+          }
+      }
+
+      // TODO: Replace hex-unhex steps by using bytes directly
+      return unhex(processed);
   }
 
   outcome::result<std::string> addressToHex(const Protocol &protocol,
@@ -107,7 +105,7 @@ namespace libp2p::multi::converters {
       case Protocol::Code::P2P_STARDUST:
       case Protocol::Code::P2P_WEBRTC_DIRECT:
       case Protocol::Code::P2P_CIRCUIT:
-        //return ConversionError::NOT_IMPLEMENTED;
+        return ConversionError::NOT_IMPLEMENTED;
       default:
         return ConversionError::NO_SUCH_PROTOCOL;
     }
