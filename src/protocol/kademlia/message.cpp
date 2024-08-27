@@ -221,6 +221,10 @@ namespace libp2p::protocol::kademlia {
     Message msg;
     msg.type = Message::Type::kAddProvider;
     msg.key = key.data;
+    for (auto& address : self.addresses)
+    {
+        std::cout << "Provide addresses: " << address.getStringAddress() << std::endl;
+    }
     msg.provider_peers = Message::Peers{
         {Message::Peer{std::move(self), Message::Connectedness::CAN_CONNECT}}};
     return msg;

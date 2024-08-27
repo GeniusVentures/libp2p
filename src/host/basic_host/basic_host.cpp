@@ -48,7 +48,7 @@ namespace libp2p::host {
     auto observed = getObservedAddresses();
     auto interfaces = getAddressesInterfaces();
     auto relays = getRelayAddresses();
-
+    std::cout << "Relay address size? " << relays.size() << std::endl;
     std::set<multi::Multiaddress> unique_addresses;
     unique_addresses.insert(std::make_move_iterator(addresses.begin()),
                             std::make_move_iterator(addresses.end()));
