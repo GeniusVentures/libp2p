@@ -105,7 +105,14 @@ namespace libp2p::protocol {
       const std::weak_ptr<connection::CapableConnection> &conn) {
       log_->info("Relay got new connection");
     if (conn.expired()) {
+      log_->error("Relay new connection was expired for some reason");
       return;
+    }
+
+    if (relayconnections >= maxrelays)
+    {
+        log_->error("We already have as many relay connections as we need");
+        return;
     }
 
     auto remote_peer_res = conn.lock()->remotePeer();
