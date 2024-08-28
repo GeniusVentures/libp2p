@@ -27,6 +27,8 @@ namespace libp2p::protocol {
   class Identify : public BaseProtocol,
                    public std::enable_shared_from_this<Identify> {
    public:
+    //Callback for when NAT traversal has gotten our public addresses
+    using CompletionCallback = std::function<void()>;
     /**
      * Create an Identify instance; it will immediately start watching
      * connection events and react to them
@@ -35,7 +37,8 @@ namespace libp2p::protocol {
      */
     Identify(Host &host,
              std::shared_ptr<IdentifyMessageProcessor> msg_processor,
-             event::Bus &event_bus);
+             event::Bus &event_bus,
+             CompletionCallback callback);
 
     ~Identify() override = default;
 
@@ -86,6 +89,7 @@ namespace libp2p::protocol {
     std::shared_ptr<libp2p::protocol::Autonat> autonat_;
     log::Logger log_ = log::createLogger("Identify");
     bool started_ = false;
+    CompletionCallback callback_;
   };
 }  // namespace libp2p::protocol
 

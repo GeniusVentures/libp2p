@@ -20,6 +20,7 @@ namespace libp2p::protocol {
   class Relay : public BaseProtocol,
                    public std::enable_shared_from_this<Relay> {
    public:
+    using CompletionCallback = std::function<void()>;
     /**
      * Create an Auto instance; it will immediately start watching
      * connection events and react to them
@@ -28,7 +29,8 @@ namespace libp2p::protocol {
      */
     Relay(Host &host,
              std::shared_ptr<RelayMessageProcessor> msg_processor,
-             event::Bus &event_bus);
+             event::Bus &event_bus,
+             CompletionCallback callback);
 
     ~Relay() override = default;
 
@@ -88,6 +90,7 @@ namespace libp2p::protocol {
     int relayconnections = 0;
 
     bool started_ = false;
+    CompletionCallback callback_;
   };
 }
 

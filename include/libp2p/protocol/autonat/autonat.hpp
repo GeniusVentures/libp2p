@@ -19,6 +19,7 @@ namespace libp2p::protocol {
   class Autonat : public BaseProtocol,
                    public std::enable_shared_from_this<Autonat> {
    public:
+    using CompletionCallback = std::function<void()>;
     /**
      * Create an Auto instance; it will immediately start watching
      * connection events and react to them
@@ -27,7 +28,8 @@ namespace libp2p::protocol {
      */
     Autonat(Host &host,
              std::shared_ptr<AutonatMessageProcessor> msg_processor,
-             event::Bus &event_bus);
+             event::Bus &event_bus,
+             CompletionCallback callback);
 
     ~Autonat() override = default;
 
@@ -81,6 +83,7 @@ namespace libp2p::protocol {
 
     bool started_ = false;
     bool requestautonat_ = true;
+    CompletionCallback callback_;
   };
 }
 

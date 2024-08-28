@@ -15,8 +15,8 @@ namespace {
 namespace libp2p::protocol {
   Relay::Relay(Host &host,
                      std::shared_ptr<RelayMessageProcessor> msg_processor,
-                     event::Bus &event_bus)
-      : host_{host}, msg_processor_{std::move(msg_processor)}, bus_{event_bus}
+                     event::Bus &event_bus, CompletionCallback callback)
+      : host_{host}, msg_processor_{std::move(msg_processor)}, bus_{event_bus}, callback_(callback)
   {
       holepunch_msg_proc_ = std::make_shared<libp2p::protocol::HolepunchMessageProcessor>(host, host.getNetwork().getConnectionManager());
       holepunch_ = std::make_shared<libp2p::protocol::Holepunch>(host, holepunch_msg_proc_, host.getBus());
