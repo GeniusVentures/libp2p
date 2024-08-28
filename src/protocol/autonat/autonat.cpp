@@ -19,7 +19,7 @@ namespace libp2p::protocol {
         : host_{ host }, msg_processor_{ std::move(msg_processor) }, bus_{ event_bus }, callback_(callback)
   {
       relay_msg_processor_ = std::make_shared<libp2p::protocol::RelayMessageProcessor>(host, host.getNetwork().getConnectionManager());
-      relay_ = std::make_shared<libp2p::protocol::Relay>(host, relay_msg_processor_, host.getBus());
+      relay_ = std::make_shared<libp2p::protocol::Relay>(host, relay_msg_processor_, host.getBus(), callback);
       BOOST_ASSERT(msg_processor_);
     
       msg_processor_->onAutonatReceived([this](const bool& status) {
@@ -28,6 +28,9 @@ namespace libp2p::protocol {
         {
             log_->info("Starting relay after deciding we are behind a nat");
             relay_->start();
+        }
+        else {
+            callback_();
         }
         log_->error("Autonat result: {}", status);
         if (requestautonat_ == false) return;
