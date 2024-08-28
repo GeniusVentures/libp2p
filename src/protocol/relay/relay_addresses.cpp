@@ -60,7 +60,7 @@ namespace libp2p::protocol {
     
       if (observed_addr_it == addresses.end()) {
           //This address has not been recorded
-          std::cout << "Push back address: " << address.getStringAddress() << std::endl;
+          //std::cout << "Push back address: " << address.getStringAddress() << std::endl;
           addresses.push_back(
               RelayAddress{std::move(address), expiration});
           return;

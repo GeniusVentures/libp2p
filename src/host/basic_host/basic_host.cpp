@@ -99,7 +99,7 @@ namespace libp2p::host {
     std::vector<multi::Multiaddress> unique_addr_list(
         std::make_move_iterator(unique_addresses.begin()),
         std::make_move_iterator(unique_addresses.end()));
-
+    //std::cout << "Final unique addr list size: " << unique_addr_list.size() << std::endl;
     return {getId(), std::move(unique_addr_list)};
   }
 
