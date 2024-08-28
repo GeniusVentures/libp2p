@@ -7,5 +7,5 @@ libp2p_add_library(p2p_basic_host
 target_link_libraries(p2p_basic_host
     Boost::boost
     p2p_multiaddress
-    p2p_relay
+    p2p_relay_addresses
     )

@@ -5,11 +5,18 @@
 
 add_subdirectory(protobuf)
 
+libp2p_add_library(p2p_relay_addresses
+	relay_addresses.cpp
+    )
 libp2p_add_library(p2p_relay
     relay.cpp
 	relay_msg_processor.cpp
-	relay_addresses.cpp
     )
+target_link_libraries(p2p_relay_addresses
+    p2p
+    p2p_logger
+    )
+
 target_link_libraries(p2p_relay
     p2p
     p2p_relay_proto
@@ -17,4 +24,5 @@ target_link_libraries(p2p_relay
 	p2p_holepunch
 	p2p_holepunch_proto
     p2p_logger
+	p2p_relay_addresses
     )
