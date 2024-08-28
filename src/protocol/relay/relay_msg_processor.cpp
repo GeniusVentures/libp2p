@@ -255,8 +255,8 @@ namespace libp2p::protocol {
                 //auto circuitma = fromStringToMultiaddr(circuitaddress);
                 if (!circuitma.has_error())
                 {
-                    log_->info("Recording circuit relay address {}", circuitma.value().getStringAddress());
-                    host_.getRelayRepository().add(local_addr_res.value(), circuitma.value(), reservation.expire());
+                    log_->info("Recording circuit relay address {} from local address {}", circuitma.value().getStringAddress(), local_addr_res.value().getStringAddress());
+                    host_.getRelayRepository().add(circuitma.value(), local_addr_res.value(), reservation.expire());
                     signal_relay_received_(true);
                 }
                 else

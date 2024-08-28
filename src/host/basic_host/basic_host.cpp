@@ -48,7 +48,19 @@ namespace libp2p::host {
     auto observed = getObservedAddresses();
     auto interfaces = getAddressesInterfaces();
     auto relays = getRelayAddresses();
-    std::cout << "Relay address size? " << relays.size() << std::endl;
+    //for (const auto& addr : addresses) {
+    //    std::cout << "Addresses: " << addr.getStringAddress() << std::endl; 
+    //}
+    //for (const auto& addr : interfaces) {
+    //    std::cout << "Interface: " << addr.getStringAddress() << std::endl;
+    //}
+    //for (const auto& addr : observed) {
+    //    std::cout << "Observed: " << addr.getStringAddress() << std::endl;
+    //}
+    //for (const auto& addr : relays) {
+    //    std::cout << "Relays: " << addr.getStringAddress() << std::endl;
+    //}
+    //std::cout << "Relay address size? " << relays.size() << std::endl;
     std::set<multi::Multiaddress> unique_addresses;
     unique_addresses.insert(std::make_move_iterator(addresses.begin()),
                             std::make_move_iterator(addresses.end()));
@@ -59,6 +71,8 @@ namespace libp2p::host {
     unique_addresses.insert(std::make_move_iterator(relays.begin()),
         std::make_move_iterator(relays.end()));
 
+
+    //std::cout << "Unique Addresses: " << unique_addresses.size() << std::endl;
     // TODO(xDimon): Needs to filter special interfaces (e.g. INADDR_ANY, etc.)
     for (auto i = unique_addresses.begin(); i != unique_addresses.end();) {
       bool is_good_addr = true;
@@ -81,7 +95,7 @@ namespace libp2p::host {
         ++i;
       }
     }
-
+    //std::cout << "Unique Addresses after filter: " << unique_addresses.size() << std::endl;
     std::vector<multi::Multiaddress> unique_addr_list(
         std::make_move_iterator(unique_addresses.begin()),
         std::make_move_iterator(unique_addresses.end()));
