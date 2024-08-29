@@ -9,6 +9,7 @@
 #include <libp2p/connection/stream.hpp>
 #include <libp2p/log/logger.hpp>
 #include <libp2p/network/impl/dialer_impl.hpp>
+#include <iostream>
 
 namespace libp2p::network {
 
@@ -106,6 +107,11 @@ namespace libp2p::network {
 
             if (result.has_value()) {
               self->listener_->onConnection(result);
+              if (result.value()->remoteMultiaddr().value().hasProtocol(multi::Protocol::Code::P2P_CIRCUIT))
+              {
+                  self->upgradeDialRelay(peer_id, result);
+                  return;
+              }
               self->completeDial(peer_id, result);
             return;
           }
@@ -156,6 +162,12 @@ namespace libp2p::network {
       }
       dialing_peers_.erase(ctx_found);
     }
+  }
+
+
+  void DialerImpl::upgradeDialRelay(const peer::PeerId& peer_id, const DialResult& result)
+  {
+      completeDial(peer_id, result);
   }
 
   void DialerImpl::newStream(const peer::PeerInfo &p,

@@ -33,6 +33,7 @@ target_link_libraries(p2p_dialer
     p2p_multiselect
     p2p_peer_id
     p2p_logger
+	p2p_relay_upgrader
     )
 
 

@@ -250,19 +250,19 @@ namespace libp2p::protocol {
             if (!addrma.has_error())
             {
                 log_->info("Reservation Address {}", addrma.value().getStringAddress());
-                std::string circuitaddress = std::string(addrma.value().getStringAddress()) + "/p2p-circuit/p2p/" + host_.getId().toBase58();
-                auto circuitma = libp2p::multi::Multiaddress::create(circuitaddress);
+                //std::string circuitaddress = std::string(addrma.value().getStringAddress()) + "/p2p-circuit/p2p/" + host_.getId().toBase58();
+                //auto circuitma = libp2p::multi::Multiaddress::create(circuitaddress);
                 //auto circuitma = fromStringToMultiaddr(circuitaddress);
-                if (!circuitma.has_error())
-                {
-                    log_->info("Recording circuit relay address {} from local address {}", circuitma.value().getStringAddress(), local_addr_res.value().getStringAddress());
-                    host_.getRelayRepository().add(circuitma.value(), local_addr_res.value(), reservation.expire());
+                //if (!circuitma.has_error())
+                //{
+                    log_->info("Recording circuit relay address {} from local address {}", addrma.value().getStringAddress(), local_addr_res.value().getStringAddress());
+                    host_.getRelayRepository().add(addrma.value(), local_addr_res.value(), reservation.expire());
                     signal_relay_received_(true);
-                }
-                else
-                {
-                    log_->info("Reservation Address Fail {} from {}", circuitma.error().message(), circuitaddress);
-                }
+                //}
+                //else
+                //{
+                //    log_->info("Reservation Address Fail {} from {}", circuitma.error().message(), circuitaddress);
+                //}
             }
             else {
                 signal_relay_received_(false);

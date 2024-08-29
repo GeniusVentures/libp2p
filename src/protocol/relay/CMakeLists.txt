@@ -12,6 +12,11 @@ libp2p_add_library(p2p_relay
     relay.cpp
 	relay_msg_processor.cpp
     )
+	
+libp2p_add_library(p2p_relay_upgrader
+    relay_conupgrader.cpp
+    )
+	
 target_link_libraries(p2p_relay_addresses
     p2p
     p2p_logger
@@ -25,4 +30,11 @@ target_link_libraries(p2p_relay
 	p2p_holepunch_proto
     p2p_logger
 	p2p_relay_addresses
+    )
+	
+target_link_libraries(p2p_relay_upgrader
+    p2p
+    p2p_relay_proto
+    p2p_protobuf_message_read_writer
+    p2p_logger
     )
