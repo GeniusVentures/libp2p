@@ -15,6 +15,7 @@ libp2p_add_library(p2p_relay
 	
 libp2p_add_library(p2p_relay_upgrader
     relay_conupgrader.cpp
+	relay_conupgrader_msg_processor.cpp
     )
 	
 target_link_libraries(p2p_relay_addresses

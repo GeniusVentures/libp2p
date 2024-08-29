@@ -167,7 +167,17 @@ namespace libp2p::network {
 
   void DialerImpl::upgradeDialRelay(const peer::PeerId& peer_id, const DialResult& result)
   {
-      completeDial(peer_id, result);
+      auto stream = result.value()->newStream();
+      if (!result)
+      {
+          completeDial(peer_id, result);
+          return;
+      }
+      multiselect_->simpleStreamNegotiate(stream.value(), "/libp2p/circuit/relay/0.2.0/hop",
+          [self{ shared_from_this() }, peer_id, result](outcome::result<std::shared_ptr<connection::Stream>>) {
+              self->completeDial(peer_id, result);
+          });
+      
   }
 
   void DialerImpl::newStream(const peer::PeerInfo &p,
