@@ -8,20 +8,24 @@ namespace libp2p::protocol {
     class RelayUpgrader : public BaseProtocol,
         public std::enable_shared_from_this<RelayUpgrader> {
     public:
-        using CompletionCallback = std::function<void()>;
-        RelayUpgrader(Host& host,
-            std::shared_ptr<RelayUpgraderMessageProcessor> msg_processor,
-            event::Bus& event_bus,
-            CompletionCallback callback);
+        using CompletionCallback = std::function<void(const bool&)>;
+        RelayUpgrader();
 
         /**
          * Stub in case we want to enable acting as a relay
          */
         void handle(StreamResult stream_res) override;
 
-        void start();
+        void start(StreamResult stream_res, peer::PeerInfo peer_info, CompletionCallback cb);
 
     private:
+
+        std::shared_ptr<RelayUpgraderMessageProcessor> msg_processor_;
+
+        log::Logger log_ = log::createLogger("RelayUpgrader");
+
+        bool started_ = false;
+        CompletionCallback callback_;
     };
 }
 #endif

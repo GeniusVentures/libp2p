@@ -15,6 +15,7 @@
 #include <libp2p/network/listener_manager.hpp>
 #include <libp2p/network/transport_manager.hpp>
 #include <libp2p/protocol_muxer/protocol_muxer.hpp>
+#include <libp2p/protocol/relay/relay_conupgrader.hpp>
 
 namespace libp2p::network {
 

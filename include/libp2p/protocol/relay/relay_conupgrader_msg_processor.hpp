@@ -29,16 +29,27 @@ namespace libp2p::protocol {
     class RelayUpgraderMessageProcessor
         : public std::enable_shared_from_this<RelayUpgraderMessageProcessor> {
         using StreamSPtr = std::shared_ptr<connection::Stream>;
-
+        using CompletionCallback = std::function<void(const bool&)>;
     public:
-        using RelayCallback = void(const bool&);
-        using RelayStopCallback = void(const bool&);
+        RelayUpgraderMessageProcessor();
 
-        RelayUpgraderMessageProcessor(
-            Host& host, network::ConnectionManager& conn_manager);
+        void initiateRelayCon(StreamSPtr& stream_res, peer::PeerInfo peer_info, CompletionCallback cb);
 
+        /**
+         * Called when data was sent to make a connection
+         * @param written_bytes - how much bytes were written
+         * @param stream with the other side
+         */
+        void relayConnectSent(outcome::result<size_t> written_bytes,
+            const StreamSPtr& stream, CompletionCallback cb);
         
-
+        /**
+          * Called when a response is sent from an attempted relay connection initiation
+          * @param msg, which was read
+          * @param stream, over which it was received
+          */
+        void relayConnectStatus(outcome::result<relay::pb::HopMessage> msg_res,
+            const StreamSPtr& stream, CompletionCallback cb);
     private:
 
 

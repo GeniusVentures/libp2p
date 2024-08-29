@@ -87,21 +87,6 @@ namespace libp2p::protocol {
     void relayReservationSent(outcome::result<size_t> written_bytes,
                       const StreamSPtr &stream);
 
-    /**
-     * Called when data was sent to make a connection
-     * @param written_bytes - how much bytes were written
-     * @param stream with the other side
-     */
-    void relayConnectSent(outcome::result<size_t> written_bytes,
-        const StreamSPtr& stream);
-
-    /**
-     * Called when a response is sent from an attempted relay connection initiation
-     * @param msg, which was read
-     * @param stream, over which it was received
-     */
-    void relayConnectStatus(outcome::result<relay::pb::HopMessage> msg_res,
-        const StreamSPtr& stream);
 
     /**
      * Called when we get back a reservation message after attempting to make one
@@ -124,13 +109,6 @@ namespace libp2p::protocol {
      * @param stream, over which it was received
      */
     void relayConnectResponse(const StreamSPtr& stream);
-    /**
-     * Send an relay message over the provided stream indicating we want to connect to someone with a reservation through them
-     * @param stream to be identified over
-     * @param Circuit relay address we are connecting to
-     * @param peer id to connect to
-     */
-    void sendConnectRelay(const StreamSPtr& stream, std::vector<libp2p::multi::Multiaddress> connaddrs, libp2p::peer::PeerId peer_id);
 
     Host &host_;
     network::ConnectionManager &conn_manager_;

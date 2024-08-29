@@ -59,28 +59,6 @@ namespace libp2p::protocol {
             });
     }
 
-    void RelayMessageProcessor::sendConnectRelay(const StreamSPtr& stream, std::vector<libp2p::multi::Multiaddress> connaddrs, libp2p::peer::PeerId peer_id)
-    {
-        relay::pb::HopMessage msg;
-        msg.set_type(relay::pb::HopMessage_Type_CONNECT);
-
-        //Create a new peer for connection
-        auto peer = new relay::pb::Peer;
-        peer->set_id(std::string(peer_id.toVector().begin(), peer_id.toVector().end()));
-        for (auto& addr : connaddrs)
-        {
-            peer->add_addrs(fromMultiaddrToString(addr));
-        }
-
-        // write the resulting Protobuf message
-        auto rw = std::make_shared<basic::ProtobufMessageReadWriter>(stream);
-        rw->write<relay::pb::HopMessage>(
-            msg,
-            [self{ shared_from_this() },
-            stream](auto&& res) mutable {
-                self->relayConnectSent(std::forward<decltype(res)>(res), stream);
-            });
-    }
 
     void RelayMessageProcessor::relayReservationSent(
         outcome::result<size_t> written_bytes, const StreamSPtr& stream) {
@@ -102,56 +80,6 @@ namespace libp2p::protocol {
                 self->relayReservationReceived(std::forward<decltype(res)>(res), stream);
             });
     }
-
-    void RelayMessageProcessor::relayConnectSent(
-        outcome::result<size_t> written_bytes, const StreamSPtr& stream) {
-        auto [peer_id, peer_addr] = detail::getPeerIdentity(stream);
-        if (!written_bytes) {
-            log_->error("cannot write Relay message to stream to peer {}, {}: {}",
-                peer_id, peer_addr, written_bytes.error().message());
-            return stream->reset();
-        }
-
-        log_->info("successfully written an Relay message to peer {}, {}",
-            peer_id, peer_addr);
-
-        // Handle incoming responses
-        auto rw = std::make_shared<basic::ProtobufMessageReadWriter>(stream);
-        rw->read<relay::pb::HopMessage>(
-            [self{ shared_from_this() }, stream](auto&& res) {
-                self->relayConnectStatus(std::forward<decltype(res)>(res), stream);
-            });
-    }
-
-    void RelayMessageProcessor::relayConnectStatus(
-        outcome::result<relay::pb::HopMessage> msg_res,
-        const StreamSPtr& stream) {
-        auto [peer_id_str, peer_addr_str] = detail::getPeerIdentity(stream);
-        if (!msg_res) {
-            log_->error("cannot read an relay message from peer {}, {}: {}",
-                peer_id_str, peer_addr_str, msg_res.error());
-            return stream->reset();
-        }
-
-        auto&& msg = std::move(msg_res.value());
-        //Make sure we got a STATUS response
-        if (msg.type() != relay::pb::HopMessage_Type_STATUS)
-        {
-            log_->error("Relay got a type other than STATUS when expecting status for a connection we initiated from: {}, {}", peer_id_str,
-                peer_addr_str);
-            return stream->reset();
-        }
-        //Make sure connection is OK
-        if (msg.status() != relay::pb::OK)
-        {
-            log_->error("Relay got status that indicates connections are unavailable from: {}, {}", peer_id_str,
-                peer_addr_str);
-            return stream->reset();
-        }
-
-
-    }
-
 
     void RelayMessageProcessor::receiveRelay(StreamSPtr stream) {
         auto rw = std::make_shared<basic::ProtobufMessageReadWriter>(stream);

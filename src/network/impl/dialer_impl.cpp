@@ -173,9 +173,27 @@ namespace libp2p::network {
           completeDial(peer_id, result);
           return;
       }
+      //auto relayupgproc = std::make_shared<libp2p::protocol::RelayUpgraderMessageProcessor>();
+      //Create a relay upgrader
+      auto relayupg = std::make_shared<libp2p::protocol::RelayUpgrader>();
+      //Negotiate protocol
       multiselect_->simpleStreamNegotiate(stream.value(), "/libp2p/circuit/relay/0.2.0/hop",
-          [self{ shared_from_this() }, peer_id, result](outcome::result<std::shared_ptr<connection::Stream>>) {
-              self->completeDial(peer_id, result);
+          [self{ shared_from_this() }, peer_id, result, relayupg](outcome::result<std::shared_ptr<connection::Stream>> stream) {
+              //Upgrade the connection
+              std::vector<multi::Multiaddress> addresses;
+              addresses.push_back(stream.value()->remoteMultiaddr().value());
+              relayupg->start(stream, peer::PeerInfo{ peer_id, addresses }, [self, peer_id, result, relayupg](const bool& success) {
+                  //Resume what we were doing
+                  if (success)
+                  {
+                      self->completeDial(peer_id, result);
+                  }
+                  else
+                  {
+
+                  }
+                  });
+              
           });
       
   }
