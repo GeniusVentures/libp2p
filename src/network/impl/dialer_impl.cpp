@@ -154,6 +154,7 @@ namespace libp2p::network {
 
   void DialerImpl::completeDial(const peer::PeerId &peer_id,
                                 const DialResult &result) {
+      log_->info("Completed Dial to {}", peer_id.toBase58());
     if (auto ctx_found = dialing_peers_.find(peer_id);
         dialing_peers_.end() != ctx_found) {
       auto &&ctx = ctx_found->second;
