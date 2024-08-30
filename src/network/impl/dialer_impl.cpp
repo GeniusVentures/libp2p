@@ -190,7 +190,7 @@ namespace libp2p::network {
                   }
                   else
                   {
-
+                      self->completeDial(peer_id, std::errc::address_family_not_supported);
                   }
                   });
               

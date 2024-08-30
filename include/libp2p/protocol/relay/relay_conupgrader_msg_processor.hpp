@@ -53,8 +53,8 @@ namespace libp2p::protocol {
     private:
 
 
-        Host& host_;
-        network::ConnectionManager& conn_manager_;
+        //Host& host_;
+        //network::ConnectionManager& conn_manager_;
         log::Logger log_ = log::createLogger("RelayUpgraderMsgProcessor");
     };
 }

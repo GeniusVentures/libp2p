@@ -6,6 +6,10 @@
 #include <boost/assert.hpp>
 #include <iostream>
 
+namespace {
+    const std::string kRelayProto = "/libp2p/circuit/relay/0.2.0/hop";
+    const std::string kRelayStopProto = "/libp2p/circuit/relay/0.2.0/stop";
+}  // namespace
 
 namespace libp2p::protocol {
     RelayUpgrader::RelayUpgrader()
@@ -18,6 +22,10 @@ namespace libp2p::protocol {
     void RelayUpgrader::handle(StreamResult stream_res)
     {
 
+    }
+
+    peer::Protocol RelayUpgrader::getProtocolId() const {
+        return kRelayProto;
     }
 
     void RelayUpgrader::start(StreamResult stream_res, peer::PeerInfo peer_info, CompletionCallback cb)

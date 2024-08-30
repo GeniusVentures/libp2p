@@ -11,10 +11,14 @@ namespace libp2p::protocol {
         using CompletionCallback = std::function<void(const bool&)>;
         RelayUpgrader();
 
+        ~RelayUpgrader() override = default;
+
         /**
          * Stub in case we want to enable acting as a relay
          */
         void handle(StreamResult stream_res) override;
+
+        peer::Protocol getProtocolId() const override;
 
         void start(StreamResult stream_res, peer::PeerInfo peer_info, CompletionCallback cb);
 
@@ -24,8 +28,8 @@ namespace libp2p::protocol {
 
         log::Logger log_ = log::createLogger("RelayUpgrader");
 
-        bool started_ = false;
-        CompletionCallback callback_;
+        //bool started_ = false;
+        //CompletionCallback callback_;
     };
 }
 #endif
