@@ -247,7 +247,8 @@ namespace libp2p::multi::converters {
                   case Protocol::Code::WS:
                   case Protocol::Code::WSS:
                       // No details
-                      break;
+                      return ConversionError::NOT_IMPLEMENTED;
+                      //break;
 
                   case Protocol::Code::P2P_CIRCUIT: {
                       // Handle p2p-circuit
