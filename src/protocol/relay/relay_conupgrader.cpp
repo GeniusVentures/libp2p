@@ -30,6 +30,7 @@ namespace libp2p::protocol {
 
     void RelayUpgrader::start(StreamResult stream_res, peer::PeerInfo peer_info, CompletionCallback cb)
     {
+        log_->info("Creating a peer relay upgrade to {} ", peer_info.id.toBase58());
         msg_processor_->initiateRelayCon(stream_res.value(), peer_info, cb);
     }
 }

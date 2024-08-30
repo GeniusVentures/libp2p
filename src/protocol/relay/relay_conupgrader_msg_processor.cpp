@@ -36,6 +36,7 @@ namespace libp2p::protocol {
     }
 	void RelayUpgraderMessageProcessor::initiateRelayCon(StreamSPtr& stream_res, peer::PeerInfo peer_info, CompletionCallback cb)
 	{
+        log_->info("Creating and sending hop connect message to {}", peer_info.id.toBase58());
 		relay::pb::HopMessage msg;
 		msg.set_type(relay::pb::HopMessage_Type_CONNECT);
         //Create a new peer for connection
@@ -58,6 +59,7 @@ namespace libp2p::protocol {
 
     void RelayUpgraderMessageProcessor::relayConnectSent(
         outcome::result<size_t> written_bytes, const StreamSPtr& stream, CompletionCallback cb) {
+        
         auto [peer_id, peer_addr] = detail::getPeerIdentity(stream);
         if (!written_bytes) {
             log_->error("cannot write Relay message to stream to peer {}, {}: {}",
@@ -65,7 +67,7 @@ namespace libp2p::protocol {
             return cb(false);
         }
 
-        log_->info("successfully written an Relay message to peer {}, {}",
+        log_->info("successfully written an Relay Connect message to peer {}, {}",
             peer_id, peer_addr);
 
         // Handle incoming responses
@@ -85,7 +87,7 @@ namespace libp2p::protocol {
                 peer_id_str, peer_addr_str, msg_res.error());
             return cb(false);
         }
-
+        log_->info("Got back status from Relay Connect attempt {}", peer_id_str);
         auto&& msg = std::move(msg_res.value());
         //Make sure we got a STATUS response
         if (msg.type() != relay::pb::HopMessage_Type_STATUS)

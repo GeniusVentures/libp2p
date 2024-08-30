@@ -107,6 +107,7 @@ namespace libp2p::network {
 
             if (result.has_value()) {
               self->listener_->onConnection(result);
+              self->log_->info("Checking whether address {} has relay", result.value()->remoteMultiaddr().value().getStringAddress());
               if (result.value()->remoteMultiaddr().value().hasCircuitRelay())
               {
                   self->upgradeDialRelay(peer_id, result);
@@ -167,9 +168,11 @@ namespace libp2p::network {
 
   void DialerImpl::upgradeDialRelay(const peer::PeerId& peer_id, const DialResult& result)
   {
+      log_->info("Upgrading connection to relay {} ", result.value()->remoteMultiaddr().value().getStringAddress());
       auto stream = result.value()->newStream();
       if (!result)
       {
+          log_->error("Could not create stream to upgrade relay");
           completeDial(peer_id, result);
           return;
       }
@@ -177,12 +180,13 @@ namespace libp2p::network {
       //Create a relay upgrader
       auto relayupg = std::make_shared<libp2p::protocol::RelayUpgrader>();
       //Negotiate protocol
-      multiselect_->simpleStreamNegotiate(stream.value(), "/libp2p/circuit/relay/0.2.0/hop",
+      multiselect_->simpleStreamNegotiate(stream.value(), relayupg->getProtocolId(),
           [self{ shared_from_this() }, peer_id, result, relayupg](outcome::result<std::shared_ptr<connection::Stream>> stream) {
               //Upgrade the connection
               std::vector<multi::Multiaddress> addresses;
               addresses.push_back(stream.value()->remoteMultiaddr().value());
               relayupg->start(stream, peer::PeerInfo{ peer_id, addresses }, [self, peer_id, result, relayupg](const bool& success) {
+                  self->log_->info("Finished upgrading connection to relay {} ", result.value()->remoteMultiaddr().value().getStringAddress());
                   //Resume what we were doing
                   if (success)
                   {
