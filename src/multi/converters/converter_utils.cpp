@@ -54,9 +54,17 @@ namespace libp2p::multi::converters {
       for (auto& word : tokens) {
           protx = ProtocolList::get(word);
           if (protx != nullptr) {
-              // It's a protocol
-              processed += UVarint(static_cast<uint64_t>(protx->code)).toHex();
-              lastproto = protx;
+              auto isimpl = protocolIsImplemented(*protx);
+              if (isimpl)
+              {
+                  // It's a protocol
+                  processed += UVarint(static_cast<uint64_t>(protx->code)).toHex();
+                  lastproto = protx;
+              }
+              else {
+                  return ConversionError::INVALID_ADDRESS;
+              }
+
           }
           else {
               // It's an address
@@ -109,6 +117,37 @@ namespace libp2p::multi::converters {
       default:
         return ConversionError::NO_SUCH_PROTOCOL;
     }
+  }
+
+  outcome::result<std::string> protocolIsImplemented(const Protocol& protocol) {
+      // TODO(Akvinikym) 25.02.19 PRE-49: add more protocols
+      switch (protocol.code) {
+      case Protocol::Code::IP4:
+      case Protocol::Code::IP6:
+      case Protocol::Code::TCP:
+      case Protocol::Code::UDP:
+      case Protocol::Code::P2P:
+      case Protocol::Code::DNS:
+      case Protocol::Code::DNS4:
+      case Protocol::Code::DNS6:
+      case Protocol::Code::DNS_ADDR:
+      case Protocol::Code::UNIX:
+      case Protocol::Code::P2P_CIRCUIT:
+          return "OK";
+
+      case Protocol::Code::IP6_ZONE:
+      case Protocol::Code::ONION3:
+      case Protocol::Code::GARLIC64:
+      case Protocol::Code::QUIC:
+      case Protocol::Code::QUIC_V1:
+      case Protocol::Code::WSS:
+      case Protocol::Code::P2P_WEBSOCKET_STAR:
+      case Protocol::Code::P2P_STARDUST:
+      case Protocol::Code::P2P_WEBRTC_DIRECT:
+          return ConversionError::NOT_IMPLEMENTED;
+      default:
+          return ConversionError::NO_SUCH_PROTOCOL;
+      }
   }
 
   outcome::result<std::string> bytesToMultiaddrString(
