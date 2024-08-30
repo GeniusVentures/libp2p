@@ -107,7 +107,7 @@ namespace libp2p::network {
 
             if (result.has_value()) {
               self->listener_->onConnection(result);
-              if (result.value()->remoteMultiaddr().value().hasProtocol(multi::Protocol::Code::P2P_CIRCUIT))
+              if (result.value()->remoteMultiaddr().value().hasCircuitRelay())
               {
                   self->upgradeDialRelay(peer_id, result);
                   return;

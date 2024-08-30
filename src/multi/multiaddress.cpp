@@ -280,6 +280,16 @@ namespace libp2p::multi {
     return this->stringified_address_.find(str) != std::string::npos;
   }
 
+  bool Multiaddress::hasCircuitRelay() const {
+      auto p = ProtocolList::get(Protocol::Code::P2P_CIRCUIT);
+      if (p == nullptr) {
+          return false;
+      }
+
+      auto str = '/' + std::string(p->name);
+      return this->stringified_address_.find(str) != std::string::npos;
+  }
+
 }  // namespace libp2p::multi
 
 size_t std::hash<libp2p::multi::Multiaddress>::operator()(

@@ -29,6 +29,11 @@ namespace {
 }  // namespace
 
 namespace libp2p::protocol {
+
+    RelayUpgraderMessageProcessor::RelayUpgraderMessageProcessor()
+    {
+
+    }
 	void RelayUpgraderMessageProcessor::initiateRelayCon(StreamSPtr& stream_res, peer::PeerInfo peer_info, CompletionCallback cb)
 	{
 		relay::pb::HopMessage msg;
