@@ -64,93 +64,88 @@ namespace libp2p::network {
     rotate(p.id);
   }
 
-  void DialerImpl::rotate(const peer::PeerId &peer_id) {
-    auto ctx_found = dialing_peers_.find(peer_id);
-    if (dialing_peers_.end() == ctx_found) {
-      SL_ERROR(log_, "State inconsistency - cannot dial {}",
-               peer_id.toBase58());
-      return;
-    }
-    auto &&ctx = ctx_found->second;
+  void DialerImpl::rotate(const peer::PeerId& peer_id) {
+      auto ctx_found = dialing_peers_.find(peer_id);
+      if (dialing_peers_.end() == ctx_found) {
+          SL_ERROR(log_, "State inconsistency - cannot dial {}", peer_id.toBase58());
+          return;
+      }
+      auto&& ctx = ctx_found->second;
 
-    if (ctx.addresses.empty() && !ctx.dialled) {
-      completeDial(peer_id, std::errc::address_family_not_supported);
-      return;
-    }
-    if (ctx.addresses.empty() && ctx.result.has_value()) {
-      completeDial(peer_id, ctx.result.value());
-      return;
-    }
-    if (ctx.addresses.empty()) {
-      // this would never happen. Previous if-statement should work instead'
-      completeDial(peer_id, std::errc::host_unreachable);
-      return;
-    }
+      if (ctx.addresses.empty() && !ctx.dialled) {
+          completeDial(peer_id, std::errc::address_family_not_supported);
+          return;
+      }
+      if (ctx.addresses.empty() && ctx.result.has_value()) {
+          completeDial(peer_id, ctx.result.value());
+          return;
+      }
+      if (ctx.addresses.empty()) {
+          completeDial(peer_id, std::errc::host_unreachable);
+          return;
+      }
 
-    auto dial_handler =
-        [wp{weak_from_this()}, peer_id](
-            outcome::result<std::shared_ptr<connection::CapableConnection>>
-                result) {
+      auto dial_handler = [wp{ weak_from_this() }, peer_id](outcome::result<std::shared_ptr<connection::CapableConnection>> result) {
           if (auto self = wp.lock()) {
-            auto ctx_found = self->dialing_peers_.find(peer_id);
-            if (self->dialing_peers_.end() == ctx_found) {
-              SL_ERROR(
-                  self->log_,
-                  "State inconsistency - uninteresting dial result for peer {}",
-                  peer_id.toBase58());
-              if (result.has_value() && !result.value()->isClosed()) {
-                auto close_res = result.value()->close();
-                BOOST_ASSERT(close_res);
-              }
-            return;
-          }
-
-            if (result.has_value()) {
-              self->listener_->onConnection(result);
-              self->log_->info("Checking whether address {} has relay", result.value()->remoteMultiaddr().value().getStringAddress());
-              if (result.value()->remoteMultiaddr().value().hasCircuitRelay())
-              {
-                  self->upgradeDialRelay(peer_id, result);
+              auto ctx_found = self->dialing_peers_.find(peer_id);
+              if (self->dialing_peers_.end() == ctx_found) {
+                  SL_ERROR(self->log_, "State inconsistency - uninteresting dial result for peer {}", peer_id.toBase58());
+                  if (result.has_value() && !result.value()->isClosed()) {
+                      auto close_res = result.value()->close();
+                      BOOST_ASSERT(close_res);
+                  }
                   return;
               }
-              self->completeDial(peer_id, result);
-            return;
-          }
 
-            // store an error otherwise and reschedule one more rotate
-            ctx_found->second.result = std::move(result);
-            self->scheduler_->schedule([wp, peer_id] {
-              if (auto self = wp.lock()) {
-                self->rotate(peer_id);
+              auto&& ctx = ctx_found->second;
+              auto last_tried_addr = *ctx.tried_addresses.rbegin();  // Get the last tried address
+
+              if (result.has_value()) {
+                  self->listener_->onConnection(result);
+                  self->log_->info("Checking whether address {} has relay", last_tried_addr.getStringAddress());
+
+                  // Check if the last tried address had a circuit relay
+                  if (last_tried_addr.hasCircuitRelay()) {
+                      self->upgradeDialRelay(peer_id, result);
+                      return;
+                  }
+                  self->completeDial(peer_id, result);
+                  return;
               }
-            });
-            return;
-          }
-          // closing the connection when dialer and connection requester
-          // callback no more exist
-          if (result.has_value() && !result.value()->isClosed()) {
-            auto close_res = result.value()->close();
-            BOOST_ASSERT(close_res);
-          }
-        };
 
-    auto first_addr = ctx.addresses.begin();
-    const auto addr = *first_addr;
-    ctx.tried_addresses.insert(addr);
-    ctx.addresses.erase(first_addr);
-    if (auto tr = tmgr_->findBest(addr); nullptr != tr) {
-      ctx.dialled = true;
-      SL_TRACE(log_, "Dial to {} via {}", peer_id.toBase58().substr(46),
-               addr.getStringAddress());
-      tr->dial(peer_id, addr, dial_handler, ctx.timeout, ctx.bindaddress);
-    } else {
-      scheduler_->schedule([wp{weak_from_this()}, peer_id] {
-        if (auto self = wp.lock()) {
-          self->rotate(peer_id);
-        }
-      });
+              // store an error otherwise and reschedule one more rotate
+              ctx.result = std::move(result);
+              self->scheduler_->schedule([wp, peer_id] {
+                  if (auto self = wp.lock()) {
+                      self->rotate(peer_id);
+                  }
+                  });
+              return;
+          }
+          // closing the connection when dialer and connection requester callback no more exist
+          if (result.has_value() && !result.value()->isClosed()) {
+              auto close_res = result.value()->close();
+              BOOST_ASSERT(close_res);
+          }
+          };
+
+      auto first_addr = ctx.addresses.begin();
+      const auto addr = *first_addr;
+      ctx.tried_addresses.insert(addr);
+      ctx.addresses.erase(first_addr);
+      if (auto tr = tmgr_->findBest(addr); nullptr != tr) {
+          ctx.dialled = true;
+          SL_TRACE(log_, "Dial to {} via {}", peer_id.toBase58().substr(46), addr.getStringAddress());
+          tr->dial(peer_id, addr, dial_handler, ctx.timeout, ctx.bindaddress);
       }
-    }
+      else {
+          scheduler_->schedule([wp{ weak_from_this() }, peer_id] {
+              if (auto self = wp.lock()) {
+                  self->rotate(peer_id);
+              }
+              });
+      }
+  }
 
   void DialerImpl::completeDial(const peer::PeerId &peer_id,
                                 const DialResult &result) {
