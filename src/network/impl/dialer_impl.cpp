@@ -167,40 +167,60 @@ namespace libp2p::network {
   }
 
 
-  void DialerImpl::upgradeDialRelay(const peer::PeerId& peer_id, const DialResult& result)
-  {
+  void DialerImpl::upgradeDialRelay(const peer::PeerId& peer_id, const DialResult& result) {
       log_->info("Upgrading connection to relay {} ", result.value()->remoteMultiaddr().value().getStringAddress());
+
       auto stream = result.value()->newStream();
-      if (!result)
-      {
+      if (!result) {
           log_->error("Could not create stream to upgrade relay");
           completeDial(peer_id, result);
           return;
       }
-      //auto relayupgproc = std::make_shared<libp2p::protocol::RelayUpgraderMessageProcessor>();
-      //Create a relay upgrader
+
+      // Create a relay upgrader
       auto relayupg = std::make_shared<libp2p::protocol::RelayUpgrader>();
-      //Negotiate protocol
-      multiselect_->simpleStreamNegotiate(stream.value(), relayupg->getProtocolId(),
-          [self{ shared_from_this() }, peer_id, result, relayupg](outcome::result<std::shared_ptr<connection::Stream>> stream) {
-              //Upgrade the connection
-              std::vector<multi::Multiaddress> addresses;
-              addresses.push_back(stream.value()->remoteMultiaddr().value());
-              relayupg->start(stream, peer::PeerInfo{ peer_id, addresses }, [self, peer_id, result, relayupg](const bool& success) {
-                  self->log_->info("Finished upgrading connection to relay {} ", result.value()->remoteMultiaddr().value().getStringAddress());
-                  //Resume what we were doing
-                  if (success)
-                  {
-                      self->completeDial(peer_id, result);
+
+      // Negotiate protocol
+      multiselect_->simpleStreamNegotiate(
+          stream.value(),
+          relayupg->getProtocolId(),
+          [wp{ weak_from_this() }, peer_id, result, relayupg](outcome::result<std::shared_ptr<connection::Stream>> stream_result) mutable {
+              if (auto self = wp.lock()) {
+                  if (!stream_result) {
+                      self->log_->error("Stream negotiation failed for peer {}", peer_id.toBase58());
+                      self->rotate(peer_id);
+                      return;
                   }
-                  else
-                  {
-                      self->completeDial(peer_id, std::errc::address_family_not_supported);
+
+                  //Upgrade the connection
+                  std::vector<multi::Multiaddress> addresses;
+                  addresses.push_back(stream_result.value()->remoteMultiaddr().value());
+
+                  relayupg->start(
+                      stream_result.value(),
+                      peer::PeerInfo{ peer_id, addresses },
+                      [self, peer_id, result, relayupg](const bool& success) mutable {
+                          if (!self) return;
+
+                          self->log_->info("Finished upgrading connection to relay {} ", result.value()->remoteMultiaddr().value().getStringAddress());
+
+                          //Resume what we were doing
+                          if (success) {
+                              self->completeDial(peer_id, result);
+                          }
+                          else {
+                              self->rotate(peer_id);
+                          }
+                      });
+              }
+              else {
+                  if (stream_result.has_value() && !stream_result.value()->isClosed()) {
+                      stream_result.value()->reset();
+                      self->rotate(peer_id);
+                      //BOOST_ASSERT(close_res);
                   }
-                  });
-              
+              }
           });
-      
   }
 
   void DialerImpl::newStream(const peer::PeerInfo &p,

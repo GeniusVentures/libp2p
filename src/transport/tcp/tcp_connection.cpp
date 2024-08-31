@@ -227,7 +227,7 @@ namespace libp2p::transport {
       if (iterator.begin() != iterator.end()) {
           auto iter = iterator.begin();
           auto end = iterator.end();
-
+          //std::cout << iter->endpoint().address().to_string();
           std::function<void(boost::asio::ip::tcp::resolver::results_type::const_iterator)> connect_next;
           connect_next = [this, wptr{ weak_from_this() }, cb, local_endpoint, &connect_next, end]
           (boost::asio::ip::tcp::resolver::results_type::const_iterator iter) mutable {
