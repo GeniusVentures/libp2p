@@ -46,6 +46,7 @@ namespace libp2p::protocol {
         {
             peer->add_addrs(fromMultiaddrToString(addr));
         }
+        msg.set_allocated_peer(peer);
 
         // write the resulting Protobuf message
         auto rw = std::make_shared<basic::ProtobufMessageReadWriter>(stream_res);
@@ -99,8 +100,8 @@ namespace libp2p::protocol {
         //Make sure connection is OK
         if (msg.status() != relay::pb::OK)
         {
-            log_->error("Relay got status that indicates connections are unavailable from: {}, {}", peer_id_str,
-                peer_addr_str);
+            log_->error("Relay got status that indicates connections are unavailable from: {}, {}  : {}", peer_id_str,
+                peer_addr_str, msg.status());
             return cb(false);
         }
         //Run Callback
