@@ -37,6 +37,7 @@ namespace libp2p::transport {
     auto conn = std::make_shared<TcpConnection>(*context_);
 
     auto [host, port] = detail::getHostAndTcpPort(address);
+    //std::cout << "Host and port for address: " << host << " " << port << " " << address.getStringAddress() << std::endl;
 
     auto connect = [self{shared_from_this()}, conn, handler{std::move(handler)},
                     remoteId, timeout, bindaddress](auto ec, auto r) mutable {

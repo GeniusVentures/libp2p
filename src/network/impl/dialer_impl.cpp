@@ -112,7 +112,8 @@ namespace libp2p::network {
                   self->completeDial(peer_id, result);
                   return;
               }
-
+              
+              self->log_->error("Error on connect to {} : {}", last_tried_addr.getStringAddress(),result.error().message());
               // store an error otherwise and reschedule one more rotate
               ctx.result = std::move(result);
               self->scheduler_->schedule([wp, peer_id] {
@@ -133,9 +134,42 @@ namespace libp2p::network {
       const auto addr = *first_addr;
       ctx.tried_addresses.insert(addr);
       ctx.addresses.erase(first_addr);
+      if (addr.hasCircuitRelay())
+      {
+          auto addr_peer_id = addr.getPeerId();
+          if (addr_peer_id)
+          {
+              auto peer_id_actual = peer::PeerId::fromBase58(addr_peer_id.value());
+              if (auto tr = tmgr_->findBest(addr); nullptr != tr && peer_id_actual) {
+
+                  ctx.dialled = true;
+                  SL_TRACE(log_, "Dial to {} via {}", peer_id.toBase58().substr(46), addr.getStringAddress());
+
+                  tr->dial(peer_id_actual.value(), addr, dial_handler, ctx.timeout, ctx.bindaddress);
+              }
+              else {
+                  scheduler_->schedule([wp{ weak_from_this() }, peer_id] {
+                      if (auto self = wp.lock()) {
+                          self->rotate(peer_id);
+                      }
+                      });
+              }
+          }
+          else {
+              scheduler_->schedule([wp{ weak_from_this() }, peer_id] {
+                  if (auto self = wp.lock()) {
+                      self->rotate(peer_id);
+                  }
+                  });
+          }
+
+      }
+
       if (auto tr = tmgr_->findBest(addr); nullptr != tr) {
+          
           ctx.dialled = true;
           SL_TRACE(log_, "Dial to {} via {}", peer_id.toBase58().substr(46), addr.getStringAddress());
+          
           tr->dial(peer_id, addr, dial_handler, ctx.timeout, ctx.bindaddress);
       }
       else {
