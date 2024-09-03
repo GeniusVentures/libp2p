@@ -41,6 +41,8 @@ namespace libp2p::transport {
 
     bool canDial(const multi::Multiaddress &ma) const override;
 
+    bool isLocalHost(const std::string& ip);
+
     peer::Protocol getProtocolId() const override;
 
    private:

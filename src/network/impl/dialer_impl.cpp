@@ -134,6 +134,7 @@ namespace libp2p::network {
       const auto addr = *first_addr;
       ctx.tried_addresses.insert(addr);
       ctx.addresses.erase(first_addr);
+      //auto localcheck = addr.getFirstValueForProtocol(libp2p::multi::Protocol::Code::IP4);
       if (addr.hasCircuitRelay())
       {
           auto addr_peer_id = addr.getPeerId();
@@ -164,21 +165,23 @@ namespace libp2p::network {
           }
 
       }
-
-      if (auto tr = tmgr_->findBest(addr); nullptr != tr) {
-          
-          ctx.dialled = true;
-          SL_TRACE(log_, "Dial to {} via {}", peer_id.toBase58().substr(46), addr.getStringAddress());
-          
-          tr->dial(peer_id, addr, dial_handler, ctx.timeout, ctx.bindaddress);
-      }
       else {
-          scheduler_->schedule([wp{ weak_from_this() }, peer_id] {
-              if (auto self = wp.lock()) {
-                  self->rotate(peer_id);
-              }
-              });
+          if (auto tr = tmgr_->findBest(addr); nullptr != tr) {
+
+              ctx.dialled = true;
+              SL_TRACE(log_, "Dial to {} via {}", peer_id.toBase58().substr(46), addr.getStringAddress());
+
+              tr->dial(peer_id, addr, dial_handler, ctx.timeout, ctx.bindaddress);
+          }
+          else {
+              scheduler_->schedule([wp{ weak_from_this() }, peer_id] {
+                  if (auto self = wp.lock()) {
+                      self->rotate(peer_id);
+                  }
+                  });
+          }
       }
+
   }
 
   void DialerImpl::completeDial(const peer::PeerId &peer_id,

@@ -34,6 +34,21 @@ namespace libp2p::transport {
       return handler(std::errc::address_family_not_supported);
     }
 
+    //Check for localhost, we shouldn't have to worry about any errors on getFirstValueForProtocol because canDial already handles that
+    if (address.hasProtocol(libp2p::multi::Protocol::Code::IP4))
+    {
+        if (isLocalHost(address.getFirstValueForProtocol(libp2p::multi::Protocol::Code::IP4).value()))
+        {
+            return handler(std::errc::address_family_not_supported);
+        }
+    }
+    if (address.hasProtocol(libp2p::multi::Protocol::Code::IP6))
+    {
+        if (isLocalHost(address.getFirstValueForProtocol(libp2p::multi::Protocol::Code::IP6).value()))
+        {
+            return handler(std::errc::address_family_not_supported);
+        }
+    }
     auto conn = std::make_shared<TcpConnection>(*context_);
 
     auto [host, port] = detail::getHostAndTcpPort(address);
@@ -81,6 +96,31 @@ namespace libp2p::transport {
 
   bool TcpTransport::canDial(const multi::Multiaddress &ma) const {
     return detail::supportsIpTcp(ma);
+  }
+
+  bool TcpTransport::isLocalHost(const std::string& ip)
+  {
+      try {
+          // Create an address object from the string
+          boost::asio::ip::address address = boost::asio::ip::make_address(ip);
+
+          // Check if it's an IPv4 address and compare with 127.0.0.1
+          if (address.is_v4()) {
+              return address.to_v4() == boost::asio::ip::address_v4::loopback();
+          }
+
+          // Check if it's an IPv6 address and compare with ::1
+          if (address.is_v6()) {
+              return address.to_v6() == boost::asio::ip::address_v6::loopback();
+          }
+      }
+      catch (const std::exception& e) {
+          // Handle invalid IP address format
+          std::cerr << "Error: " << e.what() << std::endl;
+          return false;
+      }
+
+      return false;
   }
 
   TcpTransport::TcpTransport(std::shared_ptr<boost::asio::io_context> context,
