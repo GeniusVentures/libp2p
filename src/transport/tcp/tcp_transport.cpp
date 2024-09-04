@@ -123,6 +123,14 @@ namespace libp2p::transport {
       return false;
   }
 
+  void TcpTransport::upgradeRelaySecure(const peer::PeerId& remoteId, std::shared_ptr<libp2p::transport::TcpConnection> conn, TransportAdaptor::HandlerFunc handler)
+  {
+      auto session = std::make_shared<UpgraderSession>(
+          upgrader_, std::move(conn), handler);
+
+      session->secureOutbound(remoteId);
+  }
+
   TcpTransport::TcpTransport(std::shared_ptr<boost::asio::io_context> context,
                              std::shared_ptr<Upgrader> upgrader)
       : context_(std::move(context)), upgrader_(std::move(upgrader)) {

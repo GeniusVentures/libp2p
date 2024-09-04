@@ -75,6 +75,14 @@ namespace libp2p::transport {
      * @note example: '/tcp/...' on tcp transport will return true
      */
     virtual bool canDial(const multi::Multiaddress &ma) const = 0;
+
+    /**
+     * Upgrade a relay connection's security
+     * @param peer_id to upgrade with
+     * @param connection to upgrade over
+     * @param handler
+     */
+    void upgradeRelaySecure(const peer::PeerId& remoteId, std::shared_ptr<libp2p::transport::TcpConnection> conn, HandlerFunc handler);
   };
 }  // namespace libp2p::transport
 

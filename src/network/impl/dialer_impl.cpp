@@ -227,18 +227,30 @@ namespace libp2p::network {
                   //Upgrade the connection
                   std::vector<multi::Multiaddress> addresses;
                   addresses.push_back(stream_result.value()->remoteMultiaddr().value());
-
+                  auto tr = self->tmgr_->findBest(stream_result.value()->remoteMultiaddr().value());
                   relayupg->start(
                       stream_result.value(),
                       peer::PeerInfo{ peer_id, addresses },
-                      [self, peer_id, result, relayupg](const bool& success) mutable {
+                      [self, peer_id, result, relayupg, tr](const bool& success) mutable {
                           if (!self) return;
 
                           self->log_->info("Finished upgrading connection to relay {} ", result.value()->remoteMultiaddr().value().getStringAddress());
 
                           //Resume what we were doing
                           if (success) {
-                              self->completeDial(peer_id, result);
+                              self->log_->info("Encrypt Connection to other node {} ", result.value()->remoteMultiaddr().value().getStringAddress());
+                              //Upgrade encryption
+                              tr->upgradeRelaySecure(peer_id, result.value(), [self, peer_id](outcome::result<std::shared_ptr<connection::CapableConnection>> upgraderesult) {
+                                  if (upgraderesult)
+                                  {
+                                      self->log_->info("Encryption Completed now we can complete the dial {} ", upgraderesult.value()->remoteMultiaddr().value().getStringAddress());
+                                      self->completeDial(peer_id, upgraderesult);
+                                  }
+                                  else {
+                                      self->rotate(peer_id);
+                                  }
+
+                                  });
                           }
                           else {
                               self->rotate(peer_id);

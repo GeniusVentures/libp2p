@@ -43,6 +43,8 @@ namespace libp2p::transport {
 
     bool isLocalHost(const std::string& ip);
 
+    void upgradeRelaySecure(const peer::PeerId& remoteId, std::shared_ptr<libp2p::transport::TcpConnection> conn, TransportAdaptor::HandlerFunc handler);
+
     peer::Protocol getProtocolId() const override;
 
    private:
