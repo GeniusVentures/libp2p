@@ -82,7 +82,7 @@ namespace libp2p::transport {
      * @param connection to upgrade over
      * @param handler
      */
-    void upgradeRelaySecure(const peer::PeerId& remoteId, std::shared_ptr<libp2p::connection::RawConnection> conn, HandlerFunc handler);
+    virtual void upgradeRelaySecure(const peer::PeerId& remoteId, std::shared_ptr<libp2p::connection::RawConnection> conn, HandlerFunc handler) = 0;
   };
 }  // namespace libp2p::transport
 

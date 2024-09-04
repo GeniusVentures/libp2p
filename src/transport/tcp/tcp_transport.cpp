@@ -123,7 +123,7 @@ namespace libp2p::transport {
       return false;
   }
 
-  void TcpTransport::upgradeRelaySecure(const peer::PeerId& remoteId, std::shared_ptr<libp2p::transport::TcpConnection> conn, TransportAdaptor::HandlerFunc handler)
+  void TcpTransport::upgradeRelaySecure(const peer::PeerId& remoteId, std::shared_ptr<libp2p::connection::RawConnection> conn, TransportAdaptor::HandlerFunc handler)
   {
       auto session = std::make_shared<UpgraderSession>(
           upgrader_, std::move(conn), handler);

@@ -247,6 +247,7 @@ namespace libp2p::network {
                                       self->completeDial(peer_id, upgraderesult);
                                   }
                                   else {
+                                      self->log_->error("Encryption relay upgrade failed to {} because {}", peer_id.toBase58(), upgraderesult.error().message());
                                       self->rotate(peer_id);
                                   }
 
