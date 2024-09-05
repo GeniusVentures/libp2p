@@ -27,13 +27,20 @@ namespace libp2p::transport {
                     std::shared_ptr<connection::RawConnection> raw,
                     HandlerFunc handler);
 
+    UpgraderSession(std::shared_ptr<transport::Upgrader> upgrader,
+        std::shared_ptr<connection::CapableConnection> raw,
+        HandlerFunc handler);
+
     void secureOutbound(const peer::PeerId &remoteId);
+
+    void secureOutboundRelay(const peer::PeerId& remoteId);
 
     void secureInbound();
 
    private:
     std::shared_ptr<transport::Upgrader> upgrader_;
     std::shared_ptr<connection::RawConnection> raw_;
+    std::shared_ptr<connection::CapableConnection> capable_;
     HandlerFunc handler_;
 
     void onSecured(

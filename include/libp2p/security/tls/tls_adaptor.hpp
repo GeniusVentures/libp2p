@@ -40,6 +40,9 @@ namespace libp2p::security {
     void secureOutbound(std::shared_ptr<connection::RawConnection> outbound,
                         const peer::PeerId &p, SecConnCallbackFunc cb) override;
 
+    void secureOutboundRelay(std::shared_ptr<connection::Stream> outbound,
+        const peer::PeerId& p, SecConnCallbackFunc cb) override;
+
    private:
     /// Creates shared SSL context, generates certificate and private key
     outcome::result<void> setupContext();

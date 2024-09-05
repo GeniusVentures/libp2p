@@ -240,6 +240,7 @@ namespace libp2p::network {
                           if (success) {
                               self->log_->info("Encrypt Connection to other node {} ", result.value()->remoteMultiaddr().value().getStringAddress());
                               //Upgrade encryption
+                              auto stream = result.value()->newStream();
                               tr->upgradeRelaySecure(peer_id, result.value(), [self, peer_id](outcome::result<std::shared_ptr<connection::CapableConnection>> upgraderesult) {
                                   if (upgraderesult)
                                   {
