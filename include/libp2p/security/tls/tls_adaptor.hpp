@@ -52,6 +52,10 @@ namespace libp2p::security {
                          boost::optional<peer::PeerId> remote_peer,
                          SecConnCallbackFunc cb);
 
+    void asyncHandshake(std::shared_ptr<connection::Stream> conn,
+        boost::optional<peer::PeerId> remote_peer,
+        SecConnCallbackFunc cb);
+
     /// Identity manager which contains this host's keys and peer id
     std::shared_ptr<peer::IdentityManager> idmgr_;
 

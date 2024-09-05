@@ -45,6 +45,12 @@ namespace libp2p::security {
     asyncHandshake(std::move(outbound), p, std::move(cb));
   }
 
+  void TlsAdaptor::secureOutboundRelay(
+      std::shared_ptr<connection::Stream> outbound,
+      const peer::PeerId& p, SecConnCallbackFunc cb) {
+      asyncHandshake(std::move(outbound), p, std::move(cb));
+  }
+
   outcome::result<void> TlsAdaptor::setupContext() {
     assert(!ssl_context_);
     using cbase = boost::asio::ssl::context_base;
@@ -118,6 +124,47 @@ namespace libp2p::security {
     if (ec) {
       io_context_->post([cb, ec] { cb(ec); });  // NOLINT
     }
+  }
+
+  void TlsAdaptor::asyncHandshake(
+      std::shared_ptr<connection::Stream> conn,
+      boost::optional<peer::PeerId> remote_peer, SecConnCallbackFunc cb) {
+      bool is_client = conn->isInitiator().value();
+
+      if (is_client) {
+          SL_DEBUG(log(), "securing outbound connection");
+          assert(remote_peer.has_value());
+      }
+      else {
+          SL_DEBUG(log(), "securing inbound connection");
+      }
+
+      std::error_code ec;
+      if (!ssl_context_) {
+          auto res = setupContext();
+          if (!res) {
+              ec = res.error();
+          }
+      }
+
+      transport::TcpConnection* tcp_conn = nullptr;
+
+      if (!ec) {
+          tcp_conn = dynamic_cast<transport::TcpConnection*>(conn.get());
+          if (tcp_conn == nullptr) {
+              ec = TlsError::TLS_INCOMPATIBLE_TRANSPORT;
+          }
+          else {
+              auto tls_conn = std::make_shared<TlsConnection>(
+                  std::move(conn), ssl_context_, *idmgr_, tcp_conn->socket_,
+                  std::move(remote_peer));
+              tls_conn->asyncHandshake(std::move(cb), key_marshaller_);
+          }
+      }
+
+      if (ec) {
+          io_context_->post([cb, ec] { cb(ec); });  // NOLINT
+      }
   }
 
 }  // namespace libp2p::security
