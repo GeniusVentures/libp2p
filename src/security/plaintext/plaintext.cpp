@@ -248,6 +248,74 @@ namespace libp2p::security {
         key_marshaller_));
   }
 
+  void Plaintext::readCallback(
+      const std::shared_ptr<connection::Stream>& conn,
+      const MaybePeerId& p, const SecConnCallbackFunc& cb,
+      const std::shared_ptr<std::vector<uint8_t>>& read_bytes,
+      outcome::result<size_t> read_call_res) const {
+      /*
+       * The method does redundant unmarshalling of message bytes to proto
+       * exchange message. This could be a subject of further improvement.
+       */
+      PLAINTEXT_OUTCOME_VOID_TRY(read_call_res, conn, cb);
+      PLAINTEXT_OUTCOME_TRY(in_exchange_msg, marshaller_->unmarshal(*read_bytes),
+          conn, cb);
+      auto& msg = in_exchange_msg.first;
+      auto received_pid = msg.peer_id;
+      auto pkey = msg.pubkey;
+
+      // PeerId is derived from the Protobuf-serialized public key, not a raw one
+      auto derived_pid_res = peer::PeerId::fromPublicKey(in_exchange_msg.second);
+      libp2p::crypto::protobuf::PublicKey outer_key;
+      if (outer_key.ParseFromArray(in_exchange_msg.second.key.data(), in_exchange_msg.second.key.size())) {
+          // Check if the Data field of the outer_key contains serialized data of another PublicKey
+          if (outer_key.data().size() > 0) {
+              libp2p::crypto::protobuf::PublicKey inner_key;
+              if (inner_key.ParseFromArray(outer_key.data().data(), outer_key.data().size())) {
+                  // Successfully parsed inner PublicKey from the Data field of outer_key
+
+                  std::vector<uint8_t> outer_key_data(inner_key.ByteSizeLong());
+                  inner_key.SerializeToArray(outer_key_data.data(), outer_key_data.size());
+                  libp2p::crypto::ProtobufKey protokey_outer(outer_key_data);
+                  derived_pid_res = peer::PeerId::fromPublicKey(protokey_outer);
+              }
+              else {
+                  // Failed to parse inner PublicKey from the Data field of outer_key
+                  //auto derived_pid_res = peer::PeerId::fromPublicKey(in_exchange_msg.second);
+              }
+          }
+      }
+
+      if (!derived_pid_res) {
+          log_->error("cannot create a PeerId from the received public key: {}",
+              derived_pid_res.error().message());
+          return cb(derived_pid_res.error());
+      }
+      auto derived_pid = std::move(derived_pid_res.value());
+
+      if (received_pid != derived_pid) {
+          log_->error(
+              "ID, which was received in the message ({}) and the one, which was "
+              "derived from the public key ({}), differ",
+              received_pid.toBase58(), derived_pid.toBase58());
+          closeConnection(conn, Error::INVALID_PEER_ID);
+          return cb(Error::INVALID_PEER_ID);
+      }
+      if (p.has_value()) {
+          if (received_pid != p.value()) {
+              auto s = p.value().toBase58();
+              log_->error("received_pid={}, p.value()={}", received_pid.toBase58(),
+                  s);
+              closeConnection(conn, Error::INVALID_PEER_ID);
+              return cb(Error::INVALID_PEER_ID);
+          }
+      }
+
+      cb(std::make_shared<connection::PlaintextConnection>(
+          conn, idmgr_->getKeyPair().publicKey, std::move(pkey),
+          key_marshaller_));
+  }
+
   void Plaintext::closeConnection(
       const std::shared_ptr<libp2p::connection::RawConnection> &conn,
       const std::error_code &err) const {
@@ -257,6 +325,22 @@ namespace libp2p::security {
       log_->error("connection close attempt ended with error: {}",
                   close_res.error().message());
     }
+  }
+
+  void Plaintext::closeConnection(
+      const std::shared_ptr<libp2p::connection::Stream>& conn,
+      const std::error_code& err) const {
+      log_->error("error happened while establishing a Plaintext session: {}",
+          err.message());
+      conn->close([self{ shared_from_this() }](outcome::result<void> res)
+          {
+              if (res.has_error())
+              {
+                  self->log_->error("connection close attempt ended with error: {}",
+                      res.error().message());
+              }
+          });
+
   }
 
 }  // namespace libp2p::security
