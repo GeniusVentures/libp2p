@@ -30,6 +30,14 @@ namespace libp2p::transport {
     });
   }
 
+
+  void UpgraderSession::secureOutboundRelay(const peer::PeerId& remoteId) {
+      auto self{ shared_from_this() };
+      upgrader_->upgradeToSecureOutboundRelay(capable_, remoteId, [self](auto&& r) {
+          self->onSecured(std::forward<decltype(r)>(r));
+          });
+  }
+
   void UpgraderSession::secureInbound() {
     upgrader_->upgradeToSecureInbound(
         raw_, [self{shared_from_this()}](auto &&r) {

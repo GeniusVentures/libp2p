@@ -43,6 +43,16 @@ namespace libp2p::transport {
                                          OnSecuredCallbackFunc cb) = 0;
 
     /**
+     * Upgrade outbound raw connection to the secure one
+     * @param conn to be upgraded
+     * @param remoteId peer id of remote peer
+     * @param cb - callback, which is called, when a connection is upgraded or
+     * error happens
+     */
+    virtual void upgradeToSecureOutboundRelay(CapSPtr conn,
+        const peer::PeerId& remoteId,
+        OnSecuredCallbackFunc cb) = 0;
+    /**
      * Upgrade inbound raw connection to the secure one
      * @param conn to be upgraded
      * @param remoteId peer id of remote peer

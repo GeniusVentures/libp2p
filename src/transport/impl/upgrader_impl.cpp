@@ -115,12 +115,13 @@ namespace libp2p::transport {
         });
   }
 
-  void UpgraderImpl::upgradeToSecureOutboundRelay(RawSPtr conn,
+  void UpgraderImpl::upgradeToSecureOutboundRelay(CapSPtr conn,
       const peer::PeerId& remoteId,
       OnSecuredCallbackFunc cb) {
+      auto stream = conn->newStream();
       protocol_muxer_->selectOneOf(
-          security_protocols_, conn, conn->isInitiator(), true,
-          [self{ shared_from_this() }, cb = std::move(cb), conn,
+          security_protocols_, stream.value(), stream.value()->isInitiator().value(), true,
+          [self{ shared_from_this() }, cb = std::move(cb), conn, stream,
           remoteId](outcome::result<peer::Protocol> proto_res) mutable {
               if (!proto_res) {
                   return cb(proto_res.error());
@@ -136,7 +137,7 @@ namespace libp2p::transport {
                   "connection is NOT initiator, and SecureOutbound is "
                   "called (should be SecureInbound)");
 
-              return adaptor->secureOutbound(std::move(conn), remoteId,
+              return adaptor->secureOutboundRelay(stream.value(), remoteId,
                   std::move(cb));
           });
   }
