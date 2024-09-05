@@ -66,9 +66,19 @@ namespace libp2p::security {
         const std::shared_ptr<secio::Dialer> &dialer,
         SecConnCallbackFunc cb) const;
 
+    void sendProposeMessage(
+        const std::shared_ptr<connection::Stream>& conn,
+        const std::shared_ptr<secio::Dialer>& dialer,
+        SecConnCallbackFunc cb) const;
+
     void receiveProposeMessage(
         const std::shared_ptr<connection::RawConnection> &conn,
         const std::shared_ptr<secio::Dialer> &dialer,
+        SecConnCallbackFunc cb) const;
+
+    void receiveProposeMessage(
+        const std::shared_ptr<connection::Stream>& conn,
+        const std::shared_ptr<secio::Dialer>& dialer,
         SecConnCallbackFunc cb) const;
 
     void sendExchangeMessage(
@@ -76,14 +86,28 @@ namespace libp2p::security {
         const std::shared_ptr<secio::Dialer> &dialer,
         SecConnCallbackFunc cb) const;
 
+    void sendExchangeMessage(
+        const std::shared_ptr<connection::Stream>& conn,
+        const std::shared_ptr<secio::Dialer>& dialer,
+        SecConnCallbackFunc cb) const;
+
     void receiveExchangeMessage(
         const std::shared_ptr<connection::RawConnection> &conn,
         const std::shared_ptr<secio::Dialer> &dialer,
         SecConnCallbackFunc cb) const;
 
+    void receiveExchangeMessage(
+        const std::shared_ptr<connection::Stream>& conn,
+        const std::shared_ptr<secio::Dialer>& dialer,
+        SecConnCallbackFunc cb) const;
+
     void closeConnection(
         const std::shared_ptr<libp2p::connection::RawConnection> &conn,
         const std::error_code &err) const;
+
+    void closeConnection(
+        const std::shared_ptr<libp2p::connection::Stream>& conn,
+        const std::error_code& err) const;
 
     std::shared_ptr<crypto::random::CSPRNG> csprng_;
     std::shared_ptr<crypto::CryptoProvider> crypto_provider_;
