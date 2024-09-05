@@ -17,6 +17,7 @@
 #include <libp2p/crypto/key_marshaller.hpp>
 #include <libp2p/peer/identity_manager.hpp>
 #include <libp2p/security/tls/tls_errors.hpp>
+#include <libp2p/connection/stream.hpp>
 
 namespace libp2p::connection {
 
@@ -47,6 +48,11 @@ namespace libp2p::connection {
                   std::shared_ptr<boost::asio::ssl::context> ssl_context,
                   const peer::IdentityManager &idmgr, tcp_socket_t &tcp_socket,
                   boost::optional<peer::PeerId> remote_peer);
+
+    TlsConnection(std::shared_ptr<Stream> raw_connection,
+        std::shared_ptr<boost::asio::ssl::context> ssl_context,
+        const peer::IdentityManager& idmgr, tcp_socket_t& tcp_socket,
+        boost::optional<peer::PeerId> remote_peer);
 
     /// Performs async handshake and passes its result into callback. This fn is
     /// distinct from the ctor because it uses shared_from_this()
@@ -120,6 +126,7 @@ namespace libp2p::connection {
 
     /// Raw TCP connection
     std::shared_ptr<RawConnection> raw_connection_;
+    std::shared_ptr<Stream> stream_;
 
     /// SSL context, shared among connections
     std::shared_ptr<boost::asio::ssl::context> ssl_context_;

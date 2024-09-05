@@ -70,6 +70,29 @@ namespace libp2p::security::noise {
     read_buffer_->resize(kMaxMsgLen);
   }
 
+  Handshake::Handshake(
+      std::shared_ptr<crypto::CryptoProvider> crypto_provider,
+      std::unique_ptr<security::noise::HandshakeMessageMarshaller>
+      noise_marshaller,
+      crypto::KeyPair local_key,
+      std::shared_ptr<connection::Stream> connection, bool is_initiator,
+      boost::optional<peer::PeerId> remote_peer_id,
+      SecurityAdaptor::SecConnCallbackFunc cb,
+      std::shared_ptr<crypto::marshaller::KeyMarshaller> key_marshaller)
+      : crypto_provider_{ std::move(crypto_provider) },
+      noise_marshaller_{ std::move(noise_marshaller) },
+      local_key_{ std::move(local_key) },
+      stream_{ std::move(connection) },
+      initiator_{ is_initiator },
+      connection_cb_{ std::move(cb) },
+      key_marshaller_{ std::move(key_marshaller) },
+      read_buffer_{ std::make_shared<ByteArray>(kMaxMsgLen) },
+      rw_{ std::make_shared<InsecureReadWriter>(conn_, read_buffer_) },
+      handshake_state_{ std::make_unique<HandshakeState>() },
+      remote_peer_id_{ std::move(remote_peer_id) } {
+      read_buffer_->resize(kMaxMsgLen);
+  }
+
   void Handshake::connect() {
     auto result = runHandshake();
     if (result.has_error()) {

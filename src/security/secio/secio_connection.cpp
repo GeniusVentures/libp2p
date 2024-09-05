@@ -102,6 +102,31 @@ namespace libp2p::connection {
     BOOST_ASSERT(key_marshaller_);
   }
 
+  SecioConnection::SecioConnection(
+      std::shared_ptr<Stream> raw_connection,
+      std::shared_ptr<crypto::hmac::HmacProvider> hmac_provider,
+      std::shared_ptr<crypto::marshaller::KeyMarshaller> key_marshaller,
+      crypto::PublicKey local_pubkey, crypto::PublicKey remote_pubkey,
+      crypto::common::HashType hash_type,
+      crypto::common::CipherType cipher_type,
+      crypto::StretchedKey local_stretched_key,
+      crypto::StretchedKey remote_stretched_key)
+      : stream_{ std::move(raw_connection) },
+      hmac_provider_{ std::move(hmac_provider) },
+      key_marshaller_{ std::move(key_marshaller) },
+      local_{ std::move(local_pubkey) },
+      remote_{ std::move(remote_pubkey) },
+      hash_type_{ hash_type },
+      cipher_type_{ cipher_type },
+      local_stretched_key_{ std::move(local_stretched_key) },
+      remote_stretched_key_{ std::move(remote_stretched_key) },
+      aes128_secrets_{ boost::none },
+      aes256_secrets_{ boost::none } {
+      BOOST_ASSERT(raw_connection_);
+      BOOST_ASSERT(hmac_provider_);
+      BOOST_ASSERT(key_marshaller_);
+  }
+
   outcome::result<void> SecioConnection::init() {
     if (isInitialized()) {
       return Error::CONN_ALREADY_INITIALIZED;

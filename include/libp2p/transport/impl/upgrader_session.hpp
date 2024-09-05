@@ -35,8 +35,6 @@ namespace libp2p::transport {
 
     void secureOutboundRelay(const peer::PeerId& remoteId);
 
-    void secureOutboundRelay(const peer::PeerId& remoteId);
-
     void secureInbound();
 
    private:

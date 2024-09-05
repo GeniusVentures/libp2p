@@ -63,17 +63,17 @@ namespace libp2p::security {
         const std::shared_ptr<basic::ProtobufMessageReadWriter> &rw,
         SecConnCallbackFunc cb) const;
 
+    void sendExchangeMsg(
+        const std::shared_ptr<connection::Stream>& conn,
+        const std::shared_ptr<basic::ProtobufMessageReadWriter>& rw,
+        SecConnCallbackFunc cb) const;
+
     void receiveExchangeMsg(
         const std::shared_ptr<connection::RawConnection> &conn,
         const std::shared_ptr<basic::ProtobufMessageReadWriter> &rw,
         const MaybePeerId &p, SecConnCallbackFunc cb) const;
 
-    void sendExchangeMsgRelay(
-        const std::shared_ptr<connection::Stream>& conn,
-        const std::shared_ptr<basic::ProtobufMessageReadWriter>& rw,
-        SecConnCallbackFunc cb) const;
-
-    void receiveExchangeMsgRelay(
+    void receiveExchangeMsg(
         const std::shared_ptr<connection::Stream>& conn,
         const std::shared_ptr<basic::ProtobufMessageReadWriter>& rw,
         const MaybePeerId& p, SecConnCallbackFunc cb) const;

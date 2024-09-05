@@ -22,6 +22,19 @@ namespace libp2p::connection {
     BOOST_ASSERT(key_marshaller_);
   }
 
+  PlaintextConnection::PlaintextConnection(
+      std::shared_ptr<Stream> raw_connection,
+      crypto::PublicKey localPubkey, crypto::PublicKey remotePubkey,
+      std::shared_ptr<crypto::marshaller::KeyMarshaller> key_marshaller)
+      : stream_{ std::move(raw_connection) },
+      local_(std::move(localPubkey)),
+      remote_(std::move(remotePubkey)),
+      key_marshaller_{ std::move(key_marshaller) } {
+      BOOST_ASSERT(raw_connection_);
+      BOOST_ASSERT(key_marshaller_);
+  }
+
+
   outcome::result<peer::PeerId> PlaintextConnection::localPeer() const {
     auto proto_local_key_res = key_marshaller_->marshal(local_);
     if (!proto_local_key_res) {

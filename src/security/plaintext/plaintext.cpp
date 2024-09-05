@@ -99,8 +99,8 @@ namespace libp2p::security {
       
       
       auto rw = std::make_shared<basic::ProtobufMessageReadWriter>(outbound);
-      //sendExchangeMsg(outbound, rw, cb);
-      //receiveExchangeMsg(outbound, rw, p, cb);
+      sendExchangeMsg(outbound, rw, cb);
+      receiveExchangeMsg(outbound, rw, p, cb);
   }
 
   void Plaintext::sendExchangeMsg(
@@ -125,7 +125,7 @@ namespace libp2p::security {
         });
   }
 
-  void Plaintext::sendExchangeMsgRelay(
+  void Plaintext::sendExchangeMsg(
       const std::shared_ptr<connection::Stream>& conn,
       const std::shared_ptr<basic::ProtobufMessageReadWriter>& rw,
       SecConnCallbackFunc cb) const {
@@ -164,7 +164,7 @@ namespace libp2p::security {
         remote_peer_exchange_bytes);
   }
 
-  void Plaintext::receiveExchangeMsgRelay(
+  void Plaintext::receiveExchangeMsg(
       const std::shared_ptr<connection::Stream>& conn,
       const std::shared_ptr<basic::ProtobufMessageReadWriter>& rw,
       const MaybePeerId& p, SecConnCallbackFunc cb) const {

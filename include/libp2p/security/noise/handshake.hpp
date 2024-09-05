@@ -35,6 +35,16 @@ namespace libp2p::security::noise {
         SecurityAdaptor::SecConnCallbackFunc cb,
         std::shared_ptr<crypto::marshaller::KeyMarshaller> key_marshaller);
 
+    Handshake(
+        std::shared_ptr<crypto::CryptoProvider> crypto_provider,
+        std::unique_ptr<security::noise::HandshakeMessageMarshaller>
+        noise_marshaller,
+        crypto::KeyPair local_key,
+        std::shared_ptr<connection::Stream> connection,
+        bool is_initiator, boost::optional<peer::PeerId> remote_peer_id,
+        SecurityAdaptor::SecConnCallbackFunc cb,
+        std::shared_ptr<crypto::marshaller::KeyMarshaller> key_marshaller);
+
     void connect();
 
    private:
@@ -65,6 +75,7 @@ namespace libp2p::security::noise {
         noise_marshaller_;
     const crypto::KeyPair local_key_;
     std::shared_ptr<connection::RawConnection> conn_;
+    std::shared_ptr<connection::Stream> stream_;
     bool initiator_;  /// false for incoming connections
     SecurityAdaptor::SecConnCallbackFunc connection_cb_;
 

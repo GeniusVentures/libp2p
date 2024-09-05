@@ -16,6 +16,7 @@
 #include <libp2p/crypto/common.hpp>
 #include <libp2p/crypto/key_marshaller.hpp>
 #include <libp2p/log/logger.hpp>
+#include <libp2p/connection/stream.hpp>
 
 namespace libp2p::crypto {
   namespace aes {
@@ -61,6 +62,16 @@ namespace libp2p::connection {
 
     SecioConnection(
         std::shared_ptr<RawConnection> raw_connection,
+        std::shared_ptr<crypto::hmac::HmacProvider> hmac_provider,
+        std::shared_ptr<crypto::marshaller::KeyMarshaller> key_marshaller,
+        crypto::PublicKey local_pubkey, crypto::PublicKey remote_pubkey,
+        crypto::common::HashType hash_type,
+        crypto::common::CipherType cipher_type,
+        crypto::StretchedKey local_stretched_key,
+        crypto::StretchedKey remote_stretched_key);
+
+    SecioConnection(
+        std::shared_ptr<Stream> raw_connection,
         std::shared_ptr<crypto::hmac::HmacProvider> hmac_provider,
         std::shared_ptr<crypto::marshaller::KeyMarshaller> key_marshaller,
         crypto::PublicKey local_pubkey, crypto::PublicKey remote_pubkey,
@@ -150,6 +161,7 @@ namespace libp2p::connection {
     outcome::result<size_t> macSize() const;
 
     std::shared_ptr<RawConnection> raw_connection_;
+    std::shared_ptr<Stream> stream_;
     std::shared_ptr<crypto::hmac::HmacProvider> hmac_provider_;
     std::shared_ptr<crypto::marshaller::KeyMarshaller> key_marshaller_;
 

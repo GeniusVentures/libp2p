@@ -11,12 +11,18 @@
 
 #include <libp2p/connection/secure_connection.hpp>
 #include <libp2p/crypto/key_marshaller.hpp>
+#include <libp2p/connection/stream.hpp>
 
 namespace libp2p::connection {
   class PlaintextConnection : public SecureConnection {
    public:
     PlaintextConnection(
         std::shared_ptr<RawConnection> raw_connection,
+        crypto::PublicKey localPubkey, crypto::PublicKey remotePubkey,
+        std::shared_ptr<crypto::marshaller::KeyMarshaller> key_marshaller);
+
+    PlaintextConnection(
+        std::shared_ptr<connection::Stream> raw_connection,
         crypto::PublicKey localPubkey, crypto::PublicKey remotePubkey,
         std::shared_ptr<crypto::marshaller::KeyMarshaller> key_marshaller);
 
@@ -57,6 +63,7 @@ namespace libp2p::connection {
 
    private:
     std::shared_ptr<RawConnection> raw_connection_;
+    std::shared_ptr<connection::Stream> stream_;
 
     crypto::PublicKey local_;
     crypto::PublicKey remote_;
