@@ -14,11 +14,11 @@ namespace libp2p::connection {
       std::shared_ptr<RawConnection> raw_connection,
       crypto::PublicKey localPubkey, crypto::PublicKey remotePubkey,
       std::shared_ptr<crypto::marshaller::KeyMarshaller> key_marshaller)
-      : raw_connection_{std::move(raw_connection)},
+      : connection_{std::move(raw_connection)},
         local_(std::move(localPubkey)),
         remote_(std::move(remotePubkey)),
         key_marshaller_{std::move(key_marshaller)} {
-    BOOST_ASSERT(raw_connection_);
+    BOOST_ASSERT(std::get<std::shared_ptr<RawConnection>>(connection_));
     BOOST_ASSERT(key_marshaller_);
   }
 
@@ -26,11 +26,11 @@ namespace libp2p::connection {
       std::shared_ptr<Stream> raw_connection,
       crypto::PublicKey localPubkey, crypto::PublicKey remotePubkey,
       std::shared_ptr<crypto::marshaller::KeyMarshaller> key_marshaller)
-      : stream_{ std::move(raw_connection) },
+      : connection_{ std::move(raw_connection) },
       local_(std::move(localPubkey)),
       remote_(std::move(remotePubkey)),
       key_marshaller_{ std::move(key_marshaller) } {
-      BOOST_ASSERT(raw_connection_);
+      BOOST_ASSERT(std::get<std::shared_ptr<RawConnection>>(connection_));
       BOOST_ASSERT(key_marshaller_);
   }
 
@@ -57,50 +57,77 @@ namespace libp2p::connection {
   }
 
   bool PlaintextConnection::isInitiator() const noexcept {
-    return raw_connection_->isInitiator();
+      return std::visit([](const auto& conn) -> bool {
+          if constexpr (std::is_same_v<std::shared_ptr<RawConnection>, decltype(conn)>) {
+              // RawConnection case: returns bool directly
+              return conn->isInitiator();
+          }
+          else if constexpr (std::is_same_v<std::shared_ptr<Stream>, decltype(conn)>) {
+              // Stream case: returns outcome::result<bool>
+              auto result = conn->isInitiator();
+              if (result.has_value()) {
+                  return result.value();  // Return the value if no error
+              }
+              // Handle the error case however you'd like
+              // For example, log it and assume the connection is not the initiator
+              // (or return false, depending on how you want to handle errors)
+              log_->error("Failed to get isInitiator from Stream: {}", result.error().message());
+              return false;
+          }
+          }, connection_);
   }
 
+
   outcome::result<multi::Multiaddress> PlaintextConnection::localMultiaddr() {
-    return raw_connection_->localMultiaddr();
+    return std::visit([](auto&& conn) { return conn->localMultiaddr(); }, connection_);
+    //return raw_connection_->localMultiaddr();
   }
 
   outcome::result<multi::Multiaddress> PlaintextConnection::remoteMultiaddr() {
-    return raw_connection_->remoteMultiaddr();
+    return std::visit([](auto&& conn) { return conn->remoteMultiaddr(); }, connection_);
+    //return raw_connection_->remoteMultiaddr();
   }
 
   void PlaintextConnection::read(gsl::span<uint8_t> in, size_t bytes,
                                  Reader::ReadCallbackFunc f) {
-    return raw_connection_->read(in, bytes, std::move(f));
+    return std::visit([in, bytes, f](auto&& conn) { return conn->read(in, bytes, std::move(f)); }, connection_);
+    //return raw_connection_->read(in, bytes, std::move(f));
   };
 
   void PlaintextConnection::readSome(gsl::span<uint8_t> in,
                                      size_t bytes,
                                      Reader::ReadCallbackFunc f) {
-    return raw_connection_->readSome(in, bytes, std::move(f));
+    return std::visit([in, bytes, f](auto&& conn) { return conn->readSome(in, bytes, std::move(f)); }, connection_);
+    //return raw_connection_->readSome(in, bytes, std::move(f));
   };
 
   void PlaintextConnection::write(gsl::span<const uint8_t> in, size_t bytes,
                                   Writer::WriteCallbackFunc f) {
-    return raw_connection_->write(in, bytes, std::move(f));
+    return std::visit([in, bytes, f](auto&& conn) { return conn->write(in, bytes, std::move(f)); }, connection_);
+    //return raw_connection_->write(in, bytes, std::move(f));
   }
 
   void PlaintextConnection::writeSome(gsl::span<const uint8_t> in, size_t bytes,
                                       Writer::WriteCallbackFunc f) {
-    return raw_connection_->writeSome(in, bytes, std::move(f));
+    return std::visit([in, bytes, f](auto&& conn) { return conn->writeSome(in, bytes, std::move(f)); }, connection_);
+    //return raw_connection_->writeSome(in, bytes, std::move(f));
   }
 
   void PlaintextConnection::deferReadCallback(outcome::result<size_t> res,
                                          ReadCallbackFunc cb) {
-    raw_connection_->deferReadCallback(res, std::move(cb));
+    return std::visit([res, cb](auto&& conn) { return conn->deferReadCallback(res, std::move(cb)); }, connection_);
+    //raw_connection_->deferReadCallback(res, std::move(cb));
   }
 
   void PlaintextConnection::deferWriteCallback(std::error_code ec,
                                           WriteCallbackFunc cb) {
-    raw_connection_->deferWriteCallback(ec, std::move(cb));
+    return std::visit([ec, cb](auto&& conn) { return conn->deferWriteCallback(ec, std::move(cb)); }, connection_);
+    //raw_connection_->deferWriteCallback(ec, std::move(cb));
   }
 
   bool PlaintextConnection::isClosed() const {
-    return raw_connection_->isClosed();
+    return std::visit([](auto&& conn) { return conn->isClosed(); }, connection_);
+    //return raw_connection_->isClosed();
   }
 
   outcome::result<void> PlaintextConnection::close() {

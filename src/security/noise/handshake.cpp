@@ -87,7 +87,7 @@ namespace libp2p::security::noise {
       connection_cb_{ std::move(cb) },
       key_marshaller_{ std::move(key_marshaller) },
       read_buffer_{ std::make_shared<ByteArray>(kMaxMsgLen) },
-      rw_{ std::make_shared<InsecureReadWriter>(conn_, read_buffer_) },
+      rw_{ std::make_shared<InsecureReadWriter>(stream_, read_buffer_) },
       handshake_state_{ std::make_unique<HandshakeState>() },
       remote_peer_id_{ std::move(remote_peer_id) } {
       read_buffer_->resize(kMaxMsgLen);
