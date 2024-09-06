@@ -19,6 +19,8 @@
 #include <libp2p/security/noise/crypto/state.hpp>
 #include <libp2p/security/noise/handshake_message_marshaller_impl.hpp>
 #include <libp2p/security/noise/insecure_rw.hpp>
+#include <libp2p/connection/stream.hpp>
+#include <variant>
 
 namespace libp2p::connection {
   class NoiseConnection : public SecureConnection,
@@ -36,6 +38,13 @@ namespace libp2p::connection {
 
     NoiseConnection(
         std::shared_ptr<RawConnection> raw_connection,
+        crypto::PublicKey localPubkey, crypto::PublicKey remotePubkey,
+        std::shared_ptr<crypto::marshaller::KeyMarshaller> key_marshaller,
+        std::shared_ptr<security::noise::CipherState> encoder,
+        std::shared_ptr<security::noise::CipherState> decoder);
+
+    NoiseConnection(
+        std::shared_ptr<Stream> raw_connection,
         crypto::PublicKey localPubkey, crypto::PublicKey remotePubkey,
         std::shared_ptr<crypto::marshaller::KeyMarshaller> key_marshaller,
         std::shared_ptr<security::noise::CipherState> encoder,
@@ -86,7 +95,8 @@ namespace libp2p::connection {
 
     void eraseWriteBuffer(BufferList::iterator &iterator);
 
-    std::shared_ptr<RawConnection> raw_connection_;
+    //std::shared_ptr<RawConnection> raw_connection_;
+    std::variant<std::shared_ptr<RawConnection>, std::shared_ptr<Stream>> connection_;
     crypto::PublicKey local_;
     crypto::PublicKey remote_;
     std::shared_ptr<crypto::marshaller::KeyMarshaller> key_marshaller_;
