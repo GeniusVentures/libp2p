@@ -18,6 +18,7 @@
 #include <libp2p/peer/identity_manager.hpp>
 #include <libp2p/security/tls/tls_errors.hpp>
 #include <libp2p/connection/stream.hpp>
+#include <variant>
 
 namespace libp2p::connection {
 
@@ -125,8 +126,9 @@ namespace libp2p::connection {
     const peer::PeerId local_peer_;
 
     /// Raw TCP connection
-    std::shared_ptr<RawConnection> raw_connection_;
-    std::shared_ptr<Stream> stream_;
+    //std::shared_ptr<RawConnection> raw_connection_;
+    //std::shared_ptr<Stream> stream_;
+    std::variant<std::shared_ptr<RawConnection>, std::shared_ptr<Stream>> connection_;
 
     /// SSL context, shared among connections
     std::shared_ptr<boost::asio::ssl::context> ssl_context_;

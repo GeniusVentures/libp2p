@@ -436,7 +436,25 @@ namespace libp2p::connection {
   }
 
   outcome::result<void> SecioConnection::close() {
-    return raw_connection_->close();
+      return std::visit([this](auto& conn) -> outcome::result<void> {
+          if constexpr (std::is_same_v<decltype(conn), std::shared_ptr<RawConnection>>) {
+              // For RawConnection, directly return the result of close()
+              return conn->close();
+          }
+          else if constexpr (std::is_same_v<decltype(conn), std::shared_ptr<Stream>>) {
+              // For Stream, handle the close operation asynchronously using a lambda
+              std::promise<outcome::result<void>> close_promise;
+              auto close_future = close_promise.get_future();
+
+              conn->close([&close_promise](outcome::result<void> res) {
+                  close_promise.set_value(res);
+                  });
+
+              // Wait for the close operation to complete and return the result
+              return close_future.get();
+          }
+          return outcome::failure(std::make_error_code(std::errc::invalid_argument));  // Fallback in case neither type matches
+          }, connection_);
   }
 
   outcome::result<size_t> SecioConnection::macSize() const {
