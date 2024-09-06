@@ -293,11 +293,11 @@ namespace libp2p::security::noise {
       return connection_cb_(std::errc::connection_aborted);
     }
 
-    auto secured_connection = std::make_shared<connection::NoiseConnection>(
-        std::visit([](auto&& conn) -> decltype(auto) {
-            return conn;  // This will pass the active connection (either RawConnection or Stream)
-            }, connection_), local_key_.publicKey, remote_peer_pubkey_.value(),
-        key_marshaller_, enc_, dec_);
+    auto secured_connection = std::visit([&](auto&& conn) -> std::shared_ptr<connection::NoiseConnection> {
+        return std::make_shared<connection::NoiseConnection>(
+            conn, local_key_.publicKey, remote_peer_pubkey_.value(),
+            key_marshaller_, enc_, dec_);
+        }, connection_);
     log_->info("Handshake succeeded");
     connection_cb_(std::move(secured_connection));
   }

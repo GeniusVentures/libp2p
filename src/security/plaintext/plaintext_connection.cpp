@@ -57,7 +57,7 @@ namespace libp2p::connection {
   }
 
   bool PlaintextConnection::isInitiator() const noexcept {
-      return std::visit([](const auto& conn) -> bool {
+      return std::visit([this](const auto& conn) -> bool {
           if constexpr (std::is_same_v<std::shared_ptr<RawConnection>, decltype(conn)>) {
               // RawConnection case: returns bool directly
               return conn->isInitiator();
@@ -68,10 +68,11 @@ namespace libp2p::connection {
               if (result.has_value()) {
                   return result.value();  // Return the value if no error
               }
-              // Handle the error case however you'd like
-              // For example, log it and assume the connection is not the initiator
-              // (or return false, depending on how you want to handle errors)
-              log_->error("Failed to get isInitiator from Stream: {}", result.error().message());
+              // Handle the error case
+              this->log_->error("Failed to get isInitiator from Stream: {}", result.error().message());
+              return false;
+          }
+          else {
               return false;
           }
           }, connection_);
@@ -138,15 +139,11 @@ namespace libp2p::connection {
           }
           else if constexpr (std::is_same_v<decltype(conn), std::shared_ptr<Stream>>) {
               // For Stream, handle the close operation asynchronously using a lambda
-              std::promise<outcome::result<void>> close_promise;
-              auto close_future = close_promise.get_future();
-
-              conn->close([&close_promise](outcome::result<void> res) {
-                  close_promise.set_value(res);
+              conn->close([](outcome::result<void> res) {
+                  return res;  // Just return the result and let the caller handle it
                   });
-
-              // Wait for the close operation to complete and return the result
-              return close_future.get();
+              // Return success immediately since close is now async
+              return outcome::success();
           }
           return outcome::failure(std::make_error_code(std::errc::invalid_argument));  // Fallback in case neither type matches
           }, connection_);
