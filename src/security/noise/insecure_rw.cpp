@@ -31,6 +31,11 @@ namespace libp2p::security::noise {
       std::shared_ptr<common::ByteArray> buffer)
       : connection_{std::move(connection)}, buffer_{std::move(buffer)} {}
 
+  InsecureReadWriter::InsecureReadWriter(
+      std::shared_ptr<connection::Stream> connection,
+      std::shared_ptr<common::ByteArray> buffer)
+      : connection_{ std::move(connection) }, buffer_{ std::move(buffer) } {}
+
   void InsecureReadWriter::read(basic::MessageReadWriter::ReadCallbackFunc cb) {
     buffer_->resize(kMaxMsgLen);  // ensure buffer capacity
     auto read_cb = [cb{std::move(cb)}, self{shared_from_this()}](
@@ -50,9 +55,12 @@ namespace libp2p::security::noise {
         self->buffer_->resize(read_bytes);
         cb(self->buffer_);
       };
-      self->connection_->read(*self->buffer_, frame_len, std::move(read_cb));
+      std::visit([self, frame_len, read_cb](auto&& conn) { return conn->read(*self->buffer_, frame_len, std::move(read_cb)); }, self->connection_);
+      //self->connection_->read(*self->buffer_, frame_len, std::move(read_cb));
     };
-    connection_->read(*buffer_, kLengthPrefixSize, std::move(read_cb));
+    //connection_->read(*buffer_, kLengthPrefixSize, std::move(read_cb));
+    std::visit([self{ shared_from_this() }, read_cb](auto&& conn) { return conn->read(*self->buffer_, kLengthPrefixSize, std::move(read_cb)); }, connection_);
+
   }
 
   void InsecureReadWriter::write(gsl::span<const uint8_t> buffer,
@@ -72,6 +80,7 @@ namespace libp2p::security::noise {
       }
       cb(written_bytes - kLengthPrefixSize);
     };
-    connection_->write(outbuf_, outbuf_.size(), std::move(write_cb));
+    //connection_->write(outbuf_, outbuf_.size(), std::move(write_cb));
+    std::visit([self{ shared_from_this() }, write_cb](auto&& conn) { return conn->write(self->outbuf_, self->outbuf_.size(), std::move(write_cb)); }, connection_);
   }
 }  // namespace libp2p::security::noise
