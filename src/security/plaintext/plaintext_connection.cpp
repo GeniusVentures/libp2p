@@ -23,14 +23,14 @@ namespace libp2p::connection {
   }
 
   PlaintextConnection::PlaintextConnection(
-      std::shared_ptr<Stream> raw_connection,
+      std::shared_ptr<Stream> stream,
       crypto::PublicKey localPubkey, crypto::PublicKey remotePubkey,
       std::shared_ptr<crypto::marshaller::KeyMarshaller> key_marshaller)
-      : connection_{ std::move(raw_connection) },
+      : connection_{ std::move(stream) },
       local_(std::move(localPubkey)),
       remote_(std::move(remotePubkey)),
       key_marshaller_{ std::move(key_marshaller) } {
-      BOOST_ASSERT(std::get<std::shared_ptr<RawConnection>>(connection_));
+      BOOST_ASSERT(std::get<std::shared_ptr<Stream>>(connection_));
       BOOST_ASSERT(key_marshaller_);
   }
 

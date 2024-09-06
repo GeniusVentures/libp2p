@@ -17,6 +17,7 @@
 #include <libp2p/crypto/key_marshaller.hpp>
 #include <libp2p/log/logger.hpp>
 #include <libp2p/connection/stream.hpp>
+#include <variant>
 
 namespace libp2p::crypto {
   namespace aes {
@@ -160,8 +161,9 @@ namespace libp2p::connection {
     /// Returns MAC digest size in bytes for the chosen algorithm
     outcome::result<size_t> macSize() const;
 
-    std::shared_ptr<RawConnection> raw_connection_;
-    std::shared_ptr<Stream> stream_;
+    //std::shared_ptr<RawConnection> raw_connection_;
+    //std::shared_ptr<Stream> stream_;
+    std::variant<std::shared_ptr<connection::RawConnection>, std::shared_ptr<connection::Stream>> connection_;
     std::shared_ptr<crypto::hmac::HmacProvider> hmac_provider_;
     std::shared_ptr<crypto::marshaller::KeyMarshaller> key_marshaller_;
 

@@ -18,6 +18,7 @@
 #include <libp2p/security/noise/handshake_message_marshaller.hpp>
 #include <libp2p/security/noise/insecure_rw.hpp>
 #include <libp2p/security/security_adaptor.hpp>
+#include <variant>
 
 namespace libp2p::security::noise {
 
@@ -74,8 +75,9 @@ namespace libp2p::security::noise {
     std::unique_ptr<security::noise::HandshakeMessageMarshaller>
         noise_marshaller_;
     const crypto::KeyPair local_key_;
-    std::shared_ptr<connection::RawConnection> conn_;
-    std::shared_ptr<connection::Stream> stream_;
+    //std::shared_ptr<connection::RawConnection> conn_;
+    //std::shared_ptr<connection::Stream> stream_;
+    std::variant<std::shared_ptr<connection::RawConnection>, std::shared_ptr<connection::Stream>> connection_;
     bool initiator_;  /// false for incoming connections
     SecurityAdaptor::SecConnCallbackFunc connection_cb_;
 
