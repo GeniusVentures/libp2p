@@ -4,6 +4,7 @@
  */
 
 #include <libp2p/transport/impl/upgrader_session.hpp>
+#include <iostream>
 
 namespace libp2p::transport {
 

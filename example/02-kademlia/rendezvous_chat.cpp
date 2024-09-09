@@ -7,6 +7,7 @@
 #include <memory>
 #include <set>
 #include <vector>
+#include <functional>
 
 #include <boost/beast.hpp>
 
@@ -16,6 +17,14 @@
 #include <libp2p/log/sublogger.hpp>
 #include <libp2p/multi/content_identifier_codec.hpp>
 
+ // Conditionally include based on platform
+#ifdef _WIN32
+#include <boost/asio/windows/stream_handle.hpp>
+#include <io.h>  // For _get_osfhandle
+#else
+#include <boost/asio/posix/stream_descriptor.hpp>
+#include <unistd.h>  // For STDIN_FILENO and dup
+#endif
 class Session;
 
 struct Cmp {
@@ -359,27 +368,40 @@ int main(int argc, char *argv[]) {
       });
     });
 
-    boost::asio::posix::stream_descriptor in(*io, ::dup(STDIN_FILENO));
+    // Platform-specific stream handle
+#ifdef _WIN32
+    boost::asio::windows::stream_handle in(*io, GetStdHandle(STD_INPUT_HANDLE));  // Initialize with io_context reference
+    //in.assign(GetStdHandle(STD_INPUT_HANDLE));
+#else
+    boost::asio::posix::stream_descriptor in(io, ::dup(STDIN_FILENO));
+#endif
     std::array<uint8_t, 1 << 12> buffer{};
 
-    // Asynchronous transmit data from standard input to peers, that's privided
-    // same content id
     std::function<void()> read_from_console = [&] {
-      in.async_read_some(boost::asio::buffer(buffer), [&](auto ec, auto size) {
-        auto i = std::find_if(buffer.begin(), buffer.begin() + size + 1,
-                              [](auto c) { return c == '\n'; });
+        in.async_read_some(boost::asio::buffer(buffer), [&](auto ec, auto size) {
+            if (!ec) {
+                // Find newline character
+                auto i = std::find_if(buffer.begin(), buffer.begin() + size, [](auto c) { return c == '\n'; });
 
-        if (i != buffer.begin() + size + 1) {
-          auto out = std::make_shared<std::vector<uint8_t>>();
-          out->assign(buffer.begin(), buffer.begin() + size);
+                if (i != buffer.begin() + size) {
+                    auto out = std::make_shared<std::vector<uint8_t>>();
+                    out->assign(buffer.begin(), buffer.begin() + size);
 
-          for (const auto &session : sessions) {
-            session->write(out);
-          }
-        }
-        read_from_console();
-      });
-    };
+                    // Write to all sessions
+                    for (const auto& session : sessions) {
+                        session->write(out);
+                    }
+                }
+
+                // Continue reading from console
+                read_from_console();
+            }
+            else {
+                std::cerr << "Error reading from console: " << ec.message() << std::endl;
+            }
+            });
+        };
+
     read_from_console();
 
     boost::asio::signal_set signals(*io, SIGINT, SIGTERM);

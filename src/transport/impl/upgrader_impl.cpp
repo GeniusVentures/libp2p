@@ -4,7 +4,7 @@
  */
 
 #include <libp2p/transport/impl/upgrader_impl.hpp>
-
+#include <iostream>
 #include <numeric>
 
 OUTCOME_CPP_DEFINE_CATEGORY_3(libp2p::transport, UpgraderImpl::Error, e) {
@@ -143,14 +143,16 @@ namespace libp2p::transport {
   }
 
   void UpgraderImpl::upgradeToMuxed(SecSPtr conn, OnMuxedCallbackFunc cb) {
+      std::cout << "Upgrade to muxed" << std::endl;
     return protocol_muxer_->selectOneOf(
         muxer_protocols_, conn, conn->isInitiator(), true,
         [self{shared_from_this()}, cb = std::move(cb),
          conn](outcome::result<peer::Protocol> proto_res) mutable {
           if (!proto_res) {
+              std::cout << "Mux lacks protocol? " << proto_res.error().message() << std::endl;
             return cb(proto_res.error());
           }
-
+          std::cout << "Mux with protocol: " << proto_res.value() << std::endl;
           auto adaptor = findAdaptor(self->muxer_adaptors_, proto_res.value());
           if (!adaptor) {
             return cb(Error::NO_ADAPTOR_FOUND);

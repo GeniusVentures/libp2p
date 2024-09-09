@@ -28,10 +28,11 @@ namespace libp2p::protocol_muxer::multiselect {
       gsl::span<const peer::Protocol> protocols,
       std::shared_ptr<basic::ReadWriter> connection, bool is_initiator,
       bool negotiate_multiselect, Multiselect::ProtocolHandlerFunc cb) {
+      SL_DEBUG(log(), "Select a protocol");
     assert(!protocols.empty());
     assert(connection);
     assert(cb);
-
+    SL_DEBUG(log(), "Assertions pass?");
     protocols_.assign(protocols.begin(), protocols.end());
 
     connection_ = std::move(connection);
@@ -51,7 +52,7 @@ namespace libp2p::protocol_muxer::multiselect {
     wait_for_reply_sent_.reset();
 
     parser_.reset();
-
+    SL_DEBUG(log(), "Continued");
     if (!read_buffer_) {
       read_buffer_ = std::make_shared<std::array<uint8_t, kMaxMessageSize>>();
     }
@@ -234,8 +235,10 @@ namespace libp2p::protocol_muxer::multiselect {
     auto state = parser_.consume(span);
     switch (state) {
       case Parser::kUnderflow:
+          SL_TRACE(log(), "peer error: parser underflow");
         break;
       case Parser::kReady:
+          SL_TRACE(log(), "Parser process because ready");
         got_result = processMessages();
         break;
       default:

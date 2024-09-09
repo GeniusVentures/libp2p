@@ -27,7 +27,7 @@ namespace libp2p::network {
       // we have connection to this peer
 
       SL_TRACE(log_, "Reusing connection to peer {}",
-               p.id.toBase58().substr(46));
+               p.id.toBase58());
       scheduler_->schedule(
           [cb{ std::move(cb) }, c{ std::move(c) }, bindaddress{ std::move(bindaddress) }]() mutable { cb(std::move(c)); });
       return;
@@ -35,7 +35,7 @@ namespace libp2p::network {
 
     if (auto ctx = dialing_peers_.find(p.id); dialing_peers_.end() != ctx) {
       SL_TRACE(log_, "Dialing to {} is already in progress",
-               p.id.toBase58().substr(46));
+               p.id.toBase58());
       // populate known addresses for in-progress dial if any new appear
       for (const auto &addr : p.addresses) {
         if (0 == ctx->second.tried_addresses.count(addr)) {
@@ -70,6 +70,7 @@ namespace libp2p::network {
           SL_ERROR(log_, "State inconsistency - cannot dial {}", peer_id.toBase58());
           return;
       }
+      SL_TRACE(log_, "Going to try to dial {}", peer_id.toBase58());
       auto&& ctx = ctx_found->second;
 
       if (ctx.addresses.empty() && !ctx.dialled) {
@@ -144,7 +145,7 @@ namespace libp2p::network {
               if (auto tr = tmgr_->findBest(addr); nullptr != tr && peer_id_actual) {
 
                   ctx.dialled = true;
-                  SL_TRACE(log_, "Dial to {} via {}", peer_id.toBase58().substr(46), addr.getStringAddress());
+                  SL_TRACE(log_, "Dial to {} via {}", peer_id.toBase58(), addr.getStringAddress());
 
                   tr->dial(peer_id_actual.value(), addr, dial_handler, ctx.timeout, ctx.bindaddress);
               }
@@ -163,13 +164,12 @@ namespace libp2p::network {
                   }
                   });
           }
-
       }
       else {
           if (auto tr = tmgr_->findBest(addr); nullptr != tr) {
 
               ctx.dialled = true;
-              SL_TRACE(log_, "Dial to {} via {}", peer_id.toBase58().substr(46), addr.getStringAddress());
+              SL_TRACE(log_, "Dial to non-relay {} via {}", peer_id.toBase58(), addr.getStringAddress());
 
               tr->dial(peer_id, addr, dial_handler, ctx.timeout, ctx.bindaddress);
           }
@@ -275,7 +275,7 @@ namespace libp2p::network {
                              std::chrono::milliseconds timeout,
                              multi::Multiaddress bindaddress) {
     SL_TRACE(log_, "New stream to {} for {} (peer info)",
-             p.id.toBase58().substr(46), protocol);
+             p.id.toBase58(), protocol);
     dial(
         p,
         [self{shared_from_this()}, cb{std::move(cb)}, protocol](
@@ -302,7 +302,7 @@ namespace libp2p::network {
                              const peer::Protocol &protocol,
                              StreamResultFunc cb, multi::Multiaddress bindaddress) {
     SL_TRACE(log_, "New stream to {} for {} (peer id)",
-             peer_id.toBase58().substr(46), protocol);
+             peer_id.toBase58(), protocol);
     auto conn = cmgr_->getBestConnectionForPeer(peer_id);
     if (!conn) {
       scheduler_->schedule(

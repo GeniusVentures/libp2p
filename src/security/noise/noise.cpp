@@ -35,7 +35,7 @@ namespace libp2p::security {
   void Noise::secureOutbound(
       std::shared_ptr<connection::RawConnection> outbound,
       const peer::PeerId &p, SecurityAdaptor::SecConnCallbackFunc cb) {
-    log_->info("securing outbound connection");
+    log_->info("securing outbound connection to {}", p.toBase58());
     auto noise_marshaller =
         std::make_unique<noise::HandshakeMessageMarshallerImpl>(
             key_marshaller_);
