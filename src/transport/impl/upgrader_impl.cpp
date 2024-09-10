@@ -97,6 +97,7 @@ namespace libp2p::transport {
         [self{shared_from_this()}, cb = std::move(cb), conn,
          remoteId](outcome::result<peer::Protocol> proto_res) mutable {
           if (!proto_res) {
+              std::cout << "Upgrade to secure outbound error: " << proto_res.error().message() << std::endl;
             return cb(proto_res.error());
           }
 

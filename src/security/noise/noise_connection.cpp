@@ -202,25 +202,23 @@ namespace libp2p::connection {
   }
 
   bool NoiseConnection::isInitiator() const noexcept {
-      return std::visit([self{ shared_from_this() }](const auto& conn) -> bool {
-          if constexpr (std::is_same_v<std::shared_ptr<RawConnection>, decltype(conn)>) {
-              // RawConnection case: returns bool directly
-              return conn->isInitiator();
+      // Check if the connection is a Stream first because a Stream could be detected as a RawConnection
+      if (auto stream_conn = std::get_if<std::shared_ptr<Stream>>(&connection_)) {
+          auto result = (*stream_conn)->isInitiator();
+          if (result.has_value()) {
+              return result.value();
           }
-          else if constexpr (std::is_same_v<std::shared_ptr<Stream>, decltype(conn)>) {
-              // Stream case: returns outcome::result<bool>
-              auto result = conn->isInitiator();
-              if (result.has_value()) {
-                  return result.value();  // Return the value if no error
-              }
-              // Handle the error case
-              self->log_->error("Failed to get isInitiator from Stream: {}", result.error().message());
-              return false;
-          }
-          else {
-              return false;
-          }
-          }, connection_);
+          log_->error("Failed to get isInitiator from Stream: {}", result.error().message());
+          return false;
+      }
+
+      // Then check if the connection is a RawConnection
+      if (auto raw_conn = std::get_if<std::shared_ptr<RawConnection>>(&connection_)) {
+          return (*raw_conn)->isInitiator();
+      }
+
+      // If neither type matches, return false
+      return false;
   }
 
   outcome::result<libp2p::multi::Multiaddress>
