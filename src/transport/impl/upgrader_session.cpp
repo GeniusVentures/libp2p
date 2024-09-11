@@ -18,10 +18,10 @@ namespace libp2p::transport {
 
   UpgraderSession::UpgraderSession(
       std::shared_ptr<transport::Upgrader> upgrader,
-      std::shared_ptr<connection::CapableConnection> capable,
+      std::shared_ptr<connection::Stream> stream,
       UpgraderSession::HandlerFunc handler)
       : upgrader_(std::move(upgrader)),
-      capable_(std::move(capable)),
+      stream_(std::move(stream)),
       handler_(std::move(handler)) {}
 
   void UpgraderSession::secureOutbound(const peer::PeerId &remoteId) {
@@ -34,7 +34,7 @@ namespace libp2p::transport {
 
   void UpgraderSession::secureOutboundRelay(const peer::PeerId& remoteId) {
       auto self{ shared_from_this() };
-      upgrader_->upgradeToSecureOutboundRelay(capable_, remoteId, [self](auto&& r) {
+      upgrader_->upgradeToSecureOutboundRelay(stream_, remoteId, [self](auto&& r) {
           self->onSecured(std::forward<decltype(r)>(r));
           });
   }

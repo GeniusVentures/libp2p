@@ -28,7 +28,7 @@ namespace libp2p::transport {
                     HandlerFunc handler);
 
     explicit UpgraderSession(std::shared_ptr<transport::Upgrader> upgrader,
-        std::shared_ptr<connection::CapableConnection> capable,
+        std::shared_ptr<connection::Stream> stream,
         HandlerFunc handler);
 
     void secureOutbound(const peer::PeerId &remoteId);
@@ -40,7 +40,7 @@ namespace libp2p::transport {
    private:
     std::shared_ptr<transport::Upgrader> upgrader_;
     std::shared_ptr<connection::RawConnection> raw_;
-    std::shared_ptr<connection::CapableConnection> capable_;
+    std::shared_ptr<connection::Stream> stream_;
     HandlerFunc handler_;
 
     void onSecured(

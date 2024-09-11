@@ -231,17 +231,17 @@ namespace libp2p::network {
                   relayupg->start(
                       stream_result.value(),
                       peer::PeerInfo{ peer_id, addresses },
-                      [self, peer_id, result, relayupg, tr](const bool& success) mutable {
+                      [self, peer_id, stream_result, relayupg, tr](const bool& success) mutable {
                           if (!self) return;
 
-                          self->log_->info("Finished upgrading connection to relay {} ", result.value()->remoteMultiaddr().value().getStringAddress());
+                          self->log_->info("Finished upgrading connection to relay {} ", stream_result.value()->remoteMultiaddr().value().getStringAddress());
 
                           //Resume what we were doing
                           if (success) {
-                              self->log_->info("Encrypt Connection to other node {} ", result.value()->remoteMultiaddr().value().getStringAddress());
+                              self->log_->info("Encrypt Connection to other node {} ", stream_result.value()->remoteMultiaddr().value().getStringAddress());
                               //Upgrade encryption
                               //auto stream = result.value()->newStream();
-                              tr->upgradeRelaySecure(peer_id, result.value(), [self, peer_id](outcome::result<std::shared_ptr<connection::CapableConnection>> upgraderesult) {
+                              tr->upgradeRelaySecure(peer_id, stream_result.value(), [self, peer_id](outcome::result<std::shared_ptr<connection::CapableConnection>> upgraderesult) {
                                   if (upgraderesult)
                                   {
                                       self->log_->info("Encryption Completed now we can complete the dial {} ", upgraderesult.value()->remoteMultiaddr().value().getStringAddress());
