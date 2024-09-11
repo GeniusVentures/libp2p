@@ -16,6 +16,7 @@
 #include <libp2p/log/configurator.hpp>
 #include <libp2p/log/sublogger.hpp>
 #include <libp2p/multi/content_identifier_codec.hpp>
+#include <libp2p/protocol/identify/identify.hpp>
 
  // Conditionally include based on platform
 #ifdef _WIN32
@@ -172,12 +173,13 @@ namespace {
   const std::string logger_config(R"(
 # ----------------
 sinks:
-  - name: console
-    type: console
-    color: true
+  - name: file
+    type: file
+    capacity: 40480
+    path: libp2plog.log
 groups:
   - name: main
-    sink: console
+    sink: file
     level: trace
     children:
       - name: libp2p
@@ -294,6 +296,10 @@ int main(int argc, char *argv[]) {
         injector
             .create<std::shared_ptr<libp2p::protocol::kademlia::Kademlia>>();
 
+    auto m_identifymsgproc = std::make_shared<libp2p::protocol::IdentifyMessageProcessor>(
+        *host, host->getNetwork().getConnectionManager(), *injector.create<std::shared_ptr<libp2p::peer::IdentityManager>>(), injector.create<std::shared_ptr<libp2p::crypto::marshaller::KeyMarshaller>>());
+    auto m_identify = std::make_shared<libp2p::protocol::Identify>(*host, m_identifymsgproc, host->getBus(), []() { });
+    m_identify->start();
     // Handle streams for observed protocol
     host->setProtocolHandler("/chat/1.0.0", handleIncomingStream);
     host->setProtocolHandler("/chat/1.1.0", handleIncomingStream);

@@ -18,6 +18,7 @@
 #include <libp2p/peer/identity_manager.hpp>
 #include <libp2p/security/tls/tls_errors.hpp>
 #include <libp2p/connection/stream.hpp>
+#include <libp2p/log/logger.hpp>
 #include <variant>
 
 namespace libp2p::connection {
@@ -141,6 +142,8 @@ namespace libp2p::connection {
 
     /// Remote public key, extracted from peer certificate during handshake
     boost::optional<crypto::PublicKey> remote_pubkey_;
+
+    log::Logger log_ = log::createLogger("TlsConnection");
 
    public:
     LIBP2P_METRICS_INSTANCE_COUNT_IF_ENABLED(libp2p::connection::TlsConnection);

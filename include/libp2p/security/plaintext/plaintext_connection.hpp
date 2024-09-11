@@ -12,6 +12,7 @@
 #include <libp2p/connection/secure_connection.hpp>
 #include <libp2p/crypto/key_marshaller.hpp>
 #include <libp2p/connection/stream.hpp>
+#include <libp2p/log/logger.hpp>
 #include <variant>
 
 namespace libp2p::connection {
@@ -71,6 +72,8 @@ namespace libp2p::connection {
     crypto::PublicKey remote_;
 
     std::shared_ptr<crypto::marshaller::KeyMarshaller> key_marshaller_;
+
+    log::Logger log_ = log::createLogger("PlaintextConnection");
   };
 }  // namespace libp2p::connection
 
