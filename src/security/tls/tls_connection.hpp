@@ -46,12 +46,12 @@ namespace libp2p::connection {
     /// \param tcp_socket Raw socket extracted from raw connection
     /// \param remote_peer Expected peer id of remote peer, has value for
     /// outbound connections
-    TlsConnection(std::shared_ptr<RawConnection> raw_connection,
+    explicit TlsConnection(std::shared_ptr<RawConnection> raw_connection,
                   std::shared_ptr<boost::asio::ssl::context> ssl_context,
                   const peer::IdentityManager &idmgr, tcp_socket_t &tcp_socket,
                   boost::optional<peer::PeerId> remote_peer);
 
-    TlsConnection(std::shared_ptr<Stream> raw_connection,
+    explicit TlsConnection(std::shared_ptr<Stream> raw_connection,
         std::shared_ptr<boost::asio::ssl::context> ssl_context,
         const peer::IdentityManager& idmgr, tcp_socket_t& tcp_socket,
         boost::optional<peer::PeerId> remote_peer);

@@ -23,11 +23,11 @@ namespace libp2p::transport {
         void(outcome::result<std::shared_ptr<connection::CapableConnection>>);
     using HandlerFunc = std::function<ConnectionCallback>;
 
-    UpgraderSession(std::shared_ptr<transport::Upgrader> upgrader,
+    explicit UpgraderSession(std::shared_ptr<transport::Upgrader> upgrader,
                     std::shared_ptr<connection::RawConnection> raw,
                     HandlerFunc handler);
 
-    UpgraderSession(std::shared_ptr<transport::Upgrader> upgrader,
+    explicit UpgraderSession(std::shared_ptr<transport::Upgrader> upgrader,
         std::shared_ptr<connection::CapableConnection> capable,
         HandlerFunc handler);
 

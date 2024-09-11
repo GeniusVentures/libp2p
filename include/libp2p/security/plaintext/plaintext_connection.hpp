@@ -18,12 +18,12 @@
 namespace libp2p::connection {
   class PlaintextConnection : public SecureConnection {
    public:
-    PlaintextConnection(
+       explicit PlaintextConnection(
         std::shared_ptr<RawConnection> raw_connection,
         crypto::PublicKey localPubkey, crypto::PublicKey remotePubkey,
         std::shared_ptr<crypto::marshaller::KeyMarshaller> key_marshaller);
 
-    PlaintextConnection(
+       explicit PlaintextConnection(
         std::shared_ptr<connection::Stream> raw_connection,
         crypto::PublicKey localPubkey, crypto::PublicKey remotePubkey,
         std::shared_ptr<crypto::marshaller::KeyMarshaller> key_marshaller);

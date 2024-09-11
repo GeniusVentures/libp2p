@@ -61,7 +61,7 @@ namespace libp2p::connection {
       SecretType remote;
     };
 
-    SecioConnection(
+    explicit SecioConnection(
         std::shared_ptr<RawConnection> raw_connection,
         std::shared_ptr<crypto::hmac::HmacProvider> hmac_provider,
         std::shared_ptr<crypto::marshaller::KeyMarshaller> key_marshaller,
@@ -71,7 +71,7 @@ namespace libp2p::connection {
         crypto::StretchedKey local_stretched_key,
         crypto::StretchedKey remote_stretched_key);
 
-    SecioConnection(
+    explicit SecioConnection(
         std::shared_ptr<Stream> raw_connection,
         std::shared_ptr<crypto::hmac::HmacProvider> hmac_provider,
         std::shared_ptr<crypto::marshaller::KeyMarshaller> key_marshaller,

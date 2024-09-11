@@ -26,6 +26,7 @@ namespace libp2p::transport {
     using SecSPtr = std::shared_ptr<connection::SecureConnection>;
     using CapSPtr = std::shared_ptr<connection::CapableConnection>;
 
+
     using OnSecuredCallbackFunc = std::function<void(outcome::result<SecSPtr>)>;
     using OnMuxedCallbackFunc = std::function<void(outcome::result<CapSPtr>)>;
 
