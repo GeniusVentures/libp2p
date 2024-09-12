@@ -107,7 +107,7 @@ namespace libp2p::network {
 
                   // Check if the last tried address had a circuit relay
                   if (last_tried_addr.hasCircuitRelay()) {
-                      self->upgradeDialRelay(peer_id, result);
+                      self->upgradeDialRelay(peer_id, result.value());
                       return;
                   }
                   self->completeDial(peer_id, result);
@@ -146,8 +146,14 @@ namespace libp2p::network {
 
                   ctx.dialled = true;
                   SL_TRACE(log_, "Dial to {} via {}", peer_id.toBase58(), addr.getStringAddress());
-
-                  tr->dial(peer_id_actual.value(), addr, dial_handler, ctx.timeout, ctx.bindaddress);
+                  if (auto c = cmgr_->getBestConnectionForPeer(peer_id_actual.value()); c != nullptr) {
+                      SL_TRACE(log_, "We already have a connection to relay node {} but have not established a connection to target node {}", peer_id_actual.value().toBase58(), peer_id.toBase58());
+                      upgradeDialRelay(peer_id, c);
+                  }
+                  else {
+                      tr->dial(peer_id_actual.value(), addr, dial_handler, ctx.timeout, ctx.bindaddress);
+                  }
+                  
               }
               else {
                   scheduler_->schedule([wp{ weak_from_this() }, peer_id] {
@@ -199,10 +205,10 @@ namespace libp2p::network {
   }
 
 
-  void DialerImpl::upgradeDialRelay(const peer::PeerId& peer_id, const DialResult& result) {
-      log_->info("Upgrading connection to relay {} ", result.value()->remoteMultiaddr().value().getStringAddress());
+  void DialerImpl::upgradeDialRelay(const peer::PeerId& peer_id, std::shared_ptr<connection::CapableConnection> result) {
+      log_->info("Upgrading connection to relay {} ", result->remoteMultiaddr().value().getStringAddress());
 
-      auto stream = result.value()->newStream();
+      auto stream = result->newStream();
       if (!result) {
           log_->error("Could not create stream to upgrade relay");
           completeDial(peer_id, result);

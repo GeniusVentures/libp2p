@@ -82,7 +82,7 @@ namespace libp2p::network {
     void completeDial(const peer::PeerId &peer_id, const DialResult &result);
 
     // Upgrade relay connection using HOP protocol
-    void upgradeDialRelay(const peer::PeerId& peer_id, const DialResult& result);
+    void upgradeDialRelay(const peer::PeerId& peer_id, std::shared_ptr<connection::CapableConnection> result);
 
     std::shared_ptr<protocol_muxer::ProtocolMuxer> multiselect_;
     std::shared_ptr<TransportManager> tmgr_;
