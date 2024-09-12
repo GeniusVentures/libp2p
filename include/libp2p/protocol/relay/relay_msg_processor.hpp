@@ -17,6 +17,8 @@
 #include <libp2p/peer/identity_manager.hpp>
 #include <libp2p/peer/peer_id.hpp>
 #include <libp2p/protocol/identify/observed_addresses.hpp>
+#include <libp2p/transport/upgrader.hpp>
+#include <libp2p/transport/impl/upgrader_session.hpp>
 
 namespace relay::pb {
   class HopMessage;
@@ -37,7 +39,7 @@ namespace libp2p::protocol {
     using RelayStopCallback = void(const bool&);
 
     RelayMessageProcessor(
-        Host &host, network::ConnectionManager &conn_manager);
+        Host &host, network::ConnectionManager &conn_manager, std::shared_ptr<libp2p::transport::Upgrader> upgrader);
 
     boost::signals2::connection onRelayReceived(
         const std::function<RelayCallback> &cb);
@@ -108,12 +110,19 @@ namespace libp2p::protocol {
      * Called, when an relay message is received from the other peer
      * @param stream, over which it was received
      */
-    void relayConnectResponse(const StreamSPtr& stream);
+    void relayConnectResponse(const StreamSPtr& stream, peer::PeerId peer_id);
+
+    /**
+     * After a relay is accepted we expect to receive encryption and muxing.
+     * @param stream, over which it was received
+     */
+    void relayConnectUpgrade(const StreamSPtr& stream, peer::PeerId peer_id);
 
     Host &host_;
     network::ConnectionManager &conn_manager_;
     //RelayAddresses relay_addresses_;
     boost::signals2::signal<RelayCallback> signal_relay_received_;
+    std::shared_ptr<libp2p::transport::Upgrader> upgrader_;
 
 
     log::Logger log_ = log::createLogger("RelayMsgProcessor");

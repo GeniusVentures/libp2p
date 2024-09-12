@@ -32,6 +32,18 @@ namespace libp2p::security {
     handshake->connect();
   }
 
+  void Noise::secureInboundRelay(std::shared_ptr<connection::Stream> inbound,
+      SecurityAdaptor::SecConnCallbackFunc cb) {
+      log_->info("securing inbound connection");
+      auto noise_marshaller =
+          std::make_unique<noise::HandshakeMessageMarshallerImpl>(
+              key_marshaller_);
+      auto handshake = std::make_shared<noise::Handshake>(
+          crypto_provider_, std::move(noise_marshaller), local_key_, inbound,
+          false, boost::none, std::move(cb), key_marshaller_);
+      handshake->connect();
+  }
+
   void Noise::secureOutbound(
       std::shared_ptr<connection::RawConnection> outbound,
       const peer::PeerId &p, SecurityAdaptor::SecConnCallbackFunc cb) {

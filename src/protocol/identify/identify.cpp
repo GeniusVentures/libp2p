@@ -17,11 +17,13 @@ namespace {
 namespace libp2p::protocol {
     Identify::Identify(Host& host,
         std::shared_ptr<IdentifyMessageProcessor> msg_processor,
-        event::Bus& event_bus, CompletionCallback callback)
-        : host_{ host }, msg_processor_{ std::move(msg_processor) }, bus_{ event_bus }, callback_(callback)
+        event::Bus& event_bus, 
+        std::shared_ptr<libp2p::transport::Upgrader> upgrader, 
+        CompletionCallback callback)
+        : host_{ host }, msg_processor_{ std::move(msg_processor) }, bus_{ event_bus }, callback_(callback), upgrader_ { upgrader } 
     {
         autonat_msg_processor_ = std::make_shared<libp2p::protocol::AutonatMessageProcessor>(host, host.getNetwork().getConnectionManager());
-        autonat_ = std::make_shared<libp2p::protocol::Autonat>(host, autonat_msg_processor_, host.getBus(), callback);
+        autonat_ = std::make_shared<libp2p::protocol::Autonat>(host, autonat_msg_processor_, host.getBus(), upgrader_, callback);
     
         BOOST_ASSERT(msg_processor_);
     

@@ -83,6 +83,15 @@ namespace libp2p::security {
     receiveExchangeMsg(inbound, rw, boost::none, cb);
   }
 
+  void Plaintext::secureInboundRelay(
+      std::shared_ptr<connection::Stream> inbound,
+      SecConnCallbackFunc cb) {
+      SL_DEBUG(log_, "securing inbound connection relay");
+      auto rw = std::make_shared<basic::ProtobufMessageReadWriter>(inbound);
+      sendExchangeMsg(inbound, rw, cb);
+      receiveExchangeMsg(inbound, rw, boost::none, cb);
+  }
+
   void Plaintext::secureOutbound(
       std::shared_ptr<connection::RawConnection> outbound,
       const peer::PeerId &p, SecConnCallbackFunc cb) {

@@ -37,6 +37,8 @@ namespace libp2p::transport {
 
     void secureInbound();
 
+    void secureInboundRelay();
+
    private:
     std::shared_ptr<transport::Upgrader> upgrader_;
     std::shared_ptr<connection::RawConnection> raw_;

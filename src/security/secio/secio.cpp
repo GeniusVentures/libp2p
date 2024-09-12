@@ -96,6 +96,14 @@ namespace libp2p::security {
     receiveProposeMessage(inbound, dialer, cb);
   }
 
+  void Secio::secureInboundRelay(std::shared_ptr<connection::Stream> inbound,
+      SecurityAdaptor::SecConnCallbackFunc cb) {
+      log_->info("securing inbound connection");
+      auto dialer = std::make_shared<secio::Dialer>(inbound);
+      sendProposeMessage(inbound, dialer, cb);
+      receiveProposeMessage(inbound, dialer, cb);
+  }
+
   void Secio::secureOutbound(
       std::shared_ptr<connection::RawConnection> outbound,
       const peer::PeerId &p, SecurityAdaptor::SecConnCallbackFunc cb) {

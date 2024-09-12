@@ -46,6 +46,13 @@ namespace libp2p::transport {
         });
   }
 
+  void UpgraderSession::secureInboundRelay() {
+      upgrader_->upgradeToSecureInboundRelay(
+          stream_, [self{ shared_from_this() }](auto&& r) {
+              self->onSecured(std::forward<decltype(r)>(r));
+          });
+  }
+
   void UpgraderSession::onSecured(
       outcome::result<std::shared_ptr<connection::SecureConnection>> rsecure) {
     if (!rsecure) {

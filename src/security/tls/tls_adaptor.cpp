@@ -39,6 +39,12 @@ namespace libp2p::security {
     asyncHandshake(std::move(inbound), boost::none, std::move(cb));
   }
 
+  void TlsAdaptor::secureInboundRelay(
+      std::shared_ptr<connection::Stream> inbound,
+      SecConnCallbackFunc cb) {
+      asyncHandshake(std::move(inbound), boost::none, std::move(cb));
+  }
+
   void TlsAdaptor::secureOutbound(
       std::shared_ptr<connection::RawConnection> outbound,
       const peer::PeerId &p, SecConnCallbackFunc cb) {

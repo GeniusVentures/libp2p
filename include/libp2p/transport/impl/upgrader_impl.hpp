@@ -43,9 +43,12 @@ namespace libp2p::transport {
                                  OnSecuredCallbackFunc cb) override;
 
     void upgradeToSecureOutboundRelay(StrSPtr conn, const peer::PeerId& remoteId,
-        OnSecuredCallbackFunc cb) override;
+                                 OnSecuredCallbackFunc cb) override;
 
     void upgradeToSecureInbound(RawSPtr conn,
+                                OnSecuredCallbackFunc cb) override;
+
+    void upgradeToSecureInboundRelay(StrSPtr conn,
                                 OnSecuredCallbackFunc cb) override;
 
     void upgradeToMuxed(SecSPtr conn, OnMuxedCallbackFunc cb) override;

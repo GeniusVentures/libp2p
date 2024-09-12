@@ -38,6 +38,7 @@ namespace libp2p::protocol {
     Identify(Host &host,
              std::shared_ptr<IdentifyMessageProcessor> msg_processor,
              event::Bus &event_bus,
+             std::shared_ptr<libp2p::transport::Upgrader> upgrader,
              CompletionCallback callback);
 
     ~Identify() override = default;
@@ -90,6 +91,7 @@ namespace libp2p::protocol {
     log::Logger log_ = log::createLogger("Identify");
     bool started_ = false;
     CompletionCallback callback_;
+    std::shared_ptr<libp2p::transport::Upgrader> upgrader_;
   };
 }  // namespace libp2p::protocol
 
