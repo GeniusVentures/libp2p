@@ -242,6 +242,69 @@ namespace libp2p::network {
     this->cmgr_->addConnectionToPeer(id, conn);
   }
 
+  void ListenerManagerImpl::onConnectionRelay(
+      peer::PeerId id,
+      outcome::result<std::shared_ptr<connection::CapableConnection>>
+      rconn)
+  {
+      if (!rconn) {
+          log_()->warn("can not accept valid connection, {}",
+              rconn.error().message());
+          return;  // ignore
+      }
+      auto&& conn = rconn.value();
+
+      // set onStream handler function
+      conn->onStream(
+          [this](outcome::result<std::shared_ptr<connection::Stream>> rstream) {
+              if (!rstream) {
+                  log_()->warn("can not accept stream, {}", rstream.error().message());
+                  return;  // ignore
+              }
+              auto&& stream = rstream.value();
+
+              auto protocols = this->router_->getSupportedProtocols();
+              if (protocols.empty()) {
+                  log_()->warn("no protocols are served, resetting inbound stream");
+                  stream->reset();
+                  return;
+              }
+
+              // negotiate protocols
+              this->multiselect_->selectOneOf(
+                  this->router_->getSupportedProtocols(), stream,
+                  false /* not initiator */,
+                  true /* need to negotiate multistream itself - SPEC ???*/,
+                  [this, stream](outcome::result<peer::Protocol> rproto) {
+                      bool success = true;
+
+                      if (!rproto) {
+                          log_()->warn("can not negotiate protocols, {}",
+                              rproto.error().message());
+                          success = false;
+                      }
+                      else {
+                          auto&& proto = rproto.value();
+
+                          auto rhandle = this->router_->handle(proto, stream);
+                          if (!rhandle) {
+                              log_()->warn("no protocol handler found, {}",
+                                  rhandle.error().message());
+                              success = false;
+                          }
+                      }
+
+                      if (!success) {
+                          stream->reset();
+                      }
+                  });
+          });
+
+      // store connection
+      this->cmgr_->addConnectionToPeer(id, conn);
+  }
+
+
   void ListenerManagerImpl::setProtocolHandler(const peer::Protocol &protocol,
                                                StreamResultFunc cb) {
     this->router_->setProtocolHandler(protocol, std::move(cb));

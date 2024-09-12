@@ -49,7 +49,7 @@ namespace libp2p::network {
       log()->error("inconsistency: not adding nullptr to active connections");
       return;
     }
-
+    log()->trace("Adding peer connection to records {}", p.toBase58());
     auto it = connections_.find(p);
     if (it == connections_.end()) {
       connections_.insert({p, {c}});

@@ -245,6 +245,7 @@ namespace libp2p::network {
                                   if (upgraderesult)
                                   {
                                       self->log_->info("Encryption Completed now we can complete the dial {} ", upgraderesult.value()->remoteMultiaddr().value().getStringAddress());
+                                      self->listener_->onConnectionRelay(peer_id, upgraderesult);
                                       self->completeDial(peer_id, upgraderesult);
                                   }
                                   else {

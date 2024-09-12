@@ -54,6 +54,11 @@ namespace libp2p::network {
         outcome::result<std::shared_ptr<connection::CapableConnection>> rconn)
         override;
 
+    void onConnectionRelay(
+        peer::PeerId id,
+        outcome::result<std::shared_ptr<connection::CapableConnection>>
+        rconn) override;
+
    private:
     bool started = false;
 
