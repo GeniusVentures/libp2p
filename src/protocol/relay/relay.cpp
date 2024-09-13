@@ -31,7 +31,7 @@ namespace libp2p::protocol {
         else {
             log_->info("Starting holepunch since we have an established relay now");
             callback_();
-            holepunch_->start();
+            //holepunch_->start();
         }
         });
     

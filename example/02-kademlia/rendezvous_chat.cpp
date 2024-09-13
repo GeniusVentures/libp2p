@@ -298,7 +298,7 @@ int main(int argc, char *argv[]) {
 
     auto m_identifymsgproc = std::make_shared<libp2p::protocol::IdentifyMessageProcessor>(
         *host, host->getNetwork().getConnectionManager(), *injector.create<std::shared_ptr<libp2p::peer::IdentityManager>>(), injector.create<std::shared_ptr<libp2p::crypto::marshaller::KeyMarshaller>>());
-    auto m_identify = std::make_shared<libp2p::protocol::Identify>(*host, m_identifymsgproc, host->getBus(), []() { });
+    auto m_identify = std::make_shared<libp2p::protocol::Identify>(*host, m_identifymsgproc, host->getBus(), injector.create<std::shared_ptr<libp2p::transport::Upgrader>>(), []() { });
     m_identify->start();
     // Handle streams for observed protocol
     host->setProtocolHandler("/chat/1.0.0", handleIncomingStream);
