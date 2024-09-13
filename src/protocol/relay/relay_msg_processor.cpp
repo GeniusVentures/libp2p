@@ -219,7 +219,7 @@ namespace libp2p::protocol {
         //Make sure we got a STATUS response
         if (msg.type() != relay::pb::StopMessage_Type_CONNECT)
         {
-            log_->info("Relay Connnect got a type other than CONNECT when expecting status from: {}, {}", peer_id_str,
+            log_->error("Relay Connnect got a type other than CONNECT when expecting status from: {}, {}", peer_id_str,
                 peer_addr_str);
             
             return stream->reset();
@@ -229,9 +229,10 @@ namespace libp2p::protocol {
             reinterpret_cast<const uint8_t*>(remotepeer.data()), remotepeer.size()));
         if (!remotepeer_res)
         {
-            log_->info("Remote relay connection peer id is bad {} ", remotepeer_res.error().message());
+            log_->error("Remote relay connection peer id is bad {} ", remotepeer_res.error().message());
             return stream->reset();
         }
+        
         //Make sure reservation is OK
         //if (msg.status() != relay::pb::OK)
         //{
@@ -245,6 +246,7 @@ namespace libp2p::protocol {
 
     void RelayMessageProcessor::relayConnectResponse(const StreamSPtr& stream, peer::PeerId peer_id)
     {
+        log_->info("Remote relay connection response being sent to {} ", peer_id.toBase58());
         //Create a Stop Message
         relay::pb::StopMessage msg;
         msg.set_type(relay::pb::StopMessage_Type_STATUS);
@@ -262,9 +264,10 @@ namespace libp2p::protocol {
 
     void RelayMessageProcessor::relayConnectUpgrade(const StreamSPtr& stream, peer::PeerId peer_id)
     {
-        
+        log_->info("Remote relay connection encryption being upgraded {} ", peer_id.toBase58());
         auto session = std::make_shared<libp2p::transport::UpgraderSession>(
             upgrader_, stream, [self{ shared_from_this() }, peer_id](outcome::result<std::shared_ptr<connection::CapableConnection>> result) {
+                self->log_->info("Remote relay connection completed {} ", peer_id.toBase58());
                 self->host_.getNetwork().getListener().onConnectionRelay(peer_id, result);
             });
 
