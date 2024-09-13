@@ -13,6 +13,7 @@
 #include <boost/noncopyable.hpp>
 #include <libp2p/connection/stream.hpp>
 #include <libp2p/log/logger.hpp>
+#include <libp2p/transport/tcp/tcp_connection.hpp>
 
 namespace libp2p::connection {
   class MplexedConnection;
@@ -89,6 +90,9 @@ namespace libp2p::connection {
 
     //Set as incoming relay to allow incoming negotiations
     void setIncomingRelay(bool isincrelay) override;
+
+    //Get socket for TLS
+    boost::asio::ip::tcp::socket& GetTcpSocket() override;
 
    private:
     /**

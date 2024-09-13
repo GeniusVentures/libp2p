@@ -20,7 +20,10 @@
 namespace libp2p::security {
   class TlsAdaptor;
 }
-
+namespace libp2p::connection {
+    struct YamuxStream;
+    struct MplexStream;
+}
 namespace libp2p::transport {
 
   /**
@@ -142,6 +145,8 @@ namespace libp2p::transport {
     boost::optional<multi::Multiaddress> local_multiaddress_;
 
     friend class security::TlsAdaptor;
+    friend struct connection::YamuxStream;
+    friend struct connection::MplexStream;
 
     std::string debug_str_;
 

@@ -10,6 +10,7 @@
 #include <libp2p/connection/capable_connection.hpp>
 #include <libp2p/multi/multiaddress.hpp>
 #include <libp2p/outcome/outcome.hpp>
+#include <boost/asio/ip/tcp.hpp>
 
 namespace libp2p::peer {
   class PeerId;
@@ -122,6 +123,12 @@ namespace libp2p::connection {
      * @param whether this is a relay
      */
     virtual void setIncomingRelay(bool isincrelay) = 0;
+
+    /**
+     * Set whether stream is an incoming relay
+     * @param whether this is a relay
+     */
+    virtual boost::asio::ip::tcp::socket& GetTcpSocket() = 0;
   };
 }  // namespace libp2p::connection
 

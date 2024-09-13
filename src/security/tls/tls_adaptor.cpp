@@ -153,16 +153,20 @@ namespace libp2p::security {
           }
       }
 
-      transport::TcpConnection* tcp_conn = nullptr;
+      //transport::TcpConnection* tcp_conn = nullptr;
 
       if (!ec) {
-          tcp_conn = dynamic_cast<transport::TcpConnection*>(conn.get());
-          if (tcp_conn == nullptr) {
+          //tcp_conn = dynamic_cast<transport::TcpConnection*>(conn.get());
+          //if (tcp_conn == nullptr) {
+          //    ec = TlsError::TLS_INCOMPATIBLE_TRANSPORT;
+          //}
+          if (!conn->remoteMultiaddr().value().getFirstValueForProtocol(libp2p::multi::Protocol::Code::TCP))
+          {
               ec = TlsError::TLS_INCOMPATIBLE_TRANSPORT;
           }
           else {
               auto tls_conn = std::make_shared<TlsConnection>(
-                  std::move(conn), ssl_context_, *idmgr_, tcp_conn->socket_,
+                  std::move(conn), ssl_context_, *idmgr_, conn->GetTcpSocket(),
                   std::move(remote_peer));
               tls_conn->asyncHandshake(std::move(cb), key_marshaller_);
           }

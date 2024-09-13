@@ -355,6 +355,13 @@ namespace libp2p::connection {
       incoming_relay_ = isincrelay;
   }
 
+  boost::asio::ip::tcp::socket& YamuxStream::GetTcpSocket()
+  {
+      transport::TcpConnection* tcp_conn = nullptr;
+      tcp_conn = dynamic_cast<transport::TcpConnection*>(connection_.get());
+      return tcp_conn->socket_;
+  }
+
   void YamuxStream::doClose(std::error_code ec, bool notify_read_side) {
     assert(ec);
 

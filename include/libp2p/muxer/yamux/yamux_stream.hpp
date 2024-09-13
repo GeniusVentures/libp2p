@@ -10,6 +10,7 @@
 #include <libp2p/basic/write_queue.hpp>
 #include <libp2p/common/metrics/instance_count.hpp>
 #include <libp2p/connection/stream.hpp>
+#include <libp2p/transport/tcp/tcp_connection.hpp>
 
 namespace libp2p::connection {
 
@@ -116,6 +117,9 @@ namespace libp2p::connection {
 
     //Set as incoming relay to allow incoming negotiations
     void setIncomingRelay(bool isincrelay) override;
+
+    //Get socket for TLS
+    boost::asio::ip::tcp::socket& GetTcpSocket() override;
 
    private:
     /// Performs close-related cleanup and notifications
