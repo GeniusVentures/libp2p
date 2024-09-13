@@ -113,7 +113,6 @@ namespace libp2p::network {
                   self->completeDial(peer_id, result);
                   return;
               }
-              std::cout << "Error what?" << result.error().message() << std::endl;
               self->log_->error("Error on connect to {} : {}", last_tried_addr.getStringAddress(),result.error().message());
               // store an error otherwise and reschedule one more rotate
               ctx.result = std::move(result);
