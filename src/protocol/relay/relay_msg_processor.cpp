@@ -270,7 +270,7 @@ namespace libp2p::protocol {
                 self->log_->info("Remote relay connection completed {} ", peer_id.toBase58());
                 self->host_.getNetwork().getListener().onConnectionRelay(peer_id, result);
             });
-
+        stream->setIncomingRelay(true);
         session->secureInboundRelay();
     }
 }

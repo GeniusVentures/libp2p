@@ -187,6 +187,10 @@ namespace libp2p::connection {
   }
 
   outcome::result<bool> YamuxStream::isInitiator() const {
+      if (incoming_relay_)
+      {
+          return false;
+      }
     return connection_->isInitiator();
   }
 
@@ -344,6 +348,11 @@ namespace libp2p::connection {
 
   void YamuxStream::closedByConnection(std::error_code ec) {
     doClose(ec, true);
+  }
+
+  void YamuxStream::setIncomingRelay(bool isincrelay)
+  {
+      incoming_relay_ = isincrelay;
   }
 
   void YamuxStream::doClose(std::error_code ec, bool notify_read_side) {

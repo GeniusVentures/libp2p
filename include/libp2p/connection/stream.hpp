@@ -117,6 +117,11 @@ namespace libp2p::connection {
      * @return multiaddress or error
      */
     virtual outcome::result<multi::Multiaddress> remoteMultiaddr() const = 0;
+    /**
+     * Set whether stream is an incoming relay 
+     * @param whether this is a relay
+     */
+    virtual void setIncomingRelay(bool isincrelay) = 0;
   };
 }  // namespace libp2p::connection
 
