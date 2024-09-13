@@ -67,7 +67,7 @@ namespace libp2p::protocol {
       if (!stream_res) {
           return;
       }
-      msg_processor_->receiveRelay(std::move(stream_res.value()));
+      msg_processor_->receiveStopRelay(std::move(stream_res.value()));
   }
 
   void Relay::start() {
