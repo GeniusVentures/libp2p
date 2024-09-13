@@ -211,7 +211,7 @@ namespace libp2p::protocol {
             return stream->reset();
         }
 
-        log_->info("received an relay message from peer {}, {}", peer_id_str,
+        log_->info("received a STOP connection relay message from peer {}, {}", peer_id_str,
             peer_addr_str);
 
         auto&& msg = std::move(msg_res.value());

@@ -106,7 +106,7 @@ namespace libp2p::transport {
                   return cb(Error::NO_ADAPTOR_FOUND);
               }
 
-              BOOST_ASSERT_MSG(!conn->isInitiator(),
+              BOOST_ASSERT_MSG(!conn->isInitiator().value(),
                   "connection is initiator, and SecureInbound is "
                   "called (should be SecureOutbound)");
 

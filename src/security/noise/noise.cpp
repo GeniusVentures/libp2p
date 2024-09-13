@@ -34,7 +34,7 @@ namespace libp2p::security {
 
   void Noise::secureInboundRelay(std::shared_ptr<connection::Stream> inbound,
       SecurityAdaptor::SecConnCallbackFunc cb) {
-      log_->info("securing inbound connection");
+      log_->info("securing inbound connection stream version {}", inbound->remotePeerId().value().toBase58());
       auto noise_marshaller =
           std::make_unique<noise::HandshakeMessageMarshallerImpl>(
               key_marshaller_);
