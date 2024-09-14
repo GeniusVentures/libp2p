@@ -226,6 +226,11 @@ namespace libp2p::connection {
     connection_->deferWriteCallback(ec, std::move(cb));
   }
 
+  outcome::result<std::shared_ptr<RawConnection>> YamuxedConnection::getRawConnection() const
+  {
+      return connection_->getRawConnection();
+  }
+
   void YamuxedConnection::continueReading() {
     SL_TRACE(log_(), "YamuxedConnection::continueReading");
     connection_->readSome(*raw_read_buffer_, raw_read_buffer_->size(),

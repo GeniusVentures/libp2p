@@ -20,6 +20,7 @@
 #include <libp2p/security/noise/handshake_message_marshaller_impl.hpp>
 #include <libp2p/security/noise/insecure_rw.hpp>
 #include <libp2p/connection/stream.hpp>
+#include <libp2p/transport/tcp/tcp_connection.hpp>
 #include <variant>
 
 namespace libp2p::connection {
@@ -82,6 +83,8 @@ namespace libp2p::connection {
     outcome::result<peer::PeerId> remotePeer() const override;
 
     outcome::result<crypto::PublicKey> remotePublicKey() const override;
+
+    outcome::result<std::shared_ptr<RawConnection>> getRawConnection() const override;
 
    private:
     void read(gsl::span<uint8_t> out, size_t bytes, OperationContext ctx,

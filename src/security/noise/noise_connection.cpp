@@ -246,6 +246,14 @@ namespace libp2p::connection {
     return remote_;
   }
 
+
+  outcome::result<std::shared_ptr<RawConnection>> NoiseConnection::getRawConnection() const
+  {
+      auto raw_conn = std::get_if<std::shared_ptr<RawConnection>>(&connection_);
+      return *raw_conn;
+  }
+
+
   void NoiseConnection::eraseWriteBuffer(BufferList::iterator &iterator) {
     if (write_buffers_.end() == iterator) {
       return;

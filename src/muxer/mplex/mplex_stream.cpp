@@ -266,6 +266,12 @@ namespace libp2p::connection {
         return tcp_conn->socket_;  // Return a reference to the TCP socket
   }
 
+  outcome::result<std::shared_ptr<RawConnection>> MplexStream::getRawConnection() const
+  {
+      auto conn_shared = connection_.lock();
+      return conn_shared->getRawConnection();
+  }
+
   outcome::result<void> MplexStream::commitData(gsl::span<const uint8_t> data,
                                                 size_t data_size) {
     if (data_size == 0) {

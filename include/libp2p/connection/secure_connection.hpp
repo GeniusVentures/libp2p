@@ -37,6 +37,12 @@ namespace libp2p::connection {
      */
     virtual outcome::result<crypto::PublicKey> remotePublicKey() const = 0;
 
+    /**
+     * Get a raw connection from this.
+     * @return RawConnection
+     */
+    virtual outcome::result<std::shared_ptr<RawConnection>> getRawConnection() const = 0;
+
     // TODO(warchant): figure out, if it is needed
     // virtual crypto::PrivateKey localPrivateKey() const = 0;
   };

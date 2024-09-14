@@ -78,6 +78,8 @@ namespace libp2p::connection {
                            ReadCallbackFunc cb) override;
     void deferWriteCallback(std::error_code ec, WriteCallbackFunc cb) override;
 
+    outcome::result<std::shared_ptr<RawConnection>> getRawConnection() const override;
+
    private:
     using Streams = std::unordered_map<StreamId, std::shared_ptr<YamuxStream>>;
 

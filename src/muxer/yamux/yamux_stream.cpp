@@ -362,6 +362,11 @@ namespace libp2p::connection {
       return tcp_conn->socket_;
   }
 
+  outcome::result<std::shared_ptr<RawConnection>> YamuxStream::getRawConnection() const
+  {
+      return connection_->getRawConnection();
+  }
+
   void YamuxStream::doClose(std::error_code ec, bool notify_read_side) {
     assert(ec);
 

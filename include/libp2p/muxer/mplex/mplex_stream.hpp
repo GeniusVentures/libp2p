@@ -94,6 +94,8 @@ namespace libp2p::connection {
     //Get socket for TLS
     boost::asio::ip::tcp::socket& GetTcpSocket() override;
 
+    outcome::result<std::shared_ptr<RawConnection>> getRawConnection() const override;
+
    private:
     /**
      * Internal proxy method for reads; (\param some) denotes if the read should

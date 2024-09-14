@@ -23,6 +23,7 @@ namespace libp2p::security {
 namespace libp2p::connection {
     struct YamuxStream;
     struct MplexStream;
+    class NoiseConnection;
 }
 namespace libp2p::transport {
 
@@ -145,6 +146,7 @@ namespace libp2p::transport {
     boost::optional<multi::Multiaddress> local_multiaddress_;
 
     friend class security::TlsAdaptor;
+    friend class connection::NoiseConnection;
     friend struct connection::YamuxStream;
     friend struct connection::MplexStream;
 

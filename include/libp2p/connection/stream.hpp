@@ -129,6 +129,8 @@ namespace libp2p::connection {
      * @param whether this is a relay
      */
     virtual boost::asio::ip::tcp::socket& GetTcpSocket() = 0;
+
+    virtual outcome::result<std::shared_ptr<RawConnection>> getRawConnection() const = 0;
   };
 }  // namespace libp2p::connection
 

@@ -121,6 +121,8 @@ namespace libp2p::connection {
     //Get socket for TLS
     boost::asio::ip::tcp::socket& GetTcpSocket() override;
 
+    outcome::result<std::shared_ptr<RawConnection>> getRawConnection() const override;
+
    private:
     /// Performs close-related cleanup and notifications
     void doClose(std::error_code ec, bool notify_read_side);
