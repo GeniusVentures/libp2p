@@ -152,6 +152,11 @@ namespace libp2p::connection {
     connection_->deferWriteCallback(ec, std::move(cb));
   }
 
+  outcome::result<std::shared_ptr<RawConnection>> MplexedConnection::getRawConnection() const
+  {
+      return connection_->getRawConnection();
+  }
+
   void MplexedConnection::write(WriteData data) {
     write_queue_.push(std::move(data));
     if (is_writing_) {

@@ -452,6 +452,12 @@ namespace libp2p::connection {
           }, connection_);
   }
 
+  outcome::result<std::shared_ptr<RawConnection>> SecioConnection::getRawConnection() const
+  {
+      auto raw_conn = std::get_if<std::shared_ptr<RawConnection>>(&connection_);
+      return *raw_conn;
+  }
+
   outcome::result<size_t> SecioConnection::macSize() const {
     using HT = crypto::common::HashType;
     switch (hash_type_) {

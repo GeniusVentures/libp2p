@@ -128,6 +128,8 @@ namespace libp2p::connection {
 
     outcome::result<void> close() override;
 
+    outcome::result<std::shared_ptr<RawConnection>> getRawConnection() const override;
+
    private:
     /**
      * Retrieves the next available SECIO message from the network.

@@ -116,6 +116,8 @@ namespace libp2p::connection {
     /// Closes the socket
     outcome::result<void> close() override;
 
+    outcome::result<std::shared_ptr<RawConnection>> getRawConnection() const override;
+
    private:
     /// Async handshake callback. Performs libp2p-specific verification and
     /// extraction of remote peer's identity fields

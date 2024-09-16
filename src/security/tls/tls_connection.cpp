@@ -225,4 +225,10 @@ namespace libp2p::connection {
           return outcome::failure(std::make_error_code(std::errc::invalid_argument));  // Fallback in case neither type matches
           }, connection_);
   }
+
+  outcome::result<std::shared_ptr<RawConnection>> TlsConnection::getRawConnection() const
+  {
+      auto raw_conn = std::get_if<std::shared_ptr<RawConnection>>(&connection_);
+      return *raw_conn;
+  }
 }  // namespace libp2p::connection
