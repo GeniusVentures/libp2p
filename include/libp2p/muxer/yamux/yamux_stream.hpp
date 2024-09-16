@@ -118,9 +118,6 @@ namespace libp2p::connection {
     //Set as incoming relay to allow incoming negotiations
     void setIncomingRelay(bool isincrelay) override;
 
-    //Get socket for TLS
-    boost::asio::ip::tcp::socket& GetTcpSocket() override;
-
     outcome::result<std::shared_ptr<RawConnection>> getRawConnection() const override;
 
    private:

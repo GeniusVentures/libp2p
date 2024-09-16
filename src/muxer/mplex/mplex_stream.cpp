@@ -247,24 +247,6 @@ namespace libp2p::connection {
       incoming_relay_ = isincrelay;
   }
 
-  boost::asio::ip::tcp::socket& MplexStream::GetTcpSocket()
-  {
-        // Lock the weak_ptr to get a shared_ptr
-        auto conn_shared = connection_.lock();
-
-        if (!conn_shared) {
-            throw std::runtime_error("Connection is no longer valid");
-        }
-
-        // Perform the dynamic_cast
-        transport::TcpConnection* tcp_conn = dynamic_cast<transport::TcpConnection*>(conn_shared.get());
-
-        if (tcp_conn == nullptr) {
-            throw std::runtime_error("Connection is not a TcpConnection");
-        }
-
-        return tcp_conn->socket_;  // Return a reference to the TCP socket
-  }
 
   outcome::result<std::shared_ptr<RawConnection>> MplexStream::getRawConnection() const
   {

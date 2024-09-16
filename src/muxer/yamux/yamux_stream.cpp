@@ -355,13 +355,6 @@ namespace libp2p::connection {
       incoming_relay_ = isincrelay;
   }
 
-  boost::asio::ip::tcp::socket& YamuxStream::GetTcpSocket()
-  {
-      transport::TcpConnection* tcp_conn = nullptr;
-      tcp_conn = dynamic_cast<transport::TcpConnection*>(connection_.get());
-      return tcp_conn->socket_;
-  }
-
   outcome::result<std::shared_ptr<RawConnection>> YamuxStream::getRawConnection() const
   {
       return connection_->getRawConnection();

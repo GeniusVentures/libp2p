@@ -124,12 +124,6 @@ namespace libp2p::connection {
      */
     virtual void setIncomingRelay(bool isincrelay) = 0;
 
-    /**
-     * Set whether stream is an incoming relay
-     * @param whether this is a relay
-     */
-    virtual boost::asio::ip::tcp::socket& GetTcpSocket() = 0;
-
     virtual outcome::result<std::shared_ptr<RawConnection>> getRawConnection() const = 0;
   };
 }  // namespace libp2p::connection
