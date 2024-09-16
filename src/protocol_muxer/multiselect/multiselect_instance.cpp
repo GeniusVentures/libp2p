@@ -274,13 +274,13 @@ namespace libp2p::protocol_muxer::multiselect {
           sendLS();
           break;
         case Message::kWrongProtocolVersion: {
-          SL_DEBUG(log(), "Received unsupported protocol version: {}",
-                   common::dumpBin(msg.content));
+          //SL_DEBUG(log(), "Received unsupported protocol version: {}",
+          //         common::dumpBin(msg.content));
           result = ProtocolMuxer::Error::PROTOCOL_VIOLATION;
         } break;
         default: {
-          SL_DEBUG(log(), "Received invalid message: {}",
-                   common::dumpBin(msg.content));
+          //SL_DEBUG(log(), "Received invalid message: {}",
+          //         common::dumpBin(msg.content));
           result = ProtocolMuxer::Error::PROTOCOL_VIOLATION;
         } break;
       }
