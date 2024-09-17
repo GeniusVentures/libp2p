@@ -51,124 +51,6 @@ namespace libp2p::protocol {
             });
     }
 
-    void HolepunchClientMsgProc::holepunchConnectSent(
-        outcome::result<size_t> written_bytes, const StreamSPtr& stream,
-        peer::PeerId peer_id, int retry_count) {
-        auto [peer_id_str, peer_addr_str] = detail::getPeerIdentity(stream);
-        if (!written_bytes) {
-            log_->error("cannot write Autonat message to stream to peer {}, {}: {}",
-                peer_id_str, peer_addr_str, written_bytes.error().message());
-            return stream->reset();
-        }
-
-        log_->info("successfully written an Autonat message to peer {}, {}",
-            peer_id_str, peer_addr_str);
-        //Create a timestamp
-        auto start_time = std::chrono::steady_clock::now();
-        // Handle incoming responses
-        auto rw = std::make_shared<basic::ProtobufMessageReadWriter>(stream);
-        rw->read<holepunch::pb::HolePunch>(
-            [self{ shared_from_this() }, stream, start_time, peer_id, retry_count](auto&& res) {
-                self->holepunchConnectReturn(std::forward<decltype(res)>(res), stream, start_time, peer_id, retry_count);
-            });
-    }
-
-    void HolepunchClientMsgProc::holepunchConnectReturn(
-        outcome::result<holepunch::pb::HolePunch> msg_res,
-        const StreamSPtr& stream,
-        std::chrono::steady_clock::time_point start_time,
-        peer::PeerId peer_id, int retry_count) {
-        auto [peer_id_str, peer_addr_str] = detail::getPeerIdentity(stream);
-
-        if (!msg_res) {
-            log_->error("cannot read an holepunch message from peer {}, {}: {}",
-                peer_id_str, peer_addr_str, msg_res.error());
-            return stream->reset();
-        }
-
-        log_->info("received an holepunch message from peer {}, {}", peer_id_str,
-            peer_addr_str);
-
-        auto&& msg = std::move(msg_res.value());
-        //Connect message
-        std::vector<libp2p::multi::Multiaddress> connaddrs;
-        if (msg.type() != holepunch::pb::HolePunch::CONNECT)
-        {
-            log_->error("We were expecting a holepunch CONNECT but got something else {}, {}",
-                peer_id_str, peer_addr_str);
-            return;
-        }
-        for (auto& addr : msg.obsaddrs())
-        {
-            connaddrs.push_back(fromStringToMultiaddr(addr).value());
-        }
-        
-
-        auto peer_info = peer::PeerInfo{ peer_id, connaddrs };
-
-        //Calculate RTT
-        auto end_time = std::chrono::steady_clock::now();
-        auto rtt = std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time).count();
-
-        //We now need to send a SYNC message to the node, and then initiate a connect after round trip time / 2 
-        holepunch::pb::HolePunch outmsg;
-        outmsg.set_type(holepunch::pb::HolePunch_Type_SYNC);
-
-        //Send SYNC - Change to use async version below once we can get the io context into this class.
-        auto rw = std::make_shared<basic::ProtobufMessageReadWriter>(stream);
-        rw->write<holepunch::pb::HolePunch>(
-            outmsg,
-            [self{ shared_from_this() },
-            stream, connaddrs, rtt, peer_info](auto&& res) mutable {
-                auto rw = std::make_shared<basic::ProtobufMessageReadWriter>(stream);
-                rw->read<holepunch::pb::HolePunch>(
-                    [self, stream, rtt, peer_info](auto&& res) {
-                        // Calculate the delay time (RTT / 2)
-                        auto delay_duration = std::chrono::milliseconds(rtt / 2);
-                        // Wait for RTT / 2
-                        std::this_thread::sleep_for(delay_duration);
-                        // Now attempt to connect to the peer
-                        self->host_.connect(peer_info, [self, stream, peer_info](auto&& result) {
-                            if (result)
-                            {
-                                self->log_->info("Successfully opened a hole punch to peer {}", peer_info.id.toBase58());
-                            }
-                            else {
-                                self->log_->error("Failed to connect to peer {}: {}", peer_info.id.toBase58(), result.error().message());
-                                self->sendHolepunchConnect(stream, peer_info.id);
-                            }
-                            });
-                    });
-            });
-
-
-        //rw->read<holepunch::pb::HolePunch>(
-        //    [self{ shared_from_this() }, stream, rtt, peer_info](auto&& res) {
-        //        if (!res) {
-        //            self->log_->error("Failed to read HolePunch message: {}", res.error().message());
-        //            return;
-        //        }
-
-        //        // Calculate the delay time (RTT / 2)
-        //        auto delay_duration = std::chrono::milliseconds(rtt / 2);
-
-        //        // Create an asynchronous timer
-        //        auto timer = std::make_shared<boost::asio::steady_timer>(self->io_context_, delay_duration);
-
-        //        // Set the timer to wait for RTT / 2 asynchronously
-        //        timer->async_wait([self, timer, peer_info](const boost::system::error_code& ec) {
-        //            if (!ec) {
-        //                // Now attempt to connect to the peer
-        //                self->host_.connect(peer_info);
-        //            }
-        //            else {
-        //                self->log_->error("Error during RTT wait: {}", ec.message());
-        //            }
-        //            });
-        //    });
-
-    }
-
     Host& HolepunchClientMsgProc::getHost() const noexcept {
         return host_;
     }
@@ -280,7 +162,16 @@ namespace libp2p::protocol {
         auto peer_info = peer::PeerInfo{ peer_id.value(), connaddrs};
         
         //Connect immediately since we got a SYNC message.
-        host_.connect(peer_info);
+        host_.connect(peer_info, [self{ shared_from_this() }, stream, peer_info](auto&& result) {
+            if (result)
+            {
+                self->log_->info("Successfully opened a connection to peer, but we are not the iniator {}", peer_info.id.toBase58());
+                //TODO Store connection to close later
+            }
+            else {
+                self->log_->info("Failed to connect to peer in holepunch, this may re-try {}: {}", peer_info.id.toBase58(), result.error().message());
+            }
+            }, true);
     }
 
 }

@@ -65,29 +65,6 @@ namespace libp2p::protocol {
     //const ObservedAddresses &getObservedAddresses() const noexcept;
 
    private:
-    /**
-    Functions below happen when a holepunch connection is sent to another node
-    */
-    /**
-     * Called when a holepunch CONNECT message is sent
-     * @param written_bytes - how much bytes were written
-     * @param stream with the other side
-     * @param peer_id we are connecting to
-     */
-    void holepunchConnectSent(outcome::result<size_t> written_bytes,
-                      const StreamSPtr &stream,
-        peer::PeerId peer_id, int retry_count);
-
-    /**
-     * Called when we get a CONNECT message back, we will send a dcutr SYNC and connect to the other node
-     * @param msg_res a protobuf message we expect to be a dcutr CONNECT
-     * @param stream with the other side
-     * @param timestamp indicating when we sent the original connect request
-     * @param peer_id we are connecting to
-     */
-    void holepunchConnectReturn(outcome::result<holepunch::pb::HolePunch> msg_res,
-        const StreamSPtr& stream, std::chrono::steady_clock::time_point start_time,
-        peer::PeerId peer_id, int retry_count);
 
     /**
     Functions below happen when a holepunch connection is initated with us
