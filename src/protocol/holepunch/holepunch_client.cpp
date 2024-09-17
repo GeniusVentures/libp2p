@@ -1,4 +1,4 @@
-#include <libp2p/protocol/holepunch/holepunch.hpp>
+#include <libp2p/protocol/HolepunchClient/HolepunchClient_client.hpp>
 
 #include <string>
 #include <tuple>
@@ -8,59 +8,59 @@
 
 
 namespace {
-  const std::string kHolepunchProto = "/libp2p/dcutr";
+  const std::string kHolepunchClientProto = "/libp2p/dcutr";
 }  // namespace
 
 namespace libp2p::protocol {
-    Holepunch::Holepunch(Host &host,
-                     std::shared_ptr<HolepunchMessageProcessor> msg_processor,
+    HolepunchClient::HolepunchClient(Host &host,
+                     std::shared_ptr<HolepunchClientMessageProcessor> msg_processor,
                      event::Bus &event_bus)
       : host_{host}, msg_processor_{std::move(msg_processor)}, bus_{event_bus} {
     BOOST_ASSERT(msg_processor_);
-    msg_processor_->onHolepunchReceived([this](const bool& status) {
+    msg_processor_->onHolepunchClientReceived([this](const bool& status) {
         natstatus_ = status;
         });
   }
 
-  boost::signals2::connection Holepunch::onHolepunchReceived(
-      const std::function<HolepunchMessageProcessor::HolepunchCallback> &cb) {
-    return msg_processor_->onHolepunchReceived(cb);
+  boost::signals2::connection HolepunchClient::onHolepunchClientReceived(
+      const std::function<HolepunchClientMessageProcessor::HolepunchClientCallback> &cb) {
+    return msg_processor_->onHolepunchClientReceived(cb);
   }
 
-  //std::vector<multi::Multiaddress> Holepunch::getAllObservedAddresses() const {
+  //std::vector<multi::Multiaddress> HolepunchClient::getAllObservedAddresses() const {
   //  return msg_processor_->getObservedAddresses().getAllAddresses();
   //}
 
-  //std::vector<multi::Multiaddress> Holepunch::getObservedAddressesFor(
+  //std::vector<multi::Multiaddress> HolepunchClient::getObservedAddressesFor(
   //    const multi::Multiaddress &address) const {
   //  return msg_processor_->getObservedAddresses().getAddressesFor(address);
   //}
 
-  peer::Protocol Holepunch::getProtocolId() const {
-    return kHolepunchProto;
+  peer::Protocol HolepunchClient::getProtocolId() const {
+    return kHolepunchClientProto;
   }
 
-  void Holepunch::handle(StreamResult stream_res) {
+  void HolepunchClient::handle(StreamResult stream_res) {
     if (!stream_res) {
       return;
     }
-    msg_processor_->receiveIncomingHolepunch(std::move(stream_res.value()));
+    msg_processor_->receiveIncomingHolepunchClient(std::move(stream_res.value()));
   }
 
-  void Holepunch::start() {
+  void HolepunchClient::start() {
       if (started_) return;
     // no double starts
     //BOOST_ASSERT(!started_);
     started_ = true;
 
     host_.setProtocolHandler(
-        kHolepunchProto,
+        kHolepunchClientProto,
         [wp = weak_from_this()](protocol::BaseProtocol::StreamResult rstream) {
           if (auto self = wp.lock()) {
             self->handle(std::move(rstream));
           }
         });
-    //msg_processor_->sendHolepunchConnect(stream, peer_info);
+    //msg_processor_->sendHolepunchClientConnect(stream, peer_info);
     //sub_ = bus_.getChannel<event::network::OnNewConnectionChannel>().subscribe(
     //    [wp = weak_from_this(), obsaddr](auto &&conn) {
     //      if (auto self = wp.lock()) {
@@ -69,12 +69,12 @@ namespace libp2p::protocol {
     //    });
   }
 
-  void Holepunch::initiateHolePunch(StreamSPtr stream, peer::PeerId peer_id) {
+  void HolepunchClient::initiateHolepunchClient(StreamSPtr stream, peer::PeerId peer_id) {
         //Send out connect message
-      msg_processor_->sendHolepunchConnect(stream, peer_id);
+      msg_processor_->sendHolepunchClientConnect(stream, peer_id);
   }
 
-  void Holepunch::onNewConnection(
+  void HolepunchClient::onNewConnection(
       const std::weak_ptr<connection::CapableConnection> &conn,
       std::vector<libp2p::multi::Multiaddress> obsaddr) {
     //if (conn.expired()) {
@@ -96,7 +96,7 @@ namespace libp2p::protocol {
     //                             std::move(remote_peer_addr_res.value())}};
 
     //msg_processor_->getHost().newStream(
-    //    peer_info, kHolepunchProto,
+    //    peer_info, kHolepunchClientProto,
     //    [self{shared_from_this()}, obsaddr](auto &&stream_res) {
     //        if (!stream_res) {
     //            self->log_->error("Failed to create new stream: {}", stream_res.error().message());
@@ -104,7 +104,7 @@ namespace libp2p::protocol {
     //        }
     //        self->log_->info("Sending Autonat request to peer");
     //        auto stream = stream_res.value();
-    //        self->msg_processor_->sendHolepunchConnect(stream, obsaddr);
+    //        self->msg_processor_->sendHolepunchClientConnect(stream, obsaddr);
     //    });
   }
 }

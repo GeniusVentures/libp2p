@@ -1,5 +1,5 @@
-#ifndef LIBP2P_HOLEPUNCH_MSG_PROCESSOR_HPP
-#define LIBP2P_HOLEPUNCH_MSG_PROCESSOR_HPP
+#ifndef LIBP2P_HOLEPUNCH_SERVER_MSG_PROCESSOR_HPP
+#define LIBP2P_HOLEPUNCH_SERVER_MSG_PROCESSOR_HPP
 
 #include <memory>
 #include <optional>
@@ -26,14 +26,14 @@ namespace libp2p::protocol {
   /**
    * Processor of messages of Autonat protocol
    */
-  class HolepunchMessageProcessor
-      : public std::enable_shared_from_this<HolepunchMessageProcessor> {
+  class HolepunchServerMsgProc
+      : public std::enable_shared_from_this<HolepunchServerMsgProc> {
     using StreamSPtr = std::shared_ptr<connection::Stream>;
 
    public:
     using HolepunchCallback = void(const bool &);
 
-    HolepunchMessageProcessor(
+    HolepunchServerMsgProc(
         Host &host, network::ConnectionManager &conn_manager);
 
     boost::signals2::connection onHolepunchReceived(

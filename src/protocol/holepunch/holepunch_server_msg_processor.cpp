@@ -1,5 +1,5 @@
 
-#include "libp2p/protocol/holepunch/holepunch_msg_processor.hpp"
+#include "libp2p/protocol/holepunch/holepunch_server_msg_processor.hpp"
 
 #include <tuple>
 
@@ -29,7 +29,7 @@ namespace {
 }  // namespace
 
 namespace libp2p::protocol {
-    HolepunchMessageProcessor::HolepunchMessageProcessor(
+    HolepunchServerMsgProc::HolepunchServerMsgProc(
         Host& host, network::ConnectionManager& conn_manager)
         : host_{ host },
         conn_manager_{ conn_manager }
@@ -37,12 +37,12 @@ namespace libp2p::protocol {
         std::cout << "Initialized Holepunch Message Processor" << std::endl;
     }
 
-    boost::signals2::connection HolepunchMessageProcessor::onHolepunchReceived(
+    boost::signals2::connection HolepunchServerMsgProc::onHolepunchReceived(
         const std::function<HolepunchCallback>& cb) {
         return signal_holepunch_received_.connect(cb);
     }
 
-    void HolepunchMessageProcessor::sendHolepunchConnect(StreamSPtr stream, peer::PeerId peer_id, int retry_count) {
+    void HolepunchServerMsgProc::sendHolepunchConnect(StreamSPtr stream, peer::PeerId peer_id, int retry_count) {
         if (retry_count > kMaxRetries)
         {
             log_->error("Attemps at holepunching with {}, have exceeded the maximum retry count of {}",
@@ -67,7 +67,7 @@ namespace libp2p::protocol {
             });
     }
 
-    void HolepunchMessageProcessor::receiveIncomingHolepunch(StreamSPtr stream) {
+    void HolepunchServerMsgProc::receiveIncomingHolepunch(StreamSPtr stream) {
         auto rw = std::make_shared<basic::ProtobufMessageReadWriter>(stream);
         rw->read<holepunch::pb::HolePunch>(
             [self{ shared_from_this() }, s = std::move(stream)](auto&& res) {
@@ -75,7 +75,7 @@ namespace libp2p::protocol {
             });
     }
 
-    void HolepunchMessageProcessor::holepunchConnectSent(
+    void HolepunchServerMsgProc::holepunchConnectSent(
         outcome::result<size_t> written_bytes, const StreamSPtr& stream,
         peer::PeerId peer_id, int retry_count) {
         auto [peer_id_str, peer_addr_str] = detail::getPeerIdentity(stream);
@@ -97,7 +97,7 @@ namespace libp2p::protocol {
             });
     }
 
-    void HolepunchMessageProcessor::holepunchConnectReturn(
+    void HolepunchServerMsgProc::holepunchConnectReturn(
         outcome::result<holepunch::pb::HolePunch> msg_res,
         const StreamSPtr& stream,
         std::chrono::steady_clock::time_point start_time,
@@ -193,21 +193,21 @@ namespace libp2p::protocol {
 
     }
 
-    Host& HolepunchMessageProcessor::getHost() const noexcept {
+    Host& HolepunchServerMsgProc::getHost() const noexcept {
         return host_;
     }
 
-    network::ConnectionManager& HolepunchMessageProcessor::getConnectionManager()
+    network::ConnectionManager& HolepunchServerMsgProc::getConnectionManager()
         const noexcept {
         return conn_manager_;
     }
 
-    //const ObservedAddresses& HolepunchMessageProcessor::getObservedAddresses()
+    //const ObservedAddresses& HolepunchServerMsgProc::getObservedAddresses()
     //    const noexcept {
     //    return observed_addresses_;
     //}
 
-    void HolepunchMessageProcessor::holepunchIncomingReceived(
+    void HolepunchServerMsgProc::holepunchIncomingReceived(
         outcome::result<holepunch::pb::HolePunch> msg_res,
         const StreamSPtr& stream) {
         auto [peer_id_str, peer_addr_str] = detail::getPeerIdentity(stream);
@@ -253,7 +253,7 @@ namespace libp2p::protocol {
 
     }
 
-    void HolepunchMessageProcessor::holepunchConResponseSent(
+    void HolepunchServerMsgProc::holepunchConResponseSent(
         outcome::result<size_t> written_bytes, const StreamSPtr& stream,
         std::vector<libp2p::multi::Multiaddress> connaddrs) {
         auto [peer_id, peer_addr] = detail::getPeerIdentity(stream);
@@ -273,7 +273,7 @@ namespace libp2p::protocol {
             });
     }
 
-    void HolepunchMessageProcessor::holepunchSyncResponseReturn(
+    void HolepunchServerMsgProc::holepunchSyncResponseReturn(
         outcome::result<holepunch::pb::HolePunch> msg_res,
         const StreamSPtr& stream,
         std::vector<libp2p::multi::Multiaddress> connaddrs)

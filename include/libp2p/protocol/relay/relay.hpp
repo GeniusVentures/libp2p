@@ -4,7 +4,7 @@
 #include <libp2p/event/bus.hpp>
 #include <libp2p/protocol/base_protocol.hpp>
 #include <libp2p/protocol/relay/relay_msg_processor.hpp>
-#include <libp2p/protocol/holepunch/holepunch.hpp>
+#include <libp2p/protocol/holepunch/holepunch_server.hpp>
 
 namespace libp2p::multi {
   class Multiaddress;
