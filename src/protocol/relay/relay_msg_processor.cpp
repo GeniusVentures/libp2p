@@ -87,11 +87,11 @@ namespace libp2p::protocol {
 
     }
 
-    void RelayMessageProcessor::receiveStopRelay(StreamSPtr stream) {
+    void RelayMessageProcessor::receiveStopRelay(StreamSPtr stream, RelayStopCallback cb) {
         auto rw = std::make_shared<basic::ProtobufMessageReadWriter>(stream);
         rw->read<relay::pb::StopMessage>(
-            [self{ shared_from_this() }, stream = std::move(stream)](auto&& res) {
-                self->relayConnectReceived(std::forward<decltype(res)>(res), stream);
+            [self{ shared_from_this() }, stream = std::move(stream), cb](auto&& res) {
+                self->relayConnectReceived(std::forward<decltype(res)>(res), stream, cb);
             });
     }
 
@@ -203,7 +203,7 @@ namespace libp2p::protocol {
 
     void RelayMessageProcessor::relayConnectReceived(
         outcome::result<relay::pb::StopMessage> msg_res,
-        const StreamSPtr& stream) {
+        const StreamSPtr& stream, RelayStopCallback cb) {
         auto [peer_id_str, peer_addr_str] = detail::getPeerIdentity(stream);
         if (!msg_res) {
             log_->error("cannot read an relay message from peer {}, {}: {}",
@@ -241,10 +241,10 @@ namespace libp2p::protocol {
         //    return stream->reset();
         //}
         //Send a positive response
-        relayConnectResponse(stream, remotepeer_res.value());
+        relayConnectResponse(stream, remotepeer_res.value(), cb);
     }
 
-    void RelayMessageProcessor::relayConnectResponse(const StreamSPtr& stream, peer::PeerId peer_id)
+    void RelayMessageProcessor::relayConnectResponse(const StreamSPtr& stream, peer::PeerId peer_id, RelayStopCallback cb)
     {
         log_->info("Remote relay connection response being sent to {} ", peer_id.toBase58());
         //Create a Stop Message
@@ -257,18 +257,19 @@ namespace libp2p::protocol {
         rw->write<relay::pb::StopMessage>(
             msg,
             [self{ shared_from_this() },
-            stream, peer_id](auto&& res) mutable {
-                self->relayConnectUpgrade(stream, peer_id);
+            stream, peer_id, cb](auto&& res) mutable {
+                self->relayConnectUpgrade(stream, peer_id, cb);
             });
     }
 
-    void RelayMessageProcessor::relayConnectUpgrade(const StreamSPtr& stream, peer::PeerId peer_id)
+    void RelayMessageProcessor::relayConnectUpgrade(const StreamSPtr& stream, peer::PeerId peer_id, RelayStopCallback cb)
     {
         log_->info("Remote relay connection encryption being upgraded {} ", peer_id.toBase58());
         auto session = std::make_shared<libp2p::transport::UpgraderSession>(
-            upgrader_, stream, [self{ shared_from_this() }, peer_id](outcome::result<std::shared_ptr<connection::CapableConnection>> result) {
+            upgrader_, stream, [self{ shared_from_this() }, peer_id, cb](outcome::result<std::shared_ptr<connection::CapableConnection>> result) {
                 self->log_->info("Remote relay connection completed {} ", peer_id.toBase58());
                 self->host_.getNetwork().getListener().onConnectionRelay(peer_id, result);
+                
             });
         stream->setIncomingRelay(true);
         session->secureInboundRelay();

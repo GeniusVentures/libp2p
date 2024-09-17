@@ -60,7 +60,7 @@ namespace libp2p::protocol {
     /**
      * We only create a protocol handler here accepting HolepunchServer dcutr.
      */
-    void start();
+    void start(peer::PeerId peerid);
 
     /**
      * Initiate a HolepunchServer connection to another node

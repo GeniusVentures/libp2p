@@ -31,7 +31,7 @@ namespace libp2p::protocol {
         else {
             log_->info("Starting holepunch since we have an established relay now");
             callback_();
-            holepunch_->start();
+            //holepunch_->start();
         }
         });
     
@@ -67,7 +67,10 @@ namespace libp2p::protocol {
       if (!stream_res) {
           return;
       }
-      msg_processor_->receiveStopRelay(std::move(stream_res.value()));
+      msg_processor_->receiveStopRelay(std::move(stream_res.value()), [self{ shared_from_this() }](const peer::PeerId peerid)
+          {
+              self->holepunch_->start(peerid);
+          });
   }
 
   void Relay::start() {

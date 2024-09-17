@@ -67,13 +67,6 @@ namespace libp2p::protocol {
             });
     }
 
-    void HolepunchServerMsgProc::receiveIncomingHolepunch(StreamSPtr stream) {
-        auto rw = std::make_shared<basic::ProtobufMessageReadWriter>(stream);
-        rw->read<holepunch::pb::HolePunch>(
-            [self{ shared_from_this() }, s = std::move(stream)](auto&& res) {
-                self->holepunchIncomingReceived(std::forward<decltype(res)>(res), s);
-            });
-    }
 
     void HolepunchServerMsgProc::holepunchConnectSent(
         outcome::result<size_t> written_bytes, const StreamSPtr& stream,
@@ -161,7 +154,7 @@ namespace libp2p::protocol {
                                 self->log_->error("Failed to connect to peer {}: {}", peer_info.id.toBase58(), result.error().message());
                                 self->sendHolepunchConnect(stream, peer_info.id);
                             }
-                            });
+                            },true);
                     });
             });
 

@@ -36,7 +36,7 @@ namespace libp2p::protocol {
 
    public:
     using RelayCallback = void(const bool &);
-    using RelayStopCallback = void(const bool&);
+    using RelayStopCallback = void(const peer::PeerId);
 
     RelayMessageProcessor(
         Host &host, network::ConnectionManager &conn_manager, std::shared_ptr<libp2p::transport::Upgrader> upgrader);
@@ -54,7 +54,7 @@ namespace libp2p::protocol {
      * Receive a stop Relay message from the provided stream which should inficate someone is trying to connect to us
      * @param stream to be identified over
      */
-    void receiveStopRelay(StreamSPtr stream);
+    void receiveStopRelay(StreamSPtr stream, RelayStopCallback cb);
 
     /**
      * Receive an Relay message from the provided stream
@@ -104,19 +104,19 @@ namespace libp2p::protocol {
      * @param stream, over which it was received
      */
     void relayConnectReceived(outcome::result<relay::pb::StopMessage> msg_res,
-        const StreamSPtr& stream);
+        const StreamSPtr& stream, RelayStopCallback cb);
 
     /**
      * Called, when an relay message is received from the other peer
      * @param stream, over which it was received
      */
-    void relayConnectResponse(const StreamSPtr& stream, peer::PeerId peer_id);
+    void relayConnectResponse(const StreamSPtr& stream, peer::PeerId peer_id, RelayStopCallback cb);
 
     /**
      * After a relay is accepted we expect to receive encryption and muxing.
      * @param stream, over which it was received
      */
-    void relayConnectUpgrade(const StreamSPtr& stream, peer::PeerId peer_id);
+    void relayConnectUpgrade(const StreamSPtr& stream, peer::PeerId peer_id, RelayStopCallback cb);
 
     Host &host_;
     network::ConnectionManager &conn_manager_;

@@ -47,12 +47,6 @@ namespace libp2p::protocol {
     void sendHolepunchConnect(StreamSPtr stream, peer::PeerId peer_id, int retry_count = 0);
 
     /**
-     * Receive a holepunch request over specified stream
-     * @param stream to get a holepunch CONNECT
-     */
-    void receiveIncomingHolepunch(StreamSPtr stream);
-
-    /**
      * Get a Host of this processor
      * @return Host
      */
