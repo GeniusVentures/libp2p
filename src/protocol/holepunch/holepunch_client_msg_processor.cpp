@@ -42,30 +42,6 @@ namespace libp2p::protocol {
         return signal_holepunch_received_.connect(cb);
     }
 
-    void HolepunchClientMsgProc::sendHolepunchConnect(StreamSPtr stream, peer::PeerId peer_id, int retry_count) {
-        if (retry_count > kMaxRetries)
-        {
-            log_->error("Attemps at holepunching with {}, have exceeded the maximum retry count of {}",
-                peer_id.toBase58(), kMaxRetries);
-            return;
-        }
-        holepunch::pb::HolePunch msg;
-        msg.set_type(holepunch::pb::HolePunch_Type_CONNECT);
-        auto obsaddr = host_.getObservedAddresses();
-        for (auto& addr : obsaddr)
-        {
-            msg.add_obsaddrs(fromMultiaddrToString(addr));
-        }
-
-        // write the resulting Protobuf message
-        auto rw = std::make_shared<basic::ProtobufMessageReadWriter>(stream);
-        rw->write<holepunch::pb::HolePunch>(
-            msg,
-            [self{ shared_from_this() },
-            stream = std::move(stream), peer_id, retry_count](auto&& res) mutable {
-                self->holepunchConnectSent(std::forward<decltype(res)>(res), stream, peer_id, retry_count);
-            });
-    }
 
     void HolepunchClientMsgProc::receiveIncomingHolepunch(StreamSPtr stream) {
         auto rw = std::make_shared<basic::ProtobufMessageReadWriter>(stream);

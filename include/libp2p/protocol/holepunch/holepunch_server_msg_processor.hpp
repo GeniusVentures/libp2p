@@ -89,39 +89,6 @@ namespace libp2p::protocol {
         const StreamSPtr& stream, std::chrono::steady_clock::time_point start_time,
         peer::PeerId peer_id, int retry_count);
 
-    /**
-    Functions below happen when a holepunch connection is initated with us
-    */
-    
-    /**
-     * Called, when an autonat message is received from the other peer
-     * @param msg, which was read
-     * @param stream, over which it was received
-     */
-    void holepunchIncomingReceived(outcome::result<holepunch::pb::HolePunch> msg_res,
-        const StreamSPtr& stream);
-
-    /**
-     * Called, when a holepunch CONNECT is sent back to a node that initiated a holepunch
-     * @param written_bytes - how much bytes were written
-     * @param stream with the other side
-     * @param Addresses we will connect to upon getting a sync
-     */
-    void holepunchConResponseSent(outcome::result<size_t> written_bytes,
-        const StreamSPtr& stream,
-        std::vector<libp2p::multi::Multiaddress> connaddrs);
-
-    /**
-     * Called, when a holepunch SYNC is received, we should connect to this node immediately. 
-     * @param Protobuf message containing an assumed SYNC message
-     * @param stream with the other side
-     * @param Addresses we will connect to upon getting a sync
-     */
-    void holepunchSyncResponseReturn(outcome::result<holepunch::pb::HolePunch> msg_res,
-        const StreamSPtr& stream,
-        std::vector<libp2p::multi::Multiaddress> connaddrs);
-
-
     Host &host_;
     network::ConnectionManager &conn_manager_;
 

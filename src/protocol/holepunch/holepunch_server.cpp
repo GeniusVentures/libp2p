@@ -40,12 +40,6 @@ namespace libp2p::protocol {
     return kHolepunchServerProto;
   }
 
-  void HolepunchServer::handle(StreamResult stream_res) {
-    if (!stream_res) {
-      return;
-    }
-    msg_processor_->receiveIncomingHolepunch(std::move(stream_res.value()));
-  }
 
   void HolepunchServer::start(peer::PeerId peerid) {
       if (started_) return;
@@ -53,20 +47,6 @@ namespace libp2p::protocol {
     //BOOST_ASSERT(!started_);
     started_ = true;
 
-    //host_.setProtocolHandler(
-    //    kHolepunchServerProto,
-    //    [wp = weak_from_this()](protocol::BaseProtocol::StreamResult rstream) {
-    //      if (auto self = wp.lock()) {
-    //        self->handle(std::move(rstream));
-    //      }
-    //    });
-    //msg_processor_->sendHolepunchServerConnect(stream, peer_info);
-    //sub_ = bus_.getChannel<event::network::OnNewConnectionChannel>().subscribe(
-    //    [wp = weak_from_this(), obsaddr](auto &&conn) {
-    //      if (auto self = wp.lock()) {
-    //        return self->onNewConnection(conn, obsaddr);
-    //      }
-    //    });
         msg_processor_->getHost().newStream(
         peerid, kHolepunchServerProto,
         [self{shared_from_this()}, peerid](auto &&stream_res) {
@@ -76,7 +56,7 @@ namespace libp2p::protocol {
             }
             self->log_->info("Sending dcutr holepunch request to peer {} ", peerid.toBase58());
             auto stream = stream_res.value();
-            self->msg_processor_->sendHolepunchConnect(stream, obsaddr);
+            self->msg_processor_->sendHolepunchConnect(stream, peerid, 2);
         });
   }
 

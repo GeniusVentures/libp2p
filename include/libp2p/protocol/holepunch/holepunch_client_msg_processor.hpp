@@ -39,12 +39,6 @@ namespace libp2p::protocol {
     boost::signals2::connection onHolepunchReceived(
         const std::function<HolepunchCallback> &cb);
 
-    /**
-     * Send a holepunch request to a node
-     * @param Stream over which to do the exchange provided by circuit relay
-     * @param peer_id of other node
-     */
-    void sendHolepunchConnect(StreamSPtr stream, peer::PeerId peer_id, int retry_count = 0);
 
     /**
      * Receive a holepunch request over specified stream
