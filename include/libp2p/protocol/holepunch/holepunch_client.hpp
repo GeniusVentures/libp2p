@@ -3,7 +3,7 @@
 #include <iostream>
 #include <libp2p/event/bus.hpp>
 #include <libp2p/protocol/base_protocol.hpp>
-#include <libp2p/protocol/HolepunchClient/HolepunchClient_client_msg_processor.hpp>
+#include <libp2p/protocol/holepunch/holepunch_client_msg_processor.hpp>
 
 namespace libp2p::multi {
   class Multiaddress;
@@ -15,7 +15,7 @@ namespace libp2p::protocol {
    * Initiate a connection from behind a nat be connecting at the same time using an observed address.
    * Read more: https://github.com/libp2p/specs/blob/master/relay/DCUtR.md
    */
-  class HolepunchClientClient : public BaseProtocol,
+  class HolepunchClient : public BaseProtocol,
                    public std::enable_shared_from_this<HolepunchClient> {
       using StreamSPtr = std::shared_ptr<connection::Stream>;
    public:
@@ -26,13 +26,13 @@ namespace libp2p::protocol {
      * @param event_bus - bus, over which the events arrive
      */
     HolepunchClient(Host &host,
-             std::shared_ptr<HolepunchClientMessageProcessor> msg_processor,
+             std::shared_ptr<HolepunchClientMsgProc> msg_processor,
              event::Bus &event_bus);
 
     ~HolepunchClient() override = default;
 
     boost::signals2::connection onHolepunchClientReceived(
-        const std::function<HolepunchClientMessageProcessor::HolepunchClientCallback> &cb);
+        const std::function<HolepunchClientMsgProc::HolepunchCallback> &cb);
 
     /**
      * Get addresses other peers reported we have dialed from
@@ -77,7 +77,7 @@ namespace libp2p::protocol {
         std::vector<libp2p::multi::Multiaddress> obsaddr);
 
     Host &host_;
-    std::shared_ptr<HolepunchClientMessageProcessor> msg_processor_;
+    std::shared_ptr<HolepunchClientMsgProc> msg_processor_;
     event::Bus &bus_;
     event::Handle sub_;  // will unsubscribe during destruction by itself
     bool natstatus_ = false; //False if we are behind a NAT, true if not.

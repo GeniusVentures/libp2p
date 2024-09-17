@@ -1,4 +1,4 @@
-#include <libp2p/protocol/HolepunchClient/HolepunchClient_client.hpp>
+#include <libp2p/protocol/holepunch/holepunch_client.hpp>
 
 #include <string>
 #include <tuple>
@@ -13,18 +13,18 @@ namespace {
 
 namespace libp2p::protocol {
     HolepunchClient::HolepunchClient(Host &host,
-                     std::shared_ptr<HolepunchClientMessageProcessor> msg_processor,
+                     std::shared_ptr<HolepunchClientMsgProc> msg_processor,
                      event::Bus &event_bus)
       : host_{host}, msg_processor_{std::move(msg_processor)}, bus_{event_bus} {
     BOOST_ASSERT(msg_processor_);
-    msg_processor_->onHolepunchClientReceived([this](const bool& status) {
+    msg_processor_->onHolepunchReceived([this](const bool& status) {
         natstatus_ = status;
         });
   }
 
   boost::signals2::connection HolepunchClient::onHolepunchClientReceived(
-      const std::function<HolepunchClientMessageProcessor::HolepunchClientCallback> &cb) {
-    return msg_processor_->onHolepunchClientReceived(cb);
+      const std::function<HolepunchClientMsgProc::HolepunchCallback> &cb) {
+    return msg_processor_->onHolepunchReceived(cb);
   }
 
   //std::vector<multi::Multiaddress> HolepunchClient::getAllObservedAddresses() const {
@@ -44,7 +44,7 @@ namespace libp2p::protocol {
     if (!stream_res) {
       return;
     }
-    msg_processor_->receiveIncomingHolepunchClient(std::move(stream_res.value()));
+    msg_processor_->receiveIncomingHolepunch(std::move(stream_res.value()));
   }
 
   void HolepunchClient::start() {
@@ -71,7 +71,7 @@ namespace libp2p::protocol {
 
   void HolepunchClient::initiateHolepunchClient(StreamSPtr stream, peer::PeerId peer_id) {
         //Send out connect message
-      msg_processor_->sendHolepunchClientConnect(stream, peer_id);
+      msg_processor_->sendHolepunchConnect(stream, peer_id);
   }
 
   void HolepunchClient::onNewConnection(

@@ -83,8 +83,8 @@ namespace libp2p::protocol {
     std::shared_ptr<RelayMessageProcessor> msg_processor_;
     event::Bus &bus_;
     event::Handle sub_;  // will unsubscribe during destruction by itself
-    std::shared_ptr<libp2p::protocol::Holepunch> holepunch_;
-    std::shared_ptr<libp2p::protocol::HolepunchMessageProcessor> holepunch_msg_proc_;
+    std::shared_ptr<libp2p::protocol::HolepunchServer> holepunch_;
+    std::shared_ptr<libp2p::protocol::HolepunchServerMsgProc> holepunch_msg_proc_;
     log::Logger log_ = log::createLogger("Relay");
     int maxrelays = 3;
     int relayconnections = 0;
