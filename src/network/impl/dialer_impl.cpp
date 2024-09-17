@@ -14,7 +14,7 @@
 namespace libp2p::network {
 
   void DialerImpl::dial(const peer::PeerInfo &p, DialResultFunc cb,
-                        std::chrono::milliseconds timeout, multi::Multiaddress bindaddress) {
+                        std::chrono::milliseconds timeout, multi::Multiaddress bindaddress, bool holepunch) {
       if (p.id.toBase58().size() == 0)
       {
           scheduler_->schedule(
@@ -23,28 +23,33 @@ namespace libp2p::network {
           return;
       }
     SL_TRACE(log_, "Dialing to {} from {}", p.id.toBase58(), bindaddress.getStringAddress());
-    if (auto c = cmgr_->getBestConnectionForPeer(p.id); c != nullptr) {
-      // we have connection to this peer
+    if (!holepunch)
+    {
+        if (auto c = cmgr_->getBestConnectionForPeer(p.id); c != nullptr) {
+            // we have connection to this peer
 
-      SL_TRACE(log_, "Reusing connection to peer {}",
-               p.id.toBase58());
-      scheduler_->schedule(
-          [cb{ std::move(cb) }, c{ std::move(c) }, bindaddress{ std::move(bindaddress) }]() mutable { cb(std::move(c)); });
-      return;
+            SL_TRACE(log_, "Reusing connection to peer {}",
+                p.id.toBase58());
+            scheduler_->schedule(
+                [cb{ std::move(cb) }, c{ std::move(c) }, bindaddress{ std::move(bindaddress) }]() mutable { cb(std::move(c)); });
+            return;
+        }
     }
+
 
     if (auto ctx = dialing_peers_.find(p.id); dialing_peers_.end() != ctx) {
-      SL_TRACE(log_, "Dialing to {} is already in progress",
-               p.id.toBase58());
-      // populate known addresses for in-progress dial if any new appear
-      for (const auto &addr : p.addresses) {
-        if (0 == ctx->second.tried_addresses.count(addr)) {
-          ctx->second.addresses.insert(addr);
+        SL_TRACE(log_, "Dialing to {} is already in progress",
+            p.id.toBase58());
+        // populate known addresses for in-progress dial if any new appear
+        for (const auto& addr : p.addresses) {
+            if (0 == ctx->second.tried_addresses.count(addr)) {
+                ctx->second.addresses.insert(addr);
+            }
         }
-      }
-      ctx->second.callbacks.emplace_back(std::move(cb));
-      return;
+        ctx->second.callbacks.emplace_back(std::move(cb));
+        return;
     }
+    
 
     // we don't have a connection to this peer.
     // did user supply its addresses in {@param p}?

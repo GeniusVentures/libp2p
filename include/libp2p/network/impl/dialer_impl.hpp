@@ -32,7 +32,7 @@ namespace libp2p::network {
 
     // Establishes a connection to a given peer
     void dial(const peer::PeerInfo &p, DialResultFunc cb,
-              std::chrono::milliseconds timeout, multi::Multiaddress bindaddress) override;
+              std::chrono::milliseconds timeout, multi::Multiaddress bindaddress, bool holepunch = false) override;
 
     // NewStream returns a new stream to given peer p.
     // If there is no connection to p, attempts to create one.
