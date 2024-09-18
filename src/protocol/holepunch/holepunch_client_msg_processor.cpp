@@ -32,7 +32,8 @@ namespace libp2p::protocol {
     HolepunchClientMsgProc::HolepunchClientMsgProc(
         Host& host, network::ConnectionManager& conn_manager)
         : host_{ host },
-        conn_manager_{ conn_manager }
+        conn_manager_{ conn_manager },
+        connections_()
     {
         std::cout << "Initialized Holepunch Message Processor" << std::endl;
     }
@@ -167,6 +168,8 @@ namespace libp2p::protocol {
             {
                 self->log_->info("Successfully opened a connection to peer, but we are not the iniator {}", peer_info.id.toBase58());
                 //TODO Store connection to close later
+                result.value()->close();
+                //self->connections_.push_back(result.value());
             }
             else {
                 self->log_->info("Failed to connect to peer in holepunch, this may re-try {}: {}", peer_info.id.toBase58(), result.error().message());

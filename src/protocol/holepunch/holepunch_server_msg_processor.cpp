@@ -150,6 +150,7 @@ namespace libp2p::protocol {
                             {
                                 self->log_->info("Successfully opened a hole punch to peer {}", peer_info.id.toBase58());
                                 //TODO Save connection, destroy existing connection
+                                self->host_.getNetwork().getListener().removeRelayedConnections(peer_info.id);
                             }
                             else {
                                 self->log_->error("Failed to connect to peer {}: {}", peer_info.id.toBase58(), result.error().message());

@@ -154,4 +154,31 @@ namespace libp2p::network {
     }
   }
 
+  void ConnectionManagerImpl::removeRelayedConnections(const peer::PeerId& p)
+  {
+      auto it = connections_.find(p);
+      if (it == connections_.end()) {
+          return;
+      }
+
+      auto connections = it->second;
+
+      if (connections.empty()) {
+          log()->error("inconsistency: iterator and no peers");
+          return;
+      }
+
+      //closing_connections_to_peer_ = p;
+
+      for (const auto& conn : connections) {
+          if (!conn->isClosed() && conn->remoteMultiaddr().value().hasCircuitRelay()) {
+              // ignore errors
+              (void)conn->close();
+          }
+      }
+
+      //closing_connections_to_peer_.reset();
+
+  }
+
 }  // namespace libp2p::network

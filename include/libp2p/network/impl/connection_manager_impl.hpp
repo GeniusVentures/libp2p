@@ -37,6 +37,8 @@ namespace libp2p::network {
         const peer::PeerId &peer_id,
         const std::shared_ptr<connection::CapableConnection> &conn) override;
 
+    void removeRelayedConnections(const peer::PeerId& peer_id) override;
+
    private:
     std::unordered_map<peer::PeerId, std::unordered_set<ConnectionSPtr>>
         connections_;

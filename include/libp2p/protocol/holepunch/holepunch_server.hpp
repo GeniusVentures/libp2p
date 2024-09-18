@@ -68,13 +68,6 @@ namespace libp2p::protocol {
     void initiateHolepunchServer(StreamSPtr stream, peer::PeerId peer_id);
 
    private:
-    /**
-     * Handler for new connections, established by or with our host
-     * @param conn - new connection
-     */
-    void onNewConnection(
-        const std::weak_ptr<connection::CapableConnection> &conn,
-        std::vector<libp2p::multi::Multiaddress> obsaddr);
 
     Host &host_;
     std::shared_ptr<HolepunchServerMsgProc> msg_processor_;
@@ -83,7 +76,6 @@ namespace libp2p::protocol {
     bool natstatus_ = false; //False if we are behind a NAT, true if not.
     log::Logger log_ = log::createLogger("HolepunchServer");
 
-    bool started_ = false;
   };
 }
 

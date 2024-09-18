@@ -61,6 +61,8 @@ namespace libp2p::network {
     virtual void onConnectionClosed(
         const peer::PeerId &peer_id,
         const std::shared_ptr<connection::CapableConnection> &conn) = 0;
+
+    virtual void removeRelayedConnections(const peer::PeerId& peer_id) = 0;
   };
 
 }  // namespace libp2p::network

@@ -59,6 +59,9 @@ namespace libp2p::network {
         outcome::result<std::shared_ptr<connection::CapableConnection>>
         rconn) override;
 
+    void removeRelayedConnections(
+        peer::PeerId id) override;
+
    private:
     bool started = false;
 

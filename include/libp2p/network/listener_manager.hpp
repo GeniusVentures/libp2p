@@ -130,6 +130,9 @@ namespace libp2p::network {
         peer::PeerId id,
         outcome::result<std::shared_ptr<connection::CapableConnection>>
         rconn) = 0;
+
+    virtual void removeRelayedConnections(
+        peer::PeerId id) = 0;
   };
 
 }  // namespace libp2p::network
