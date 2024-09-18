@@ -117,12 +117,12 @@ namespace libp2p::protocol {
         std::vector<libp2p::multi::Multiaddress> connaddrs) {
         auto [peer_id, peer_addr] = detail::getPeerIdentity(stream);
         if (!written_bytes) {
-            log_->error("cannot write Autonat message to stream to peer {}, {}: {}",
+            log_->error("cannot write holepunch connect response message to stream to peer {}, {}: {}",
                 peer_id, peer_addr, written_bytes.error().message());
             return stream->reset();
         }
 
-        log_->info("successfully written an Autonat message to peer {}, {}",
+        log_->info("successfully written an holepunch connect response message to peer {}, {}",
             peer_id, peer_addr);
         // Handle incoming responses
         auto rw = std::make_shared<basic::ProtobufMessageReadWriter>(stream);

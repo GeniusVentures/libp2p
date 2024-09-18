@@ -96,7 +96,7 @@ namespace libp2p::protocol {
     int kMaxRetries = 5;
 
 
-    log::Logger log_ = log::createLogger("HolepunchMsgProcessor");
+    log::Logger log_ = log::createLogger("HolepunchServerMsgProcessor");
   };
 }
 

@@ -49,6 +49,9 @@ namespace libp2p::protocol {
                 peer_id.toBase58(), kMaxRetries);
             return;
         }
+
+        log_->info("Sending a holepunch message with our addresses to {}", peer_id.toBase58());
+
         holepunch::pb::HolePunch msg;
         msg.set_type(holepunch::pb::HolePunch_Type_CONNECT);
         auto obsaddr = host_.getObservedAddresses();
@@ -73,13 +76,13 @@ namespace libp2p::protocol {
         peer::PeerId peer_id, int retry_count) {
         auto [peer_id_str, peer_addr_str] = detail::getPeerIdentity(stream);
         if (!written_bytes) {
-            log_->error("cannot write Autonat message to stream to peer {}, {}: {}",
-                peer_id_str, peer_addr_str, written_bytes.error().message());
+            log_->error("cannot write holepunch connect message to stream to peer {}, {} {}: {}",
+                peer_id_str, peer_addr_str, peer_id.toBase58(), written_bytes.error().message());
             return stream->reset();
         }
 
-        log_->info("successfully written an Autonat message to peer {}, {}",
-            peer_id_str, peer_addr_str);
+        log_->info("successfully written a holepunch connect message to peer {}, {} {}",
+            peer_id_str, peer_addr_str, peer_id.toBase58());
         //Create a timestamp
         auto start_time = std::chrono::steady_clock::now();
         // Handle incoming responses
@@ -103,8 +106,8 @@ namespace libp2p::protocol {
             return stream->reset();
         }
 
-        log_->info("received an holepunch message from peer {}, {}", peer_id_str,
-            peer_addr_str);
+        log_->info("received an holepunch message from peer {}, {} {} ", peer_id_str,
+            peer_addr_str, peer_id.toBase58());
 
         auto&& msg = std::move(msg_res.value());
         //Connect message
@@ -131,12 +134,14 @@ namespace libp2p::protocol {
         holepunch::pb::HolePunch outmsg;
         outmsg.set_type(holepunch::pb::HolePunch_Type_SYNC);
 
+        log_->info("Sending a sync message to {} ", peer_id.toBase58());
         //Send SYNC - Change to use async version below once we can get the io context into this class.
         auto rw = std::make_shared<basic::ProtobufMessageReadWriter>(stream);
         rw->write<holepunch::pb::HolePunch>(
             outmsg,
             [self{ shared_from_this() },
             stream, connaddrs, rtt, peer_info](auto&& res) mutable {
+                self->log_->info("Waiting for sync response from {}", peer_info.id.toBase58());
                 auto rw = std::make_shared<basic::ProtobufMessageReadWriter>(stream);
                 rw->read<holepunch::pb::HolePunch>(
                     [self, stream, rtt, peer_info](auto&& res) {
@@ -144,6 +149,7 @@ namespace libp2p::protocol {
                         auto delay_duration = std::chrono::milliseconds(rtt / 2);
                         // Wait for RTT / 2
                         std::this_thread::sleep_for(delay_duration);
+                        self->log_->info("Initiating a connect with {} after waiting", peer_info.id.toBase58());
                         // Now attempt to connect to the peer
                         self->host_.connect(peer_info, [self, stream, peer_info](auto&& result) {
                             if (result)

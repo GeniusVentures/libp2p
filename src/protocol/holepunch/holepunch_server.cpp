@@ -46,7 +46,7 @@ namespace libp2p::protocol {
     //// no double starts
     ////BOOST_ASSERT(!started_);
     //started_ = true;
-
+      log_->info("Initiate a holepunch with: {}", peerid.toBase58());
         msg_processor_->getHost().newStream(
         peerid, kHolepunchServerProto,
         [self{shared_from_this()}, peerid](auto &&stream_res) {
