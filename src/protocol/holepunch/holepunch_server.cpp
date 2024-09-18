@@ -35,6 +35,10 @@ namespace libp2p::protocol {
   //    const multi::Multiaddress &address) const {
   //  return msg_processor_->getObservedAddresses().getAddressesFor(address);
   //}
+  void HolepunchServer::handle(StreamResult stream_res)
+  {
+  }
+
 
   peer::Protocol HolepunchServer::getProtocolId() const {
     return kHolepunchServerProto;

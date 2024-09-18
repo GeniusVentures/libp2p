@@ -154,7 +154,7 @@ namespace libp2p::protocol {
         }
 
         //Should probably chose a peer ID from any observed address
-        auto peer_id = peer::PeerId::fromBase58(connaddrs[0].getPeerId().value());
+        auto peer_id = peer::PeerId::fromBase58(peer_id_str);
         if (peer_id.has_error())
         {
             log_->error("We were expecting peer id from observed address {}.", connaddrs[0].getStringAddress());
