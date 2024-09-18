@@ -36,7 +36,7 @@ namespace libp2p::protocol {
 
    public:
     using RelayCallback = void(const bool &);
-    using RelayStopCallback = void(const peer::PeerId);
+    using RelayStopCallback = std::function<void(const peer::PeerId)>;
 
     RelayMessageProcessor(
         Host &host, network::ConnectionManager &conn_manager, std::shared_ptr<libp2p::transport::Upgrader> upgrader);
