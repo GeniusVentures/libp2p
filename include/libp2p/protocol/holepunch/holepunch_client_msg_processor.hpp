@@ -103,8 +103,10 @@ namespace libp2p::protocol {
     network::ConnectionManager &conn_manager_;
 
     boost::signals2::signal<HolepunchCallback> signal_holepunch_received_;
-    std::vector<std::shared_ptr<connection::CapableConnection>> connections_;
-    int kMaxRetries = 5;
+    //std::vector<std::shared_ptr<connection::CapableConnection>> connections_;
+    std::unordered_map<peer::PeerId, std::unordered_set<connection::CapableConnection>>
+        connections_;
+    int kMaxRetries = 2;
 
 
     log::Logger log_ = log::createLogger("HolepunchClientMsgProcessor");

@@ -93,7 +93,7 @@ namespace libp2p::protocol {
     network::ConnectionManager &conn_manager_;
 
     boost::signals2::signal<HolepunchCallback> signal_holepunch_received_;
-    int kMaxRetries = 5;
+    int kMaxRetries = 2;
 
 
     log::Logger log_ = log::createLogger("HolepunchServerMsgProcessor");
