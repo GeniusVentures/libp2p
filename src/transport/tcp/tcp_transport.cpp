@@ -30,7 +30,6 @@ namespace libp2p::transport {
                           multi::Multiaddress bindaddress) {
     if (!canDial(address)) {
       //TODO(107): Reentrancy
-
       return handler(std::errc::address_family_not_supported);
     }
 
@@ -39,14 +38,14 @@ namespace libp2p::transport {
     {
         if (isLocalHost(address.getFirstValueForProtocol(libp2p::multi::Protocol::Code::IP4).value()))
         {
-            return handler(std::errc::address_family_not_supported);
+            return handler(std::errc::bad_address);
         }
     }
     if (address.hasProtocol(libp2p::multi::Protocol::Code::IP6))
     {
         if (isLocalHost(address.getFirstValueForProtocol(libp2p::multi::Protocol::Code::IP6).value()))
         {
-            return handler(std::errc::address_family_not_supported);
+            return handler(std::errc::bad_address);
         }
     }
     auto conn = std::make_shared<TcpConnection>(*context_);
