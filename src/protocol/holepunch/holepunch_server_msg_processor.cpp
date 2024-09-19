@@ -123,8 +123,13 @@ namespace libp2p::protocol {
             connaddrs.push_back(fromStringToMultiaddr(addr).value());
         }
         
-
-        auto peer_info = peer::PeerInfo{ peer_id, connaddrs };
+        std::vector<peer::PeerInfo> peerinfos;
+        for (auto& obsaddr : connaddrs)
+        {
+            auto peer_info = peer::PeerInfo{ peer_id, { obsaddr } };
+            peerinfos.push_back(peer_info);
+        }
+        
 
         //Calculate RTT
         auto end_time = std::chrono::steady_clock::now();
@@ -140,29 +145,32 @@ namespace libp2p::protocol {
         rw->write<holepunch::pb::HolePunch>(
             outmsg,
             [self{ shared_from_this() },
-            stream, connaddrs, rtt, peer_info](auto&& res) mutable {
+            stream, connaddrs, rtt, peerinfos](auto&& res) mutable {
                 self->log_->info("Waiting for sync response from {}", peer_info.id.toBase58());
                 auto rw = std::make_shared<basic::ProtobufMessageReadWriter>(stream);
                 rw->read<holepunch::pb::HolePunch>(
-                    [self, stream, rtt, peer_info](auto&& res) {
+                    [self, stream, rtt, peerinfos](auto&& res) {
                         // Calculate the delay time (RTT / 2)
                         auto delay_duration = std::chrono::milliseconds(rtt / 2);
                         // Wait for RTT / 2
                         std::this_thread::sleep_for(delay_duration);
                         self->log_->info("Initiating a connect with {} after waiting", peer_info.id.toBase58());
-                        // Now attempt to connect to the peer
-                        self->host_.connect(peer_info, [self, stream, peer_info](auto&& result) {
-                            if (result)
-                            {
-                                self->log_->info("Successfully opened a hole punch to peer {}", peer_info.id.toBase58());
-                                //TODO Save connection, destroy existing connection
-                                self->host_.getNetwork().getListener().removeRelayedConnections(peer_info.id);
-                            }
-                            else {
-                                self->log_->error("Failed to connect to peer {}: {}", peer_info.id.toBase58(), result.error().message());
-                                self->sendHolepunchConnect(stream, peer_info.id);
-                            }
-                            },true);
+                        for (auto& peer_info : peerinfos)
+                        {
+                            // Now attempt to connect to the peer
+                            self->host_.connect(peer_info, [self, stream, peer_info](auto&& result) {
+                                if (result)
+                                {
+                                    self->log_->info("Successfully opened a hole punch to peer {}", peer_info.id.toBase58());
+                                    //TODO Save connection, destroy existing connection
+                                    self->host_.getNetwork().getListener().removeRelayedConnections(peer_info.id);
+                                }
+                                else {
+                                    self->log_->error("Failed to connect to peer {}: {}", peer_info.id.toBase58(), result.error().message());
+                                    self->sendHolepunchConnect(stream, peer_info.id);
+                                }
+                                }, true);
+                        }
                     });
             });
 
