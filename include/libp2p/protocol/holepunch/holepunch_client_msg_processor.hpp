@@ -104,8 +104,7 @@ namespace libp2p::protocol {
 
     boost::signals2::signal<HolepunchCallback> signal_holepunch_received_;
     //std::vector<std::shared_ptr<connection::CapableConnection>> connections_;
-    std::unordered_map<peer::PeerId, std::unordered_set<connection::CapableConnection>>
-        connections_;
+    std::unordered_map<peer::PeerId, std::unordered_set<std::shared_ptr<connection::CapableConnection>>> connections_;
     int kMaxRetries = 2;
 
 
