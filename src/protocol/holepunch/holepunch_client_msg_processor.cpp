@@ -175,10 +175,10 @@ namespace libp2p::protocol {
                     //self->connections_.push_back(result.value());
                     auto it = self->connections_.find(peer_info.id);
                     if (it == self->connections_.end()) {
-                        self->connections_.insert({ peer_info.id, {*result.value()} });
+                        self->connections_.insert({ peer_info.id, { result.value() } });
                     }
                     else {
-                        self->connections_[peer_info.id].insert(*result.value());
+                        self->connections_[peer_info.id].insert(result.value());
                     }
                 }
                 else {

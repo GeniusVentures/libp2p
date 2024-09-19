@@ -146,7 +146,7 @@ namespace libp2p::protocol {
             outmsg,
             [self{ shared_from_this() },
             stream, connaddrs, rtt, peerinfos](auto&& res) mutable {
-                self->log_->info("Waiting for sync response from {}", peer_info.id.toBase58());
+                self->log_->info("Waiting for sync response from {}", peerinfos[0].id.toBase58());
                 auto rw = std::make_shared<basic::ProtobufMessageReadWriter>(stream);
                 rw->read<holepunch::pb::HolePunch>(
                     [self, stream, rtt, peerinfos](auto&& res) {
@@ -154,7 +154,7 @@ namespace libp2p::protocol {
                         auto delay_duration = std::chrono::milliseconds(rtt / 2);
                         // Wait for RTT / 2
                         std::this_thread::sleep_for(delay_duration);
-                        self->log_->info("Initiating a connect with {} after waiting", peer_info.id.toBase58());
+                        self->log_->info("Initiating a connect with {} after waiting", peerinfos[0].id.toBase58());
                         for (auto& peer_info : peerinfos)
                         {
                             // Now attempt to connect to the peer
