@@ -229,13 +229,13 @@ namespace libp2p::transport {
           auto end = iterator.end();
           //std::cout << "Connect to: " << iter->endpoint().address().to_string() << std::endl;;
           std::function<void(boost::asio::ip::tcp::resolver::results_type::const_iterator)> connect_next;
-          connect_next = [this, wptr{ weak_from_this() }, cb, local_endpoint, &connect_next, end]
+          connect_next = [this, wptr{ weak_from_this() }, cb, local_endpoint, connect_next, end]
           (boost::asio::ip::tcp::resolver::results_type::const_iterator iter) mutable {
               auto self = wptr.lock();
               if (!self || self->closed_by_host_) {
                   return;
               }
-              socket_.async_connect(*iter, [this, wptr, cb, iter, end, local_endpoint, &connect_next](const boost::system::error_code& ec) mutable {
+              socket_.async_connect(*iter, [this, wptr, cb, iter, end, local_endpoint, connect_next](const boost::system::error_code& ec) mutable {
                   auto self = wptr.lock();
                   if (!self || self->closed_by_host_) {
                       return;
