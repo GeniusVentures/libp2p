@@ -60,7 +60,7 @@ namespace libp2p::protocol {
             }
             self->log_->info("Sending dcutr holepunch request to peer {} ", peerid.toBase58());
             auto stream = stream_res.value();
-            self->msg_processor_->sendHolepunchConnect(stream, peerid, 2);
+            self->msg_processor_->sendHolepunchConnect(stream, peerid, 0);
         });
   }
 
