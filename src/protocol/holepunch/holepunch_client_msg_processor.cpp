@@ -90,7 +90,17 @@ namespace libp2p::protocol {
         }
         for (auto& addr : msg.obsaddrs())
         {
-            connaddrs.push_back(fromStringToMultiaddr(addr).value());
+            auto resolvedaddr = fromStringToMultiaddr(addr);
+            if (resolvedaddr)
+            {
+                connaddrs.push_back(fromStringToMultiaddr(addr).value());
+            }
+        }
+        if (connaddrs.size() <= 0)
+        {
+            log_->error("There were no valid addresses from {}, {}",
+                peer_id_str, peer_addr_str);
+            return;
         }
         //Send a connect message back.
         holepunch::pb::HolePunch outmsg;
