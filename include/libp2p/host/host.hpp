@@ -145,7 +145,7 @@ namespace libp2p {
      */
     virtual void connect(const peer::PeerInfo &peer_info,
                          const ConnectionResultHandler &handler,
-                         std::chrono::milliseconds timeout, bool holepunch = false) = 0;
+                         std::chrono::milliseconds timeout, bool holepunch = false, bool holepunchserver = false) = 0;
 
     /**
      * @brief Initiates connection to the peer {@param peer_info}.
@@ -153,8 +153,8 @@ namespace libp2p {
      * @param handler callback, will be executed on success or fail
      */
     inline void connect(const peer::PeerInfo &peer_info,
-                        const ConnectionResultHandler &handler, bool holepunch = false) {
-      connect(peer_info, handler, std::chrono::milliseconds::zero(), holepunch);
+                        const ConnectionResultHandler &handler, bool holepunch = false, bool holepunchserver = false) {
+      connect(peer_info, handler, std::chrono::milliseconds::zero(), holepunch, holepunchserver);
     };
 
     /**
@@ -162,9 +162,9 @@ namespace libp2p {
      * exists, does nothing.
      * @param peer_info peer to connect.
      */
-    inline void connect(const peer::PeerInfo &peer_info, bool holepunch = false) {
+    inline void connect(const peer::PeerInfo &peer_info, bool holepunch = false, bool holepunchserver = false) {
       connect(
-          peer_info, [](auto &&) {}, std::chrono::milliseconds::zero(), holepunch);
+          peer_info, [](auto &&) {}, std::chrono::milliseconds::zero(), holepunch, holepunchserver);
     };
 
     /**

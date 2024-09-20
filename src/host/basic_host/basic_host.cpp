@@ -246,8 +246,8 @@ namespace libp2p::host {
 
   void BasicHost::connect(const peer::PeerInfo &peer_info,
                           const ConnectionResultHandler &handler,
-                          std::chrono::milliseconds timeout, bool holepunch) {
-    network_->getDialer().dial(peer_info, handler, timeout, network_->getListener().getListenAddresses().at(0),holepunch);
+                          std::chrono::milliseconds timeout, bool holepunch, bool holepunchserver) {
+    network_->getDialer().dial(peer_info, handler, timeout, network_->getListener().getListenAddresses().at(0), holepunch, holepunchserver);
   }
 
   void BasicHost::disconnect(const peer::PeerId &peer_id) {

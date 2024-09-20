@@ -237,21 +237,14 @@ namespace libp2p::network {
               }
 
               auto&& ctx = ctx_found->second;
-              auto last_tried_addr = *ctx.tried_addresses.rbegin();  // Get the last tried address
 
               if (result.has_value()) {
                   self->listener_->onConnection(result);
-                  self->log_->info("Checking whether address {} has relay", last_tried_addr.getStringAddress());
-
-                  // Check if the last tried address had a circuit relay
-                  if (last_tried_addr.hasCircuitRelay()) {
-                      self->upgradeDialRelay(peer_id, result.value());
-                      return;
-                  }
                   self->completeDial(peer_id, result);
                   return;
               }
-              self->log_->error("Error on connect to {} : {}", last_tried_addr.getStringAddress(), result.error().message());
+              self->log_->error("Error on holepunch connect to {} : {}", peer_id.toBase58(), result.error().message());
+
               // store an error otherwise and reschedule one more rotate
               ctx.result = std::move(result);
               self->scheduler_->schedule([wp, peer_id] {

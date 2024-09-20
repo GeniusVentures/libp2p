@@ -51,7 +51,7 @@ namespace libp2p::host {
 
     void connect(const peer::PeerInfo &peer_info,
                  const ConnectionResultHandler &handler,
-                 std::chrono::milliseconds timeout, bool holepunch = false) override;
+                 std::chrono::milliseconds timeout, bool holepunch = false, bool holepunchserver = false) override;
 
     void disconnect(const peer::PeerId &peer_id) override;
 

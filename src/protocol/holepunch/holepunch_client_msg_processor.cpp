@@ -171,31 +171,30 @@ namespace libp2p::protocol {
             return;
         }
 
-        for (auto& obsaddr : connaddrs)
-        {
-            auto peer_info = peer::PeerInfo{ peer_id.value(), {obsaddr} };
 
-            //Connect immediately since we got a SYNC message.
-            host_.connect(peer_info, [self{ shared_from_this() }, stream, peer_info](auto&& result) {
-                if (result)
-                {
-                    self->log_->info("Successfully opened a connection to peer, but we are not the iniator {}", peer_info.id.toBase58());
-                    //TODO Store connection to close later
-                    //result.value()->close();
-                    //self->connections_.push_back(result.value());
-                    auto it = self->connections_.find(peer_info.id);
-                    if (it == self->connections_.end()) {
-                        self->connections_.insert({ peer_info.id, { result.value() } });
-                    }
-                    else {
-                        self->connections_[peer_info.id].insert(result.value());
-                    }
+        auto peer_info = peer::PeerInfo{ peer_id.value(), connaddrs };
+
+        //Connect immediately since we got a SYNC message.
+        host_.connect(peer_info, [self{ shared_from_this() }, stream, peer_info](auto&& result) {
+            if (result)
+            {
+                self->log_->info("Successfully opened a connection to peer, but we are not the iniator {}", peer_info.id.toBase58());
+                //TODO Store connection to close later
+                //result.value()->close();
+                //self->connections_.push_back(result.value());
+                auto it = self->connections_.find(peer_info.id);
+                if (it == self->connections_.end()) {
+                    self->connections_.insert({ peer_info.id, { result.value() } });
                 }
                 else {
-                    self->log_->info("Failed to connect to peer in holepunch, this may re-try {}: {}", peer_info.id.toBase58(), result.error().message());
+                    self->connections_[peer_info.id].insert(result.value());
                 }
-                }, true);
-        }
+            }
+            else {
+                self->log_->info("Failed to connect to peer in holepunch, this may re-try {}: {}", peer_info.id.toBase58(), result.error().message());
+            }
+            }, true, false);
+        
     }
 
 }
