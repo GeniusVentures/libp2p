@@ -32,7 +32,7 @@ namespace libp2p::network {
 
     // Establishes a connection to a given peer
     void dial(const peer::PeerInfo &p, DialResultFunc cb,
-              std::chrono::milliseconds timeout, multi::Multiaddress bindaddress, bool holepunch = false) override;
+              std::chrono::milliseconds timeout, multi::Multiaddress bindaddress, bool holepunch = false, bool holepunchserver = false) override;
 
     // NewStream returns a new stream to given peer p.
     // If there is no connection to p, attempts to create one.
@@ -56,6 +56,10 @@ namespace libp2p::network {
       // Bind address for dialers
       multi::Multiaddress bindaddress;
 
+      // If this is a holepunch, and whether we are the server in this situation
+      bool holepunch = false;
+      bool holepunchserver = false;
+
       /// Addresses we already tried, but no connection was established
       std::set<multi::Multiaddress> tried_addresses;
 
@@ -72,11 +76,12 @@ namespace libp2p::network {
       // indicates that at least one attempt to dial was happened
       // (at least one supported network transport was found and used)
       bool dialled = false;
+
     };
 
     // Perform a single attempt to dial to the peer via the next known address
     void rotate(const peer::PeerId &peer_id);
-
+    void rotateHolepunch(const peer::PeerId& peer_id);
     // Finalize dialing to the peer and propagate a given result to all
     // connection requesters
     void completeDial(const peer::PeerId &peer_id, const DialResult &result);
@@ -93,6 +98,7 @@ namespace libp2p::network {
 
     // peers we are currently dialing to
     std::unordered_map<peer::PeerId, DialCtx> dialing_peers_;
+    //std::unordered_map<peer::PeerId, std::vector<DialCtx>> dialing_holepunches_;
   };
 
 }  // namespace libp2p::network

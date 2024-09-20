@@ -14,7 +14,7 @@
 namespace libp2p::network {
 
   void DialerImpl::dial(const peer::PeerInfo &p, DialResultFunc cb,
-                        std::chrono::milliseconds timeout, multi::Multiaddress bindaddress, bool holepunch) {
+                        std::chrono::milliseconds timeout, multi::Multiaddress bindaddress, bool holepunch, bool holepunchserver) {
       if (p.id.toBase58().size() == 0)
       {
           scheduler_->schedule(
@@ -34,20 +34,19 @@ namespace libp2p::network {
                 [cb{ std::move(cb) }, c{ std::move(c) }, bindaddress{ std::move(bindaddress) }]() mutable { cb(std::move(c)); });
             return;
         }
-    }
 
-
-    if (auto ctx = dialing_peers_.find(p.id); dialing_peers_.end() != ctx) {
-        SL_TRACE(log_, "Dialing to {} is already in progress",
-            p.id.toBase58());
-        // populate known addresses for in-progress dial if any new appear
-        for (const auto& addr : p.addresses) {
-            if (0 == ctx->second.tried_addresses.count(addr)) {
-                ctx->second.addresses.insert(addr);
+        if (auto ctx = dialing_peers_.find(p.id); dialing_peers_.end() != ctx) {
+            SL_TRACE(log_, "Dialing to {} is already in progress",
+                p.id.toBase58());
+            // populate known addresses for in-progress dial if any new appear
+            for (const auto& addr : p.addresses) {
+                if (0 == ctx->second.tried_addresses.count(addr)) {
+                    ctx->second.addresses.insert(addr);
+                }
             }
+            ctx->second.callbacks.emplace_back(std::move(cb));
+            return;
         }
-        ctx->second.callbacks.emplace_back(std::move(cb));
-        return;
     }
     
 
@@ -62,11 +61,20 @@ namespace libp2p::network {
 
     DialCtx new_ctx{/* .addresses =*/ {p.addresses.begin(), p.addresses.end()},
                     /*.timeout =*/ timeout,
-                    /*.bindaddress= */ bindaddress};
+                    /*.bindaddress= */ bindaddress,
+                    /* holepunch= */ holepunch,
+                    /* holepunchserver=*/ holepunchserver};
     new_ctx.callbacks.emplace_back(std::move(cb));
     bool scheduled = dialing_peers_.emplace(p.id, std::move(new_ctx)).second;
     BOOST_ASSERT(scheduled);
-    rotate(p.id);
+    if (!holepunch)
+    {
+        rotate(p.id);
+    }
+    else {
+        rotateHolepunch(p.id);
+    }
+    
   }
 
   void DialerImpl::rotate(const peer::PeerId& peer_id) {
@@ -192,6 +200,86 @@ namespace libp2p::network {
           }
       }
 
+  }
+
+  void DialerImpl::rotateHolepunch(const peer::PeerId& peer_id) {
+      auto ctx_found = dialing_peers_.find(peer_id);
+      if (dialing_peers_.end() == ctx_found) {
+          SL_ERROR(log_, "State inconsistency - cannot dial {}", peer_id.toBase58());
+          return;
+      }
+      SL_TRACE(log_, "Going to try to dial {}", peer_id.toBase58());
+      auto&& ctx = ctx_found->second;
+
+      if (ctx.addresses.empty() && !ctx.dialled) {
+          completeDial(peer_id, std::errc::address_family_not_supported);
+          return;
+      }
+      if (ctx.addresses.empty() && ctx.result.has_value()) {
+          completeDial(peer_id, ctx.result.value());
+          return;
+      }
+      if (ctx.addresses.empty()) {
+          completeDial(peer_id, std::errc::host_unreachable);
+          return;
+      }
+
+      auto dial_handler = [wp{ weak_from_this() }, peer_id](outcome::result<std::shared_ptr<connection::CapableConnection>> result) {
+          if (auto self = wp.lock()) {
+              auto ctx_found = self->dialing_peers_.find(peer_id);
+              if (self->dialing_peers_.end() == ctx_found) {
+                  SL_ERROR(self->log_, "State inconsistency - uninteresting dial result for peer {}", peer_id.toBase58());
+                  if (result.has_value() && !result.value()->isClosed()) {
+                      auto close_res = result.value()->close();
+                      BOOST_ASSERT(close_res);
+                  }
+                  return;
+              }
+
+              auto&& ctx = ctx_found->second;
+              auto last_tried_addr = *ctx.tried_addresses.rbegin();  // Get the last tried address
+
+              if (result.has_value()) {
+                  self->listener_->onConnection(result);
+                  self->log_->info("Checking whether address {} has relay", last_tried_addr.getStringAddress());
+
+                  // Check if the last tried address had a circuit relay
+                  if (last_tried_addr.hasCircuitRelay()) {
+                      self->upgradeDialRelay(peer_id, result.value());
+                      return;
+                  }
+                  self->completeDial(peer_id, result);
+                  return;
+              }
+              self->log_->error("Error on connect to {} : {}", last_tried_addr.getStringAddress(), result.error().message());
+              // store an error otherwise and reschedule one more rotate
+              ctx.result = std::move(result);
+              self->scheduler_->schedule([wp, peer_id] {
+                  if (auto self = wp.lock()) {
+                      self->rotate(peer_id);
+                  }
+                  });
+              return;
+          }
+          // closing the connection when dialer and connection requester callback no more exist
+          if (result.has_value() && !result.value()->isClosed()) {
+              auto close_res = result.value()->close();
+              BOOST_ASSERT(close_res);
+          }
+          };
+
+      for (auto it = ctx.addresses.begin(); it != ctx.addresses.end(); ) {
+          auto addr = *it;
+          ctx.tried_addresses.insert(addr);
+          it = ctx.addresses.erase(it);
+          if (auto tr = tmgr_->findBest(addr); nullptr != tr) {
+
+              ctx.dialled = true;
+              SL_TRACE(log_, "Dial to non-relay {} via {}", peer_id.toBase58(), addr.getStringAddress());
+
+              tr->dial(peer_id, addr, dial_handler, ctx.timeout, ctx.bindaddress);
+          }
+      }
   }
 
   void DialerImpl::completeDial(const peer::PeerId &peer_id,

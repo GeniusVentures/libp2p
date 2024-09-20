@@ -33,13 +33,13 @@ namespace libp2p::network {
      * specific timeout
      */
     virtual void dial(const peer::PeerInfo &p, DialResultFunc cb,
-                      std::chrono::milliseconds timeout, multi::Multiaddress bindaddress, bool holepunch = false) = 0;
+                      std::chrono::milliseconds timeout, multi::Multiaddress bindaddress, bool holepunch = false, bool holepunchserver = false) = 0;
 
     /**
      * Establishes a connection or returns existing one to a given peer
      */
-    inline void dial(const peer::PeerInfo &p, DialResultFunc cb, multi::Multiaddress bindaddress, bool holepunch = false) {
-      dial(p, std::move(cb), std::chrono::milliseconds::zero(), bindaddress, holepunch);
+    inline void dial(const peer::PeerInfo &p, DialResultFunc cb, multi::Multiaddress bindaddress, bool holepunch = false, bool holepunchserver = false) {
+      dial(p, std::move(cb), std::chrono::milliseconds::zero(), bindaddress, holepunch, holepunchserver);
     }
 
     /**
