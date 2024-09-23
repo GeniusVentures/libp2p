@@ -66,6 +66,7 @@ namespace libp2p::network {
       /// Callbacks for all who requested a connection to the peer
       std::vector<Dialer::DialResultFunc> callbacks;
 
+
       /// Result temporary storage to propagate via callbacks
       boost::optional<DialResult> result;
       // ^ used when all connecting attempts failed and no more known peer
@@ -85,6 +86,7 @@ namespace libp2p::network {
     // Finalize dialing to the peer and propagate a given result to all
     // connection requesters
     void completeDial(const peer::PeerId &peer_id, const DialResult &result);
+    void completeDial(const peer::PeerId &peer_id, const connection::RawConnection &result);
 
     // Upgrade relay connection using HOP protocol
     void upgradeDialRelay(const peer::PeerId& peer_id, std::shared_ptr<connection::CapableConnection> result);

@@ -224,8 +224,10 @@ namespace libp2p::network {
           return;
       }
 
-      auto dial_handler = [wp{ weak_from_this() }, peer_id](outcome::result<std::shared_ptr<connection::CapableConnection>> result) {
+      auto dial_handler = [wp{ weak_from_this() }, peer_id](auto result) {
+          using ConnectionType = typename decltype(result)::value_type;
           if (auto self = wp.lock()) {
+
               auto ctx_found = self->dialing_peers_.find(peer_id);
               if (self->dialing_peers_.end() == ctx_found) {
                   SL_ERROR(self->log_, "State inconsistency - uninteresting dial result for peer {}", peer_id.toBase58());
@@ -239,19 +241,30 @@ namespace libp2p::network {
               auto&& ctx = ctx_found->second;
 
               if (result.has_value()) {
-                  self->listener_->onConnection(result);
-                  self->completeDial(peer_id, result);
+                  if (auto capable_conn = std::dynamic_pointer_cast<connection::CapableConnection>(result.value())) {
+                      self->listener_->onConnection(capable_conn);
+                      self->completeDial(peer_id, capable_conn);
+                  }
+                  else {
+                      
+                      //self->listener_->onConnection(raw_conn);
+                      outcome::result<std::shared_ptr<connection::CapableConnection>> wrapped_result =
+                          std::static_pointer_cast<connection::CapableConnection>(result.value());
+                      self->listener_->onConnection(wrapped_result);
+                      self->completeDial(peer_id, wrapped_result);
+                  }
+
                   return;
               }
               self->log_->error("Error on holepunch connect to {} : {}", peer_id.toBase58(), result.error().message());
 
               // store an error otherwise and reschedule one more rotate
-              ctx.result = std::move(result);
-              self->scheduler_->schedule([wp, peer_id] {
-                  if (auto self = wp.lock()) {
-                      self->rotate(peer_id);
-                  }
-                  });
+              //ctx.result = std::move(result);
+              //self->scheduler_->schedule([wp, peer_id] {
+              //    if (auto self = wp.lock()) {
+              //        self->rotate(peer_id);
+              //    }
+              //    });
               return;
           }
           // closing the connection when dialer and connection requester callback no more exist
@@ -259,6 +272,10 @@ namespace libp2p::network {
               auto close_res = result.value()->close();
               BOOST_ASSERT(close_res);
           }
+          };
+
+      auto dial_handler_raw = [wp{ weak_from_this() }, peer_id, dial_handler](outcome::result<std::shared_ptr<connection::RawConnection>> result) {
+          dial_handler(result);
           };
 
       for (auto it = ctx.addresses.begin(); it != ctx.addresses.end(); ) {
@@ -269,8 +286,8 @@ namespace libp2p::network {
 
               ctx.dialled = true;
               SL_TRACE(log_, "Dial to non-relay {} via {}", peer_id.toBase58(), addr.getStringAddress());
-
-              tr->dial(peer_id, addr, dial_handler, ctx.timeout, ctx.bindaddress);
+              tr->dial(peer_id, addr, dial_handler_raw, ctx.timeout, ctx.bindaddress);
+              
           }
       }
   }
@@ -288,6 +305,23 @@ namespace libp2p::network {
       dialing_peers_.erase(ctx_found);
     }
   }
+
+  //void DialerImpl::completeDial(const peer::PeerId& peer_id,
+  //    const connection::RawConnection& result) {
+  //    log_->info("Completed Dial to {}", peer_id.toBase58());
+  //    if (auto ctx_found = dialing_peers_.find(peer_id);
+  //        dialing_peers_.end() != ctx_found) {
+  //        auto&& ctx = ctx_found->second;
+  //        for (auto i = 0u; i < ctx.callbacks.size(); ++i) {
+  //            scheduler_->schedule(
+  //                [result, cb{ std::move(ctx.callbacks[i]) }] { cb(result); });
+  //            //auto cb = std::move(ctx.callbacks[i]);
+  //            //cb(result);
+  //        }
+  //        dialing_peers_.erase(ctx_found);
+  //    }
+  //    
+  //}
 
 
   void DialerImpl::upgradeDialRelay(const peer::PeerId& peer_id, std::shared_ptr<connection::CapableConnection> result) {
