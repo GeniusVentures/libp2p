@@ -250,7 +250,7 @@ namespace libp2p::network {
                       //self->listener_->onConnection(raw_conn);
                       outcome::result<std::shared_ptr<connection::CapableConnection>> wrapped_result =
                           std::static_pointer_cast<connection::CapableConnection>(result.value());
-                      self->listener_->onConnection(wrapped_result);
+                      //self->listener_->onConnection(wrapped_result);
                       self->completeDial(peer_id, wrapped_result);
                   }
 
