@@ -30,17 +30,29 @@ namespace libp2p::network {
   ConnectionManager::ConnectionSPtr
   ConnectionManagerImpl::getBestConnectionForPeer(const peer::PeerId &p) const {
     // TODO(warchant): maybe make pluggable strategies
+      auto it = connections_.find(p);
+      if (it != connections_.end()) {
+          ConnectionSPtr bestRelayConn = nullptr;
 
-    auto it = connections_.find(p);
-    if (it != connections_.end()) {
-      for (const auto &conn : it->second) {
-        if (!conn->isClosed()) {
-          // for now, return first connection
-          return conn;
-        }
+          for (const auto& conn : it->second) {
+              if (!conn->isClosed()) {
+                  if (!conn->remoteMultiaddr().value().hasCircuitRelay()) {
+                      // Return the first non-closed direct connection as these are always better
+                      return conn;
+                  }
+                  else if (!bestRelayConn) {
+                      // Keep the first non-closed relay connection in case no direct connections exist
+                      bestRelayConn = conn;
+                  }
+              }
+          }
+
+          // If no direct connection was found, return the relay connection
+          return bestRelayConn;
       }
-    }
-    return nullptr;
+      //No connections found
+      return nullptr;
+  }
   }
 
   void ConnectionManagerImpl::addConnectionToPeer(
