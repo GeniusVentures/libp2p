@@ -220,7 +220,7 @@ namespace libp2p::network {
           SL_ERROR(log_, "State inconsistency - cannot dial {}", peer_id.toBase58());
           return;
       }
-      SL_TRACE(log_, "Going to try to dial {}", peer_id.toBase58());
+      SL_TRACE(log_, "Holepunch Going to try to dial {}", peer_id.toBase58());
       auto&& ctx = ctx_found->second;
 
       //if (ctx.addresses.empty() && !ctx.dialled) {
@@ -241,7 +241,7 @@ namespace libp2p::network {
 
               auto ctx_found = self->dialing_holepunches_.find(peer_id);
               if (self->dialing_holepunches_.end() == ctx_found) {
-                  SL_ERROR(self->log_, "State inconsistency - uninteresting dial result for peer {}", peer_id.toBase58());
+                  SL_ERROR(self->log_, "Holepunch State inconsistency - uninteresting dial result for peer {}", peer_id.toBase58());
                   if (result.has_value() && !result.value()->isClosed()) {
                       auto close_res = result.value()->close();
                       BOOST_ASSERT(close_res);
@@ -278,7 +278,7 @@ namespace libp2p::network {
                   if (auto tr = tmgr_->findBest(addr); nullptr != tr) {
 
                       indctx.dialled = true;
-                      SL_TRACE(log_, "Dial to non-relay {} via {}", peer_id.toBase58(), addr.getStringAddress());
+                      SL_TRACE(log_, "Holepunch Dial to non-relay {} via {}", peer_id.toBase58(), addr.getStringAddress());
                       tr->dial(peer_id, addr, dial_handler, indctx.timeout, indctx.bindaddress);
 
                   }
