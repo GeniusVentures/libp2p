@@ -29,10 +29,7 @@ namespace libp2p::transport {
    public:
     using ConnectionCallback =
         void(outcome::result<std::shared_ptr<connection::CapableConnection>>);
-    using ConnectionCallback2 =
-        void(outcome::result<std::shared_ptr<connection::RawConnection>>);
     using HandlerFunc = std::function<ConnectionCallback>;
-    using HandlerFunc2 = std::function<ConnectionCallback2>;
 
     ~TransportAdaptor() override = default;
 
@@ -50,13 +47,6 @@ namespace libp2p::transport {
            std::chrono::milliseconds(0),bindaddress);
     }
 
-    virtual void dial(const peer::PeerId& remoteId, multi::Multiaddress address,
-        HandlerFunc2 handler,
-        multi::Multiaddress bindaddress) {
-        dial(remoteId, std::move(address), std::move(handler),
-            std::chrono::milliseconds(0), bindaddress);
-    }
-
     /**
      * Try to establish connection with a peer with specific timeout
      * @param remoteId id of remote peer to dial
@@ -68,10 +58,6 @@ namespace libp2p::transport {
     virtual void dial(const peer::PeerId &remoteId, multi::Multiaddress address,
                       HandlerFunc handler,
                       std::chrono::milliseconds timeout, multi::Multiaddress bindaddress) = 0;
-
-    virtual void dial(const peer::PeerId& remoteId, multi::Multiaddress address,
-        HandlerFunc2 handler,
-        std::chrono::milliseconds timeout, multi::Multiaddress bindaddress) = 0;
 
     /**
      * Create a listener for incoming connections of this Transport; in case

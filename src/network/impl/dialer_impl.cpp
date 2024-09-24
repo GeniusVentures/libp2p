@@ -224,8 +224,7 @@ namespace libp2p::network {
           return;
       }
 
-      auto dial_handler = [wp{ weak_from_this() }, peer_id](auto result) {
-          using ConnectionType = typename decltype(result)::value_type;
+      auto dial_handler = [wp{ weak_from_this() }, peer_id](outcome::result<std::shared_ptr<connection::CapableConnection>> result) {
           if (auto self = wp.lock()) {
 
               auto ctx_found = self->dialing_peers_.find(peer_id);
@@ -241,19 +240,8 @@ namespace libp2p::network {
               auto&& ctx = ctx_found->second;
 
               if (result.has_value()) {
-                  if (auto capable_conn = std::dynamic_pointer_cast<connection::CapableConnection>(result.value())) {
-                      self->listener_->onConnection(capable_conn);
-                      self->completeDial(peer_id, capable_conn);
-                  }
-                  else {
-                      
-                      //self->listener_->onConnection(raw_conn);
-                      outcome::result<std::shared_ptr<connection::CapableConnection>> wrapped_result =
-                          std::static_pointer_cast<connection::CapableConnection>(result.value());
-                      //self->listener_->onConnection(wrapped_result);
-                      self->completeDial(peer_id, wrapped_result);
-                  }
-
+                  self->listener_->onConnection(result);
+                  self->completeDial(peer_id, result);
                   return;
               }
               self->log_->error("Error on holepunch connect to {} : {}", peer_id.toBase58(), result.error().message());
@@ -274,10 +262,6 @@ namespace libp2p::network {
           }
           };
 
-      auto dial_handler_raw = [wp{ weak_from_this() }, peer_id, dial_handler](outcome::result<std::shared_ptr<connection::RawConnection>> result) {
-          dial_handler(result);
-          };
-
       for (auto it = ctx.addresses.begin(); it != ctx.addresses.end(); ) {
           auto addr = *it;
           ctx.tried_addresses.insert(addr);
@@ -286,7 +270,7 @@ namespace libp2p::network {
 
               ctx.dialled = true;
               SL_TRACE(log_, "Dial to non-relay {} via {}", peer_id.toBase58(), addr.getStringAddress());
-              tr->dial(peer_id, addr, dial_handler_raw, ctx.timeout, ctx.bindaddress);
+              tr->dial(peer_id, addr, dial_handler, ctx.timeout, ctx.bindaddress);
               
           }
       }
