@@ -53,7 +53,7 @@ namespace libp2p::network {
       //No connections found
       return nullptr;
   }
-  }
+  
 
   void ConnectionManagerImpl::addConnectionToPeer(
       const peer::PeerId &p, ConnectionManager::ConnectionSPtr c) {
