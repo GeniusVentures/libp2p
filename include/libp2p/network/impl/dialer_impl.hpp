@@ -86,7 +86,8 @@ namespace libp2p::network {
     // Finalize dialing to the peer and propagate a given result to all
     // connection requesters
     void completeDial(const peer::PeerId &peer_id, const DialResult &result);
-    void completeDial(const peer::PeerId &peer_id, const connection::RawConnection &result);
+    //void completeDial(const peer::PeerId &peer_id, const connection::RawConnection &result);
+    void completeDialHolepunch(const peer::PeerId& peer_id, const DialResult& result);
 
     // Upgrade relay connection using HOP protocol
     void upgradeDialRelay(const peer::PeerId& peer_id, std::shared_ptr<connection::CapableConnection> result);
@@ -100,7 +101,7 @@ namespace libp2p::network {
 
     // peers we are currently dialing to
     std::unordered_map<peer::PeerId, DialCtx> dialing_peers_;
-    //std::unordered_map<peer::PeerId, std::vector<DialCtx>> dialing_holepunches_;
+    std::unordered_map<peer::PeerId, std::vector<DialCtx>> dialing_holepunches_;
   };
 
 }  // namespace libp2p::network
