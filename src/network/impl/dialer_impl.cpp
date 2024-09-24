@@ -11,8 +11,9 @@
 #include <libp2p/network/impl/dialer_impl.hpp>
 #include <iostream>
 
-namespace libp2p::network {
 
+namespace libp2p::network {
+    
   void DialerImpl::dial(const peer::PeerInfo &p, DialResultFunc cb,
                         std::chrono::milliseconds timeout, multi::Multiaddress bindaddress, bool holepunch, bool holepunchserver) {
       if (p.id.toBase58().size() == 0)
@@ -22,7 +23,7 @@ namespace libp2p::network {
           SL_ERROR(log_, "Dialing contains no peer ID to dial");
           return;
       }
-    SL_TRACE(log_, "Dialing to {} from {}", p.id.toBase58(), bindaddress.getStringAddress());
+    SL_TRACE(log_, "Dialing to {} from {} they have {} addresses", p.id.toBase58(), bindaddress.getStringAddress(), p.addresses.size());
     if (!holepunch)
     {
         if (auto c = cmgr_->getBestConnectionForPeer(p.id); c != nullptr) {
@@ -58,8 +59,16 @@ namespace libp2p::network {
           [cb{std::move(cb)}] { cb(std::errc::destination_address_required); });
       return;
     }
+    std::set<multi::Multiaddress> limitedAddresses;
 
-    DialCtx new_ctx{/* .addresses =*/ {p.addresses.begin(), p.addresses.end()},
+    auto it = p.addresses.begin();
+    auto end = p.addresses.end();
+
+    for (size_t i = 0; i < MAX_ADDRESSES && it != end; ++i, ++it) {
+        limitedAddresses.insert(*it);
+    }
+
+    DialCtx new_ctx{/* .addresses =*/ limitedAddresses,
                     /*.timeout =*/ timeout,
                     /*.bindaddress= */ bindaddress,
                     /* holepunch= */ holepunch,

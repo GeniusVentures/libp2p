@@ -102,6 +102,7 @@ namespace libp2p::network {
     // peers we are currently dialing to
     std::unordered_map<peer::PeerId, DialCtx> dialing_peers_;
     std::unordered_map<peer::PeerId, std::vector<DialCtx>> dialing_holepunches_;
+    const size_t MAX_ADDRESSES = 16;
   };
 
 }  // namespace libp2p::network
