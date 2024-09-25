@@ -193,6 +193,7 @@ namespace libp2p::network {
     }
     auto &&id = rid.value();
 
+    log_()->info("Added connection for, {}", rid.value().toBase58());
     // set onStream handler function
     conn->onStream(
         [this](outcome::result<std::shared_ptr<connection::Stream>> rstream) {
@@ -253,7 +254,7 @@ namespace libp2p::network {
           return;  // ignore
       }
       auto&& conn = rconn.value();
-
+      log_()->info("Added Relay connection for, {}", id.toBase58());
       // set onStream handler function
       conn->onStream(
           [this](outcome::result<std::shared_ptr<connection::Stream>> rstream) {
