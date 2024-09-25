@@ -267,8 +267,16 @@ namespace libp2p::protocol {
         log_->info("Remote relay connection encryption being upgraded {} ", peer_id.toBase58());
         auto session = std::make_shared<libp2p::transport::UpgraderSession>(
             upgrader_, stream, [self{ shared_from_this() }, peer_id, cb](outcome::result<std::shared_ptr<connection::CapableConnection>> result) {
-                self->log_->info("Remote relay connection completed {} ", peer_id.toBase58());
-                self->host_.getNetwork().getListener().onConnectionRelay(peer_id, result);
+                if (result)
+                {
+                    self->log_->info("Remote relay connection completed {} ", peer_id.toBase58());
+                    self->host_.getNetwork().getListener().onConnectionRelay(peer_id, result);
+                    cb(peer_id);
+                }
+                else {
+                    self->log_->info("Remote relay connection failed {} because {}", peer_id.toBase58(), result.error().message());
+                    cb(result.error());
+                }
                 
             });
         stream->setIncomingRelay(true);

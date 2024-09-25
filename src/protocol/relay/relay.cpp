@@ -67,9 +67,17 @@ namespace libp2p::protocol {
       if (!stream_res) {
           return;
       }
-      msg_processor_->receiveStopRelay(std::move(stream_res.value()), [self{ shared_from_this() }](const peer::PeerId peerid)
+      msg_processor_->receiveStopRelay(std::move(stream_res.value()), [self{ shared_from_this() }](outcome::result<peer::PeerId> peerid)
           {
-              self->holepunch_->start(peerid);
+              if (peerid)
+              {
+                  self->log_->info("Since a relay connection was established we will holepunch now to {} ", peerid.value().toBase58());
+                  self->holepunch_->start(peerid.value());
+              }
+              else {
+                  self->log_->info("Since a relay connection was not established we won't try to holepunch");
+              }
+
           });
   }
 
