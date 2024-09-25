@@ -120,7 +120,11 @@ namespace libp2p::protocol {
         }
         for (auto& addr : msg.obsaddrs())
         {
-            connaddrs.push_back(fromStringToMultiaddr(addr).value());
+            auto addaddr = fromStringToMultiaddr(addr);
+            if (addaddr)
+            {
+                connaddrs.push_back(addaddr.value());
+            }
         }
         
 
