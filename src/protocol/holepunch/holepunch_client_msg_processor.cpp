@@ -183,6 +183,7 @@ namespace libp2p::protocol {
             if (result)
             {
                 self->log_->info("Successfully opened a connection to peer {}", peer_info.id.toBase58());
+                self->host_.getNetwork().getListener().removeRelayedConnections(peer_info.id);
                 //TODO 
             }
             else {
