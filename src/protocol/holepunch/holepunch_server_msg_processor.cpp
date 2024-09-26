@@ -57,6 +57,7 @@ namespace libp2p::protocol {
         auto obsaddr = host_.getObservedAddressesReal(false);
         for (auto& addr : obsaddr)
         {
+            log_->info("Potential holepunch address to send server {}", addr.getStringAddress());
             if (!addr.hasCircuitRelay())
             {
                 msg.add_obsaddrs(fromMultiaddrToString(addr));

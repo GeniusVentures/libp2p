@@ -42,7 +42,7 @@ namespace libp2p::protocol {
   }
 
   std::vector<multi::Multiaddress> Identify::getAllObservedAddresses() const {
-    return msg_processor_->getObservedAddresses().getAllAddresses();
+    return msg_processor_->getObservedAddresses().getAllAddresses(false);
   }
 
   std::vector<multi::Multiaddress> Identify::getObservedAddressesFor(
