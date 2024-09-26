@@ -24,3 +24,9 @@ target_link_libraries(p2p_identify
 	p2p_observed_addresses
     p2p_logger
     )
+
+
+target_link_libraries(p2p_observed_addresses
+    p2p
+    p2p_logger
+    )
