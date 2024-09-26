@@ -255,6 +255,7 @@ namespace libp2p::network {
       }
       auto&& conn = rconn.value();
       log_()->info("Added Relay connection for, {}", id.toBase58());
+      conn->setRelay(true);
       // set onStream handler function
       conn->onStream(
           [this](outcome::result<std::shared_ptr<connection::Stream>> rstream) {
