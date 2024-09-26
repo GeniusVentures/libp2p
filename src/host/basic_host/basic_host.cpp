@@ -22,7 +22,8 @@ namespace libp2p::host {
         repo_(std::move(repo)),
         bus_(std::move(bus)),
         transport_manager_(std::move(transport_manager)),
-        relayaddr_(std::make_unique<libp2p::protocol::RelayAddresses>())
+        relayaddr_(std::make_unique<libp2p::protocol::RelayAddresses>()),
+      obsaddrrepo_(std::make_unique<libp2p::protocol::ObservedAddresses>())
   {
     BOOST_ASSERT(idmgr_ != nullptr);
     BOOST_ASSERT(network_ != nullptr);
@@ -48,18 +49,18 @@ namespace libp2p::host {
     auto observed = getObservedAddressesReal();
     auto interfaces = getAddressesInterfaces();
     auto relays = getRelayAddresses();
-    //for (const auto& addr : addresses) {
-    //    std::cout << "Addresses: " << addr.getStringAddress() << std::endl; 
-    //}
-    //for (const auto& addr : interfaces) {
-    //    std::cout << "Interface: " << addr.getStringAddress() << std::endl;
-    //}
-    //for (const auto& addr : observed) {
-    //    std::cout << "Observed: " << addr.getStringAddress() << std::endl;
-    //}
-    //for (const auto& addr : relays) {
-    //    std::cout << "Relays: " << addr.getStringAddress() << std::endl;
-    //}
+    for (const auto& addr : addresses) {
+        std::cout << "Addresses: " << addr.getStringAddress() << std::endl; 
+    }
+    for (const auto& addr : interfaces) {
+        std::cout << "Interface: " << addr.getStringAddress() << std::endl;
+    }
+    for (const auto& addr : observed) {
+        std::cout << "Observed: " << addr.getStringAddress() << std::endl;
+    }
+    for (const auto& addr : relays) {
+        std::cout << "Relays: " << addr.getStringAddress() << std::endl;
+    }
     //std::cout << "Relay address size? " << relays.size() << std::endl;
     std::set<multi::Multiaddress> unique_addresses;
     unique_addresses.insert(std::make_move_iterator(addresses.begin()),
