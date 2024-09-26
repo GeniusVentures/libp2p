@@ -11,6 +11,7 @@
 #include <libp2p/peer/identity_manager.hpp>
 #include <libp2p/network/transport_manager.hpp>
 #include <libp2p/protocol/relay/relay_addresses.hpp>
+#include <libp2p/protocol/identify/observed_addresses.hpp>
 
 namespace libp2p::host {
 
@@ -46,6 +47,8 @@ namespace libp2p::host {
     std::vector<multi::Multiaddress> getObservedAddresses() const override;
 
     std::vector<multi::Multiaddress> getRelayAddresses() const override;
+
+    std::vector<multi::Multiaddress> getObservedAddressesReal(bool checkconfirmed = true) const override;
 
     Connectedness connectedness(const peer::PeerInfo &p) const override;
 
@@ -88,6 +91,8 @@ namespace libp2p::host {
 
     protocol::RelayAddresses& getRelayRepository() override;
 
+    protocol::ObservedAddresses& getObservedRepository() override;
+
     network::Router &getRouter() override;
 
     event::Bus &getBus() override;
@@ -102,6 +107,7 @@ namespace libp2p::host {
     std::shared_ptr<event::Bus> bus_;
     std::shared_ptr<network::TransportManager> transport_manager_;
     std::unique_ptr<protocol::RelayAddresses> relayaddr_;
+    std::unique_ptr<protocol::ObservedAddresses> obsaddrrepo_;
   };
 
 }  // namespace libp2p::host

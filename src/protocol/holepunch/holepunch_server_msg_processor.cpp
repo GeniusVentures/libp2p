@@ -54,7 +54,7 @@ namespace libp2p::protocol {
 
         holepunch::pb::HolePunch msg;
         msg.set_type(holepunch::pb::HolePunch_Type_CONNECT);
-        auto obsaddr = host_.getObservedAddresses();
+        auto obsaddr = host_.getObservedAddressesReal(false);
         for (auto& addr : obsaddr)
         {
             if (!addr.hasCircuitRelay())

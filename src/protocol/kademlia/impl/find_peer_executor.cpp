@@ -250,11 +250,6 @@ namespace libp2p::protocol::kademlia {
         if (peer.conn_status == Message::Connectedness::CAN_NOT_CONNECT) {
           continue;
         }
-        //Skip ourselves
-        if (peer.info.id == self_peer_id)
-        {
-            continue;
-        }
 
         // Add/Update peer info
         auto add_addr_res =

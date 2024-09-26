@@ -260,10 +260,6 @@ namespace libp2p::protocol::kademlia {
         if (peer.conn_status == Message::Connectedness::CAN_NOT_CONNECT) {
           continue;
         }
-        if (self_peer_id == peer.info.id)
-        {
-            continue;
-        }
 
         // Add/Update peer info
         auto add_addr_res =
@@ -296,10 +292,6 @@ namespace libp2p::protocol::kademlia {
           continue;
         }
 
-        if (self_peer_id == peer.info.id)
-        {
-            continue;
-        }
         // Add/Update peer info
         auto add_addr_res =
             host_->getPeerRepository().getAddressRepository().upsertAddresses(

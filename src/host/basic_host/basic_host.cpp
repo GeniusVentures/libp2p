@@ -45,21 +45,21 @@ namespace libp2p::host {
 
   peer::PeerInfo BasicHost::getPeerInfo() const {
     auto addresses = getAddresses();
-    auto observed = getObservedAddresses();
+    auto observed = getObservedAddressesReal();
     auto interfaces = getAddressesInterfaces();
     auto relays = getRelayAddresses();
-    for (const auto& addr : addresses) {
-        std::cout << "Addresses: " << addr.getStringAddress() << std::endl; 
-    }
-    for (const auto& addr : interfaces) {
-        std::cout << "Interface: " << addr.getStringAddress() << std::endl;
-    }
-    for (const auto& addr : observed) {
-        std::cout << "Observed: " << addr.getStringAddress() << std::endl;
-    }
-    for (const auto& addr : relays) {
-        std::cout << "Relays: " << addr.getStringAddress() << std::endl;
-    }
+    //for (const auto& addr : addresses) {
+    //    std::cout << "Addresses: " << addr.getStringAddress() << std::endl; 
+    //}
+    //for (const auto& addr : interfaces) {
+    //    std::cout << "Interface: " << addr.getStringAddress() << std::endl;
+    //}
+    //for (const auto& addr : observed) {
+    //    std::cout << "Observed: " << addr.getStringAddress() << std::endl;
+    //}
+    //for (const auto& addr : relays) {
+    //    std::cout << "Relays: " << addr.getStringAddress() << std::endl;
+    //}
     //std::cout << "Relay address size? " << relays.size() << std::endl;
     std::set<multi::Multiaddress> unique_addresses;
     unique_addresses.insert(std::make_move_iterator(addresses.begin()),
@@ -123,6 +123,10 @@ namespace libp2p::host {
 
   std::vector<multi::Multiaddress> BasicHost::getRelayAddresses() const {
       return relayaddr_->getAllAddresses();
+  }
+
+  std::vector<multi::Multiaddress> BasicHost::getObservedAddressesReal(bool checkconfirmed) const {
+      return obsaddrrepo_->getAllAddresses(checkconfirmed);
   }
 
   Host::Connectedness BasicHost::connectedness(const peer::PeerInfo &p) const {
@@ -234,6 +238,10 @@ namespace libp2p::host {
 
   protocol::RelayAddresses& BasicHost::getRelayRepository() {
       return *relayaddr_;
+  }
+
+  protocol::ObservedAddresses& BasicHost::getObservedRepository() {
+      return *obsaddrrepo_;
   }
 
   network::Router &BasicHost::getRouter() {

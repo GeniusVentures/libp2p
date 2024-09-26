@@ -112,7 +112,7 @@ namespace libp2p::protocol {
 
     Host &host_;
     network::ConnectionManager &conn_manager_;
-    ObservedAddresses observed_addresses_;
+    //ObservedAddresses observed_addresses_;
     boost::signals2::signal<AutonatCallback> signal_autonat_received_;
     //int successful_addresses_;
     //int unsuccessful_addresses_;

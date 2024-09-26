@@ -66,7 +66,7 @@ namespace libp2p::protocol {
 
         //Set our Addresses we think we are available on
         for (const auto& addr : host_.getObservedAddresses()) {
-            //std::cout << "Adding address to Autonat PB: " << addr.getStringAddress() << std::endl;
+            std::cout << "Adding address to Autonat PB: " << addr.getStringAddress() << std::endl;
             dialpeer->add_addrs(fromMultiaddrToString(addr));
         }
         dialmsg->set_allocated_peer(dialpeer);
@@ -121,7 +121,7 @@ namespace libp2p::protocol {
 
     const ObservedAddresses& AutonatMessageProcessor::getObservedAddresses()
         const noexcept {
-        return observed_addresses_;
+        return host_.getObservedRepository();
     }
 
     void AutonatMessageProcessor::autonatReceived(
@@ -318,14 +318,14 @@ namespace libp2p::protocol {
         if (successful_addresses_[std::string(response_ma.value().getStringAddress())] >= 4)
         {
             log_->info("Autonat confirming address: {}", response_ma.value().getStringAddress());
-            observed_addresses_.confirm(local_addr_res.value(), response_ma.value());
+            host_.getObservedRepository().confirm(local_addr_res.value(), response_ma.value());
             signal_autonat_received_(true);
         }
         //Take uncertainty as fact
         if (unsuccessful_addresses_[std::string(response_ma.value().getStringAddress())] >= 4)
         {
             log_->info("Autonat unconfirming address: {}", response_ma.value().getStringAddress());
-            observed_addresses_.unconfirm(local_addr_res.value(), response_ma.value());
+            host_.getObservedRepository().unconfirm(local_addr_res.value(), response_ma.value());
             signal_autonat_received_(false);
         }
     }

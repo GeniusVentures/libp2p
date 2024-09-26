@@ -133,7 +133,7 @@ namespace libp2p::protocol {
 
   const ObservedAddresses &IdentifyMessageProcessor::getObservedAddresses()
       const noexcept {
-    return observed_addresses_;
+    return host_.getObservedRepository();
   }
 
   void IdentifyMessageProcessor::identifyReceived(
@@ -310,7 +310,7 @@ namespace libp2p::protocol {
             observed_address.getStringAddress());
     }
     log_->info("Recording an observed address {}", observed_address.getStringAddress());
-    observed_addresses_.add(std::move(observed_address),
+    host_.getObservedRepository().add(std::move(observed_address),
                             std::move(local_addr_res.value()),
                             remote_addr_res.value(), is_initiator_res.value());
   }

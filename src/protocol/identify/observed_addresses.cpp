@@ -9,7 +9,7 @@
 
 namespace libp2p::protocol {
   std::vector<multi::Multiaddress> ObservedAddresses::getAddressesFor(
-      const multi::Multiaddress &address) const {
+      const multi::Multiaddress &address, bool checkconfirmed) const {
     std::vector<multi::Multiaddress> result;
 
     auto addr_entry_it = observed_addresses_.find(address);
@@ -19,7 +19,7 @@ namespace libp2p::protocol {
 
     auto now = Clock::now();
     for (const auto &addr : addr_entry_it->second) {
-      if (addressIsActivated(addr, now)) {
+        if (addressIsActivated(addr, now) && (!checkconfirmed || addr.confirmed)) {
         result.push_back(addr.address);
       }
     }
@@ -27,11 +27,11 @@ namespace libp2p::protocol {
     return result;
   }
 
-  std::vector<multi::Multiaddress> ObservedAddresses::getAllAddresses() const {
+  std::vector<multi::Multiaddress> ObservedAddresses::getAllAddresses(bool checkconfirmed) const {
     std::vector<multi::Multiaddress> result;
 
     for (const auto &it : observed_addresses_) {
-      auto addresses = getAddressesFor(it.first);
+      auto addresses = getAddressesFor(it.first, checkconfirmed);
       result.insert(result.end(), std::make_move_iterator(addresses.begin()),
                     std::make_move_iterator(addresses.end()));
     }

@@ -22,6 +22,7 @@
 #include <libp2p/peer/protocol.hpp>
 #include <libp2p/protocol/base_protocol.hpp>
 #include <libp2p/protocol/relay/relay_addresses.hpp>
+#include <libp2p/protocol/identify/observed_addresses.hpp>
 
 namespace libp2p {
   /**
@@ -107,6 +108,13 @@ namespace libp2p {
      * May return 0 addresses if we don't have any relay addresses
      */
     virtual std::vector<multi::Multiaddress> getRelayAddresses() const = 0;
+
+    /**
+     * @brief Get our real observed addresses that identify might return, i'm not sure why the other observed addresses just gets peer repo stuff.
+     *
+     * May return 0 addresses if we don't have any observed addresses
+     */
+    virtual std::vector<multi::Multiaddress> getObservedAddressesReal(bool checkconfirmed = true) const = 0;
 
     /**
     * @brief Get connectedness information for given peer
@@ -257,6 +265,11 @@ namespace libp2p {
      * @brief Getter for a relay address repository.
      */
     virtual protocol::RelayAddresses& getRelayRepository() = 0;
+
+    /**
+     * @brief Getter for a oberved address repository.
+     */
+    virtual protocol::ObservedAddresses& getObservedRepository() = 0;
 
     /**
      * @brief Getter for a router.

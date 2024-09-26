@@ -105,7 +105,7 @@ namespace libp2p::protocol {
         //Send a connect message back.
         holepunch::pb::HolePunch outmsg;
         outmsg.set_type(holepunch::pb::HolePunch_Type_CONNECT);
-        auto obsaddr = host_.getObservedAddresses();
+        auto obsaddr = host_.getObservedAddressesReal(false);
         for (auto& addr : obsaddr)
         {
             if (!addr.hasCircuitRelay())

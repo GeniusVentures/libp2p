@@ -61,6 +61,7 @@ namespace libp2p::protocol {
     std::vector<multi::Multiaddress> getObservedAddressesFor(
         const multi::Multiaddress &address) const;
 
+
     peer::Protocol getProtocolId() const override;
 
     /**
