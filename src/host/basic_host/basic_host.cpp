@@ -48,18 +48,18 @@ namespace libp2p::host {
     auto observed = getObservedAddresses();
     auto interfaces = getAddressesInterfaces();
     auto relays = getRelayAddresses();
-    //for (const auto& addr : addresses) {
-    //    std::cout << "Addresses: " << addr.getStringAddress() << std::endl; 
-    //}
-    //for (const auto& addr : interfaces) {
-    //    std::cout << "Interface: " << addr.getStringAddress() << std::endl;
-    //}
-    //for (const auto& addr : observed) {
-    //    std::cout << "Observed: " << addr.getStringAddress() << std::endl;
-    //}
-    //for (const auto& addr : relays) {
-    //    std::cout << "Relays: " << addr.getStringAddress() << std::endl;
-    //}
+    for (const auto& addr : addresses) {
+        std::cout << "Addresses: " << addr.getStringAddress() << std::endl; 
+    }
+    for (const auto& addr : interfaces) {
+        std::cout << "Interface: " << addr.getStringAddress() << std::endl;
+    }
+    for (const auto& addr : observed) {
+        std::cout << "Observed: " << addr.getStringAddress() << std::endl;
+    }
+    for (const auto& addr : relays) {
+        std::cout << "Relays: " << addr.getStringAddress() << std::endl;
+    }
     //std::cout << "Relay address size? " << relays.size() << std::endl;
     std::set<multi::Multiaddress> unique_addresses;
     unique_addresses.insert(std::make_move_iterator(addresses.begin()),

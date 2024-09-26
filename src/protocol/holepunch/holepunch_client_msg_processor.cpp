@@ -108,7 +108,10 @@ namespace libp2p::protocol {
         auto obsaddr = host_.getObservedAddresses();
         for (auto& addr : obsaddr)
         {
-            outmsg.add_obsaddrs(fromMultiaddrToString(addr));
+            if (!addr.hasCircuitRelay())
+            {
+                outmsg.add_obsaddrs(fromMultiaddrToString(addr));
+            }
         }
 
         //Write to stream

@@ -143,7 +143,7 @@ namespace libp2p::transport {
   {
 #ifndef _WIN32
       struct rlimit limit;
-      const rlim_t max_descriptors = 4096;  // Define a cap for file descriptors
+      const rlim_t max_descriptors = 8192;  // Define a cap for file descriptors
 
       // Get current limits
       if (getrlimit(RLIMIT_NOFILE, &limit) == 0) {

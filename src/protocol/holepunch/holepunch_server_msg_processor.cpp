@@ -57,7 +57,10 @@ namespace libp2p::protocol {
         auto obsaddr = host_.getObservedAddresses();
         for (auto& addr : obsaddr)
         {
-            msg.add_obsaddrs(fromMultiaddrToString(addr));
+            if (!addr.hasCircuitRelay())
+            {
+                msg.add_obsaddrs(fromMultiaddrToString(addr));
+            }
         }
 
         // write the resulting Protobuf message
