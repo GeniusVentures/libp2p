@@ -36,7 +36,7 @@ namespace libp2p::network {
 
           for (const auto& conn : it->second) {
               if (!conn->isClosed()) {
-                  if (!conn->remoteMultiaddr().value().hasCircuitRelay()) {
+                  if (!conn->isRelay()) {
                       // Return the first non-closed direct connection as these are always better
                       return conn;
                   }

@@ -79,6 +79,10 @@ namespace libp2p::connection {
 
     outcome::result<std::shared_ptr<RawConnection>> getRawConnection() const override;
 
+    void setRelay(bool isrelay) override;
+
+    bool isRelay() override;
+
    private:
     struct WriteData {
       common::ByteArray data;
@@ -174,6 +178,9 @@ namespace libp2p::connection {
 
     bool is_active_ = false;
     log::Logger log_ = log::createLogger("MplexConn");
+
+    //Whether this is relay
+    bool isRelay_ = false;
 
     /// MPLEX STREAM API
     friend class MplexStream;

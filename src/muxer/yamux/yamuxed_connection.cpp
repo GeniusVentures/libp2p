@@ -231,6 +231,16 @@ namespace libp2p::connection {
       return connection_->getRawConnection();
   }
 
+  void YamuxedConnection::setRelay(bool isrelay)
+  {
+      isRelay_ = isrelay;
+  }
+
+  bool YamuxedConnection::isRelay()
+  {
+      return isRelay_;
+  }
+
   void YamuxedConnection::continueReading() {
     SL_TRACE(log_(), "YamuxedConnection::continueReading");
     connection_->readSome(*raw_read_buffer_, raw_read_buffer_->size(),

@@ -66,6 +66,15 @@ namespace libp2p::connection {
      * reset
      */
     virtual void onStream(NewStreamHandlerFunc cb) = 0;
+    /**
+     * @brief Get whether this connection is a relay or not.
+     */
+    virtual void setRelay(bool isrelay) = 0;
+
+    /**
+     * @brief Get whether this connection is a relay or not.
+     */
+    virtual bool isRelay() = 0;
   };
 
 }  // namespace libp2p::connection

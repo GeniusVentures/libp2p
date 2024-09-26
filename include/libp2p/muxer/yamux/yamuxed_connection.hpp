@@ -80,6 +80,10 @@ namespace libp2p::connection {
 
     outcome::result<std::shared_ptr<RawConnection>> getRawConnection() const override;
 
+    void setRelay(bool isrelay) override;
+
+    bool isRelay() override;
+
    private:
     using Streams = std::unordered_map<StreamId, std::shared_ptr<YamuxStream>>;
 
@@ -241,6 +245,9 @@ namespace libp2p::connection {
 
     /// Remote peer saved here
     peer::PeerId remote_peer_;
+
+    //Whether this is relay
+    bool isRelay_ = false;
 
    public:
     LIBP2P_METRICS_INSTANCE_COUNT_IF_ENABLED(

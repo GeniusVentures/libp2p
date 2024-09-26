@@ -157,6 +157,16 @@ namespace libp2p::connection {
       return connection_->getRawConnection();
   }
 
+  void MplexedConnection::setRelay(bool isrelay)
+  {
+      isRelay_ = isrelay;
+  }
+
+  bool MplexedConnection::isRelay()
+  {
+      return isRelay_;
+  }
+
   void MplexedConnection::write(WriteData data) {
     write_queue_.push(std::move(data));
     if (is_writing_) {
