@@ -197,7 +197,9 @@ namespace libp2p::protocol {
             //Create a temporary libp2p host to dial out with
             auto injector = libp2p::injector::makeHostInjector();
             auto temphost = injector.create<std::shared_ptr<libp2p::Host>>();
-            libp2p::multi::Multiaddress listen_address = libp2p::multi::Multiaddress::create("/ip4/127.0.0.1/tcp/32348").value();
+            auto origaddr = host_.getNetwork().getListener().getListenAddresses()[0];
+            std::string tempaddr = "/ip4/" + origaddr.getFirstValueForProtocol(libp2p::multi::Protocol::Code::IP4).value() + "/tcp/32348";
+            libp2p::multi::Multiaddress listen_address = libp2p::multi::Multiaddress::create(tempaddr).value();
             temphost->getNetwork().getListener().listen(listen_address);
             //Create a dial response
 
