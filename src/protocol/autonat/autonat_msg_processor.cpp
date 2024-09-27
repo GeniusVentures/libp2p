@@ -171,7 +171,9 @@ namespace libp2p::protocol {
         auto remote_ip = stream->remoteMultiaddr().value().getStringAddress();
 
         //Get Peer ID
-        auto peer_id_res = libp2p::peer::PeerId::fromBase58(peer_info.id());
+        //auto peer_id_res = libp2p::peer::PeerId::fromBase58(peer_info.id());
+        auto peer_id_res = peer::PeerId::fromBytes(gsl::span<const uint8_t>(
+            reinterpret_cast<const uint8_t*>(peer_info.id().data()), peer_info.id().size()));
         if (!peer_id_res.has_value())
         {
             log_->error("AUTONAT Peer has no ID {}", remote_ip);
