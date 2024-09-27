@@ -49,7 +49,15 @@ namespace libp2p::protocol {
                 peer_id.toBase58(), kMaxRetries);
             return;
         }
+        auto bestconn = conn_manager_.getBestConnectionForPeer(peer_id);
+        if (!bestconn->isRelay())
+        {
+            log_->info("Attempt at holepunching stopped because we already have a non-relay connection with them {}",
+                peer_id.toBase58());
+            return;
+        }
 
+        
         log_->info("Sending a holepunch message with our addresses to {}", peer_id.toBase58());
 
         holepunch::pb::HolePunch msg;
