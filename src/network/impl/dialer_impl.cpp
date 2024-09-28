@@ -175,7 +175,7 @@ namespace libp2p::network {
                       upgradeDialRelay(peer_id, c);
                   }
                   else {
-                      tr->dial(peer_id_actual.value(), addr, dial_handler, ctx.timeout, ctx.bindaddress);
+                      tr->dial(peer_id_actual.value(), addr, dial_handler, ctx.timeout, ctx.bindaddress, ctx.holepunch, ctx.holepunchserver);
                   }
                   
               }

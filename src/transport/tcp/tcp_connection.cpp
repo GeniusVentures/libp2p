@@ -153,15 +153,15 @@ namespace libp2p::transport {
 
   void TcpConnection::connect(
       const TcpConnection::ResolverResultsType &iterator,
-      TcpConnection::ConnectCallbackFunc cb, multi::Multiaddress bindaddress) {
-    connect(iterator, std::move(cb), std::chrono::milliseconds::zero(), bindaddress);
+      TcpConnection::ConnectCallbackFunc cb, multi::Multiaddress bindaddress, bool holepunch, bool holepunchserver) {
+    connect(iterator, std::move(cb), std::chrono::milliseconds::zero(), bindaddress, holepunch, holepunchserver);
   }
 
 #include <functional>  // Include this to use std::function
 
   void TcpConnection::connect(
       const TcpConnection::ResolverResultsType& iterator,
-      ConnectCallbackFunc cb, std::chrono::milliseconds timeout, multi::Multiaddress bindaddress) {
+      ConnectCallbackFunc cb, std::chrono::milliseconds timeout, multi::Multiaddress bindaddress, bool holepunch, bool holepunchserver) {
       if (timeout > std::chrono::milliseconds::zero()) {
           connecting_with_timeout_ = true;
           deadline_timer_.expires_from_now(
@@ -230,14 +230,14 @@ namespace libp2p::transport {
           //std::cout << "Connect to: " << iter->endpoint().address().to_string() << std::endl;;
           auto connect_next = std::make_shared<std::function<void(boost::asio::ip::tcp::resolver::results_type::const_iterator)>>();
 
-          *connect_next = [this, wptr{ weak_from_this() }, cb, local_endpoint, connect_next, end]
+          *connect_next = [this, wptr{ weak_from_this() }, cb, local_endpoint, connect_next, end, holepunch, holepunchserver]
           (boost::asio::ip::tcp::resolver::results_type::const_iterator iter) mutable {
               auto self = wptr.lock();
               if (!self || self->closed_by_host_) {
                   return;
               }
 
-              socket_.async_connect(*iter, [this, wptr, cb, iter, end, local_endpoint, connect_next](const boost::system::error_code& ec) mutable {
+              socket_.async_connect(*iter, [this, wptr, cb, iter, end, local_endpoint, connect_next, holepunch, holepunchserver](const boost::system::error_code& ec) mutable {
                   auto self = wptr.lock();
                   if (!self || self->closed_by_host_) {
                       return;
@@ -249,6 +249,13 @@ namespace libp2p::transport {
                           self->deadline_timer_.cancel();
                       }
                       self->initiator_ = true;
+                      if (holepunch)
+                      {
+                          if (!holepunchserver)
+                          {
+                              self->initiator_ = false;
+                          }
+                      }
                       std::ignore = self->saveMultiaddresses();
                       cb(ec, self->socket_.remote_endpoint());
                   }

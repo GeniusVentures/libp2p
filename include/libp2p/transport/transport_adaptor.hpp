@@ -42,9 +42,9 @@ namespace libp2p::transport {
      */
     virtual void dial(const peer::PeerId &remoteId, multi::Multiaddress address,
                       HandlerFunc handler,
-                      multi::Multiaddress bindaddress) {
+                      multi::Multiaddress bindaddress, bool holepunch = false, bool holepunchserver = false) {
       dial(remoteId, std::move(address), std::move(handler),
-           std::chrono::milliseconds(0),bindaddress);
+           std::chrono::milliseconds(0),bindaddress, holepunch, holepunchserver);
     }
 
     /**
@@ -57,7 +57,7 @@ namespace libp2p::transport {
      */
     virtual void dial(const peer::PeerId &remoteId, multi::Multiaddress address,
                       HandlerFunc handler,
-                      std::chrono::milliseconds timeout, multi::Multiaddress bindaddress) = 0;
+                      std::chrono::milliseconds timeout, multi::Multiaddress bindaddress, bool holepunch = false, bool holepunchserver = false) = 0;
 
     /**
      * Create a listener for incoming connections of this Transport; in case

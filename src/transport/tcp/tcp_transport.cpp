@@ -18,16 +18,16 @@ namespace libp2p::transport {
   void TcpTransport::dial(const peer::PeerId &remoteId,
                           multi::Multiaddress address,
                           TransportAdaptor::HandlerFunc handler,
-                          multi::Multiaddress bindaddress) {
+                          multi::Multiaddress bindaddress, bool holepunch, bool holepunchserver) {
     dial(remoteId, std::move(address), std::move(handler),
-         std::chrono::milliseconds::zero(), bindaddress);
+         std::chrono::milliseconds::zero(), bindaddress, holepunch, holepunchserver);
   }
 
   void TcpTransport::dial(const peer::PeerId &remoteId,
                           multi::Multiaddress address,
                           TransportAdaptor::HandlerFunc handler,
                           std::chrono::milliseconds timeout,
-                          multi::Multiaddress bindaddress) {
+                          multi::Multiaddress bindaddress, bool holepunch, bool holepunchserver) {
     if (!canDial(address)) {
       //TODO(107): Reentrancy
       return handler(std::errc::address_family_not_supported);
@@ -53,14 +53,14 @@ namespace libp2p::transport {
     auto [host, port] = detail::getHostAndTcpPort(address);
 
     auto connect = [self{shared_from_this()}, conn, handler{std::move(handler)},
-                    remoteId, timeout, bindaddress](auto ec, auto r) mutable {
+                    remoteId, timeout, bindaddress, holepunch, holepunchserver](auto ec, auto r) mutable {
       if (ec) {
         return handler(ec);
       }
 
       conn->connect(
           r,
-          [self, conn, handler{std::move(handler)}, remoteId](auto ec,
+          [self, conn, handler{std::move(handler)}, remoteId, holepunch, holepunchserver](auto ec,
                                                               auto &e) mutable {
             if (ec) {
               return handler(ec);
@@ -68,10 +68,15 @@ namespace libp2p::transport {
 
             auto session = std::make_shared<UpgraderSession>(
                 self->upgrader_, std::move(conn), handler);
-
-            session->secureOutbound(remoteId);
+            if (!holepunch || (holepunch && holepunchserver))
+            {
+                session->secureOutbound(remoteId);
+            }
+            else {
+                session->secureInbound();
+            }
           },
-          timeout, bindaddress);
+          timeout, bindaddress, holepunch, holepunchserver);
     };
 
     using P = multi::Protocol::Code;
