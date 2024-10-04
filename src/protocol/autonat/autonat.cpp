@@ -29,7 +29,7 @@ namespace libp2p::protocol {
         if (!status)
         {
             log_->info("Starting relay after deciding we are behind a nat");
-            relay_->start();
+            //relay_->start();
         }
         else {
             callback_();
