@@ -159,6 +159,7 @@ namespace libp2p::protocol {
     }
     void AutonatMessageProcessor::autonatParseDIALREQUEST(const StreamSPtr& stream, autonat::pb::Message& msg, std::string& peer_id_str, std::string& peer_addr_str)
     {
+        return;
         if (!msg.dial().has_peer())
         {
             log_->error("AUTONAT DIAL Message has no peer");

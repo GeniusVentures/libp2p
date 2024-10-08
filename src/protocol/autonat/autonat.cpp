@@ -80,13 +80,13 @@ namespace libp2p::protocol {
     //BOOST_ASSERT(!started_);
     started_ = true;
 
-    host_.setProtocolHandler(
-        kAutonatProto,
-        [wp = weak_from_this()](protocol::BaseProtocol::StreamResult rstream) {
-          if (auto self = wp.lock()) {
-            self->handle(std::move(rstream));
-          }
-        });
+    //host_.setProtocolHandler(
+    //    kAutonatProto,
+    //    [wp = weak_from_this()](protocol::BaseProtocol::StreamResult rstream) {
+    //      if (auto self = wp.lock()) {
+    //        self->handle(std::move(rstream));
+    //      }
+    //    });
 
     sub_ = bus_.getChannel<event::network::OnNewConnectionChannel>().subscribe(
         [wp = weak_from_this()](auto &&conn) {
