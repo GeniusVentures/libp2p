@@ -353,7 +353,7 @@ namespace libp2p::protocol {
     for (const auto &addr_str : addresses_strings) {
       auto addr_res = fromStringToMultiaddr(addr_str);
       if (!addr_res) {
-        log_->error("peer {} has sent an invalid listen address",
+        log_->trace("peer {} has sent an invalid listen address",
                     peer_id.toBase58());
         continue;
       }
