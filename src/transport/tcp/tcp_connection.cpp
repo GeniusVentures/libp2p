@@ -170,6 +170,7 @@ namespace libp2p::transport {
               [wptr{ weak_from_this() }, cb](const boost::system::error_code& error) {
                   auto self = wptr.lock();
                   if (!self || self->closed_by_host_) {
+                      self->socket_.close();
                       return;
                   }
                   bool expected = false;
@@ -180,6 +181,7 @@ namespace libp2p::transport {
                           cb(boost::system::error_code{ boost::system::errc::timed_out,
                                                         boost::system::generic_category() },
                               Tcp::endpoint{});
+                          self->socket_.close();
                       }
                       // Another case is: boost::asio::error::operation_aborted == error
                       // connection was established before timeout and timer has been
@@ -211,6 +213,7 @@ namespace libp2p::transport {
       socket_.set_option(option, reec);
       if (reec) {
           std::cerr << "Error setting reuse address: " << reec.message() << std::endl;
+          socket_.close();
           return;
       }
 #ifdef SO_REUSEPORT
@@ -221,6 +224,7 @@ namespace libp2p::transport {
       socket_.bind(local_endpoint, reec);
       if (reec) {
           std::cerr << "Error binding socket: " << reec.message() << std::endl;
+          socket_.close();
           return;
       }
 
@@ -234,12 +238,14 @@ namespace libp2p::transport {
           (boost::asio::ip::tcp::resolver::results_type::const_iterator iter) mutable {
               auto self = wptr.lock();
               if (!self || self->closed_by_host_) {
+                  self->socket_.close();
                   return;
               }
 
               socket_.async_connect(*iter, [this, wptr, cb, iter, end, local_endpoint, connect_next, holepunch, holepunchserver](const boost::system::error_code& ec) mutable {
                   auto self = wptr.lock();
                   if (!self || self->closed_by_host_) {
+                      self->socket_.close();
                       return;
                   }
 
@@ -278,6 +284,7 @@ namespace libp2p::transport {
                   else {
                       // All endpoints tried and failed
                       cb(ec, Tcp::endpoint{});
+                      self->socket_.close();
                   }
                   });
               };
@@ -288,6 +295,7 @@ namespace libp2p::transport {
       else {
           // No endpoints available, handle the error
           cb(boost::system::error_code{ boost::system::errc::address_not_available, boost::system::generic_category() }, Tcp::endpoint{});
+          socket_.close();
       }
   }
 

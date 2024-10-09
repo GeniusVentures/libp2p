@@ -613,6 +613,7 @@ namespace libp2p::protocol::kademlia {
     session->close();
     sessions_.erase(it);
 
+
     log_.debug("session completed, total sessions: {}", sessions_.size());
   }
 
