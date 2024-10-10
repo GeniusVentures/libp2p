@@ -264,6 +264,7 @@ namespace libp2p::transport {
                       }
                       std::ignore = self->saveMultiaddresses();
                       cb(ec, self->socket_.remote_endpoint());
+                      return;
                   }
                   else if (++iter != end) {
                       // Try the next endpoint
