@@ -178,13 +178,10 @@ namespace libp2p::transport {
                       if (!error) {
                           // timeout happened, timer expired before connection was
                           // established
+                          self->socket_.close();
                           cb(boost::system::error_code{ boost::system::errc::timed_out,
                                                         boost::system::generic_category() },
                               Tcp::endpoint{});
-                          self->socket_.close();
-                      }
-                      else {
-                          self->socket_.close();
                       }
                       // Another case is: boost::asio::error::operation_aborted == error
                       // connection was established before timeout and timer has been
@@ -264,7 +261,6 @@ namespace libp2p::transport {
                           }
                       }
                       std::ignore = self->saveMultiaddresses();
-                      std::cout << "Endpoint is? " << self->socket_.remote_endpoint().address().to_string() << std::endl;
                       cb(ec, self->socket_.remote_endpoint());
                       return;
                   }
