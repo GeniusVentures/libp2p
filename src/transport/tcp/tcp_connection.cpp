@@ -183,6 +183,9 @@ namespace libp2p::transport {
                               Tcp::endpoint{});
                           self->socket_.close();
                       }
+                      else {
+                          self->socket_.close();
+                      }
                       // Another case is: boost::asio::error::operation_aborted == error
                       // connection was established before timeout and timer has been
                       // cancelled
@@ -295,7 +298,7 @@ namespace libp2p::transport {
       }
       else {
           // No endpoints available, handle the error
-          cb(boost::system::error_code{ boost::system::errc::address_not_available, boost::system::generic_category() }, Tcp::endpoint{});
+          //cb(boost::system::error_code{ boost::system::errc::address_not_available, boost::system::generic_category() }, Tcp::endpoint{});
           socket_.close();
       }
   }
