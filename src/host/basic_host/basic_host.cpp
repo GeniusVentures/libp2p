@@ -176,12 +176,14 @@ namespace libp2p::host {
                             const peer::Protocol &protocol,
                             const Host::StreamResultHandler &handler,
                             std::chrono::milliseconds timeout) {
+      network_->getConnectionManager().collectGarbage();
     network_->getDialer().newStream(p, protocol, handler, timeout, network_->getListener().getListenAddresses().at(0));
   }
 
   void BasicHost::newStream(const peer::PeerId &peer_id,
                             const peer::Protocol &protocol,
                             const StreamResultHandler &handler) {
+      network_->getConnectionManager().collectGarbage();
     network_->getDialer().newStream(peer_id, protocol, handler, network_->getListener().getListenAddresses().at(0));
   }
 
@@ -256,6 +258,7 @@ namespace libp2p::host {
   void BasicHost::connect(const peer::PeerInfo &peer_info,
                           const ConnectionResultHandler &handler,
                           std::chrono::milliseconds timeout, bool holepunch, bool holepunchserver) {
+      network_->getConnectionManager().collectGarbage();
     network_->getDialer().dial(peer_info, handler, timeout, network_->getListener().getListenAddresses().at(0), holepunch, holepunchserver);
   }
 
