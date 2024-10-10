@@ -49,6 +49,7 @@ namespace libp2p::transport {
   }
 
   void TcpConnection::close(std::error_code reason) {
+      log().error("Closing connection");
     assert(reason);
 
     if (!close_reason_) {
@@ -170,7 +171,6 @@ namespace libp2p::transport {
               [wptr{ weak_from_this() }, cb](const boost::system::error_code& error) {
                   auto self = wptr.lock();
                   if (!self || self->closed_by_host_) {
-                      self->socket_.close();
                       return;
                   }
                   bool expected = false;
@@ -238,14 +238,12 @@ namespace libp2p::transport {
           (boost::asio::ip::tcp::resolver::results_type::const_iterator iter) mutable {
               auto self = wptr.lock();
               if (!self || self->closed_by_host_) {
-                  self->socket_.close();
                   return;
               }
 
               socket_.async_connect(*iter, [this, wptr, cb, iter, end, local_endpoint, connect_next, holepunch, holepunchserver](const boost::system::error_code& ec) mutable {
                   auto self = wptr.lock();
                   if (!self || self->closed_by_host_) {
-                      self->socket_.close();
                       return;
                   }
 
@@ -263,6 +261,7 @@ namespace libp2p::transport {
                           }
                       }
                       std::ignore = self->saveMultiaddresses();
+                      std::cout << "Endpoint is? " << self->socket_.remote_endpoint().address().to_string() << std::endl;
                       cb(ec, self->socket_.remote_endpoint());
                       return;
                   }
@@ -281,10 +280,11 @@ namespace libp2p::transport {
                       self->socket_.bind(local_endpoint);
                       std::cout << "Iterate" << std::endl;
                       (*connect_next)(iter);  // Recursively call the function through the shared_ptr
+                      return;
                   }
                   else {
                       // All endpoints tried and failed
-                      cb(ec, Tcp::endpoint{});
+                      //cb(ec, Tcp::endpoint{});
                       self->socket_.close();
                   }
                   });

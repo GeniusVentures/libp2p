@@ -117,6 +117,7 @@ namespace libp2p::network {
               if (self->dialing_peers_.end() == ctx_found) {
                   SL_ERROR(self->log_, "State inconsistency - uninteresting dial result for peer {}", peer_id.toBase58());
                   if (result.has_value() && !result.value()->isClosed()) {
+                      SL_ERROR(self->log_, "How often does this happen?");
                       auto close_res = result.value()->close();
                       BOOST_ASSERT(close_res);
                   }
