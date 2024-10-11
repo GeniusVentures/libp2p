@@ -49,7 +49,7 @@ namespace libp2p::transport {
   }
 
   void TcpConnection::close(std::error_code reason) {
-      log().error("Closing connection");
+ //     log().error("Closing connection");
     assert(reason);
 
     if (!close_reason_) {
@@ -232,16 +232,16 @@ namespace libp2p::transport {
           auto iter = iterator.begin();
           auto end = iterator.end();
           //std::cout << "Connect to: " << iter->endpoint().address().to_string() << std::endl;;
-          auto connect_next = std::make_shared<std::function<void(boost::asio::ip::tcp::resolver::results_type::const_iterator)>>();
+          //auto connect_next = std::make_shared<std::function<void(boost::asio::ip::tcp::resolver::results_type::const_iterator)>>();
 
-          *connect_next = [this, wptr{ weak_from_this() }, cb, local_endpoint, connect_next, end, holepunch, holepunchserver]
-          (boost::asio::ip::tcp::resolver::results_type::const_iterator iter) mutable {
-              auto self = wptr.lock();
-              if (!self || self->closed_by_host_) {
-                  return;
-              }
+          //*connect_next = [this, wptr{ weak_from_this() }, cb, local_endpoint, connect_next, end, holepunch, holepunchserver]
+          //(boost::asio::ip::tcp::resolver::results_type::const_iterator iter) mutable {
+          //    auto self = wptr.lock();
+          //    if (!self || self->closed_by_host_) {
+          //        return;
+          //    }
 
-              socket_.async_connect(*iter, [this, wptr, cb, iter, end, local_endpoint, connect_next, holepunch, holepunchserver](const boost::system::error_code& ec) mutable {
+              socket_.async_connect(*iter, [this, wptr{ weak_from_this() }, cb, iter, end, local_endpoint, holepunch, holepunchserver](const boost::system::error_code& ec) mutable {
                   auto self = wptr.lock();
                   if (!self || self->closed_by_host_) {
                       return;
@@ -264,33 +264,33 @@ namespace libp2p::transport {
                       cb(ec, self->socket_.remote_endpoint());
                       return;
                   }
-                  else if (++iter != end) {
-                      // Try the next endpoint
-                      self->socket_.close();
-                      self->socket_.open(boost::asio::ip::tcp::v4());
-                      boost::asio::socket_base::reuse_address option(true);
-                      self->socket_.set_option(option);
-
-#ifdef SO_REUSEPORT
-                      boost::asio::detail::socket_option::boolean<SOL_SOCKET, SO_REUSEPORT> reuse_port_option(true);
-                      self->socket_.set_option(reuse_port_option);
-#endif
-
-                      self->socket_.bind(local_endpoint);
-                      std::cout << "Iterate" << std::endl;
-                      (*connect_next)(iter);  // Recursively call the function through the shared_ptr
-                      return;
-                  }
+//                  else if (++iter != end) {
+//                      // Try the next endpoint
+//                      self->socket_.close();
+//                      self->socket_.open(boost::asio::ip::tcp::v4());
+//                      boost::asio::socket_base::reuse_address option(true);
+//                      self->socket_.set_option(option);
+//
+//#ifdef SO_REUSEPORT
+//                      boost::asio::detail::socket_option::boolean<SOL_SOCKET, SO_REUSEPORT> reuse_port_option(true);
+//                      self->socket_.set_option(reuse_port_option);
+//#endif
+//
+//                      self->socket_.bind(local_endpoint);
+//                      std::cout << "Iterate" << std::endl;
+//                      (*connect_next)(iter);  // Recursively call the function through the shared_ptr
+//                      return;
+//                  }
                   else {
                       // All endpoints tried and failed
                       //cb(ec, Tcp::endpoint{});
                       self->socket_.close();
                   }
                   });
-              };
+             // };
 
           // Start the first connection attempt
-          (*connect_next)(iterator.begin());
+          //(*connect_next)(iterator.begin());
       }
       else {
           // No endpoints available, handle the error
