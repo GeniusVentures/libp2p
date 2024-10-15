@@ -77,7 +77,7 @@ namespace libp2p::protocol {
     observed_addr_it->seen_by[observer_group] = observation;
     observed_addr_it->last_seen = now;
     //Set confirmed to false until autonat reports
-    observed_addr_it->confirmed = false;
+    //observed_addr_it->confirmed = false;
   }
 
   void ObservedAddresses::collectGarbage() {

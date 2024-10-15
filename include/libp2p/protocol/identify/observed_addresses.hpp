@@ -85,7 +85,7 @@ namespace libp2p::protocol {
       std::unordered_map<multi::Multiaddress, Observation> seen_by;
       Clock::time_point last_seen;
       Milliseconds ttl = peer::ttl::kOwnObserved;
-      bool confirmed;
+      bool confirmed = false;
     };
 
     std::unordered_map<multi::Multiaddress, std::vector<ObservedAddress>>
