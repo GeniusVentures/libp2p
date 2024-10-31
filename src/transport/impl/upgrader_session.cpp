@@ -4,6 +4,7 @@
  */
 
 #include <libp2p/transport/impl/upgrader_session.hpp>
+#include <iostream>
 
 namespace libp2p::transport {
 
@@ -15,6 +16,14 @@ namespace libp2p::transport {
         raw_(std::move(raw)),
         handler_(std::move(handler)) {}
 
+  UpgraderSession::UpgraderSession(
+      std::shared_ptr<transport::Upgrader> upgrader,
+      std::shared_ptr<connection::Stream> stream,
+      UpgraderSession::HandlerFunc handler)
+      : upgrader_(std::move(upgrader)),
+      stream_(std::move(stream)),
+      handler_(std::move(handler)) {}
+
   void UpgraderSession::secureOutbound(const peer::PeerId &remoteId) {
     auto self{shared_from_this()};
     upgrader_->upgradeToSecureOutbound(raw_, remoteId, [self](auto &&r) {
@@ -22,11 +31,26 @@ namespace libp2p::transport {
     });
   }
 
+
+  void UpgraderSession::secureOutboundRelay(const peer::PeerId& remoteId) {
+      auto self{ shared_from_this() };
+      upgrader_->upgradeToSecureOutboundRelay(stream_, remoteId, [self](auto&& r) {
+          self->onSecured(std::forward<decltype(r)>(r));
+          });
+  }
+
   void UpgraderSession::secureInbound() {
     upgrader_->upgradeToSecureInbound(
         raw_, [self{shared_from_this()}](auto &&r) {
           self->onSecured(std::forward<decltype(r)>(r));
         });
+  }
+
+  void UpgraderSession::secureInboundRelay() {
+      upgrader_->upgradeToSecureInboundRelay(
+          stream_, [self{ shared_from_this() }](auto&& r) {
+              self->onSecured(std::forward<decltype(r)>(r));
+          });
   }
 
   void UpgraderSession::onSecured(

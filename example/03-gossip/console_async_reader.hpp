@@ -11,6 +11,14 @@
 
 #include <boost/asio.hpp>
 
+#ifdef _WIN32
+#include <boost/asio/windows/stream_handle.hpp>
+#include <io.h>  // For _get_osfhandle
+#else
+#include <boost/asio/posix/stream_descriptor.hpp>
+#include <unistd.h>  // For STDIN_FILENO and dup
+#endif
+
 namespace libp2p::protocol::example::utility {
 
   /// Asio-based asynchronous line reader from stdin
@@ -32,7 +40,11 @@ namespace libp2p::protocol::example::utility {
     /// read callback from asio
     void onRead(const boost::system::error_code &e, std::size_t size);
 
+#ifdef _WIN32
+    boost::asio::windows::stream_handle in_;
+#else
     boost::asio::posix::stream_descriptor in_;
+#endif
     boost::asio::streambuf input_;
     std::string line_;
     Handler handler_;

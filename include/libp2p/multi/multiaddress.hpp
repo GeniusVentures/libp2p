@@ -103,6 +103,12 @@ namespace libp2p::multi {
     bool hasProtocol(Protocol::Code code) const;
 
     /**
+     * @brief Tests if circuit relay exists in this address
+     * @param code protocol to be tested
+     * @return true if exists, false otherwise
+     */
+    bool hasCircuitRelay() const;
+    /**
      * Get the textual representation of the address inside
      * @return stringified address
      */

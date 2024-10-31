@@ -122,6 +122,17 @@ namespace libp2p::network {
     virtual void onConnection(
         outcome::result<std::shared_ptr<connection::CapableConnection>>
             rconn) = 0;
+
+    /**
+     * @brief Allows new connections for accepting incoming streams - Relay specific
+     */
+    virtual void onConnectionRelay(
+        peer::PeerId id,
+        outcome::result<std::shared_ptr<connection::CapableConnection>>
+        rconn) = 0;
+
+    virtual void removeRelayedConnections(
+        peer::PeerId id) = 0;
   };
 
 }  // namespace libp2p::network

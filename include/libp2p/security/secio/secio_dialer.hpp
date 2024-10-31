@@ -15,6 +15,7 @@
 #include <libp2p/security/secio/exchange_message.hpp>
 #include <libp2p/security/secio/propose_message.hpp>
 #include <libp2p/security/secio/propose_message_marshaller.hpp>
+#include <libp2p/connection/stream.hpp>
 
 namespace libp2p::basic {
   class ProtobufMessageReadWriter;
@@ -43,6 +44,7 @@ namespace libp2p::security::secio {
     };
 
     Dialer(std::shared_ptr<connection::RawConnection> connection);
+    Dialer(std::shared_ptr<connection::Stream> connection);
 
     /// Stores byte-exact copy of SECIO proposal sent to remote peer
     void storeLocalPeerProposalBytes(

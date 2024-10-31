@@ -7,12 +7,19 @@
 
 namespace libp2p::protocol::example::utility {
 
+#ifdef _WIN32
+    ConsoleAsyncReader::ConsoleAsyncReader(boost::asio::io_context& io,
+        Handler handler)
+        : in_(io, GetStdHandle(STD_INPUT_HANDLE)), handler_(std::move(handler)) {
+        read();
+    }
+#else
   ConsoleAsyncReader::ConsoleAsyncReader(boost::asio::io_context &io,
                                          Handler handler)
       : in_(io, STDIN_FILENO), handler_(std::move(handler)) {
     read();
   }
-
+#endif
   void ConsoleAsyncReader::stop() {
     stopped_ = true;
   }

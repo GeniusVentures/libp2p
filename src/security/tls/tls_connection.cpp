@@ -29,15 +29,28 @@ namespace libp2p::connection {
       const peer::IdentityManager &idmgr, tcp_socket_t &tcp_socket,
       boost::optional<peer::PeerId> remote_peer)
       : local_peer_(idmgr.getId()),
-        raw_connection_(std::move(raw_connection)),
+      connection_(std::move(raw_connection)),
         ssl_context_(std::move(ssl_context)),
         socket_(std::ref(tcp_socket), *ssl_context_),
         remote_peer_(std::move(remote_peer)) {}
 
+  TlsConnection::TlsConnection(
+      std::shared_ptr<Stream> raw_connection,
+      std::shared_ptr<boost::asio::ssl::context> ssl_context,
+      const peer::IdentityManager& idmgr, tcp_socket_t& tcp_socket,
+      boost::optional<peer::PeerId> remote_peer)
+      : local_peer_(idmgr.getId()),
+      connection_(std::move(raw_connection)),
+      ssl_context_(std::move(ssl_context)),
+      socket_(std::ref(tcp_socket), *ssl_context_),
+      remote_peer_(std::move(remote_peer)) {}
+
   void TlsConnection::asyncHandshake(
       HandshakeCallback cb,
       std::shared_ptr<crypto::marshaller::KeyMarshaller> key_marshaller) {
-    bool is_client = raw_connection_->isInitiator();
+      bool is_client = isInitiator();
+        
+        //raw_connection_->isInitiator();
 
     socket_.async_handshake(is_client ? boost::asio::ssl::stream_base::client
                                       : boost::asio::ssl::stream_base::server,
@@ -79,7 +92,7 @@ namespace libp2p::connection {
       remote_pubkey_ = std::move(id.public_key);
 
       SL_DEBUG(log(), "handshake success for {}bound connection to {}",
-                  (raw_connection_->isInitiator() ? "out" : "in"),
+                  (isInitiator() ? "out" : "in"),
                   remote_peer_->toBase58());
       return cb(shared_from_this());
     }
@@ -113,15 +126,31 @@ namespace libp2p::connection {
   }
 
   bool TlsConnection::isInitiator() const noexcept {
-    return raw_connection_->isInitiator();
+      // Check if the connection is a Stream first because a Stream could be detected as a RawConnection
+      if (auto stream_conn = std::get_if<std::shared_ptr<Stream>>(&connection_)) {
+          auto result = (*stream_conn)->isInitiator();
+          if (result.has_value()) {
+              return result.value();
+          }
+          log_->error("Failed to get isInitiator from Stream: {}", result.error().message());
+          return false;
+      }
+
+      // Then check if the connection is a RawConnection
+      if (auto raw_conn = std::get_if<std::shared_ptr<RawConnection>>(&connection_)) {
+          return (*raw_conn)->isInitiator();
+      }
+
+      // If neither type matches, return false
+      return false;
   }
 
   outcome::result<multi::Multiaddress> TlsConnection::localMultiaddr() {
-    return raw_connection_->localMultiaddr();
+      return std::visit([](auto&& conn) { return conn->localMultiaddr(); }, connection_);
   }
 
   outcome::result<multi::Multiaddress> TlsConnection::remoteMultiaddr() {
-    return raw_connection_->remoteMultiaddr();
+      return std::visit([](auto&& conn) { return conn->remoteMultiaddr(); }, connection_);
   }
 
   template <typename Callback>
@@ -153,7 +182,7 @@ namespace libp2p::connection {
 
   void TlsConnection::deferReadCallback(outcome::result<size_t> res,
                                         Reader::ReadCallbackFunc cb) {
-    raw_connection_->deferReadCallback(res, std::move(cb));
+      std::visit([res, cb](auto&& conn) { conn->deferReadCallback(res, std::move(cb)); }, connection_);
   }
 
   void TlsConnection::write(gsl::span<const uint8_t> in, size_t bytes,
@@ -172,14 +201,34 @@ namespace libp2p::connection {
 
   void TlsConnection::deferWriteCallback(std::error_code ec,
                                          Writer::WriteCallbackFunc cb) {
-    raw_connection_->deferWriteCallback(ec, std::move(cb));
+      std::visit([ec, cb](auto&& conn) { conn->deferWriteCallback(ec, std::move(cb)); }, connection_);
   }
 
   bool TlsConnection::isClosed() const {
-    return raw_connection_->isClosed();
+      return std::visit([](auto&& conn) { return conn->isClosed(); }, connection_);
   }
 
   outcome::result<void> TlsConnection::close() {
-    return raw_connection_->close();
+      return std::visit([this](auto& conn) -> outcome::result<void> {
+          if constexpr (std::is_same_v<decltype(conn), std::shared_ptr<RawConnection>>) {
+              // For RawConnection, directly return the result of close()
+              return conn->close();
+          }
+          else if constexpr (std::is_same_v<decltype(conn), std::shared_ptr<Stream>>) {
+              // For Stream, handle the close operation asynchronously using a lambda
+              conn->close([](outcome::result<void> res) {
+                  return res;  // Just return the result and let the caller handle it
+                  });
+              // Return success immediately since close is now async
+              return outcome::success();
+          }
+          return outcome::failure(std::make_error_code(std::errc::invalid_argument));  // Fallback in case neither type matches
+          }, connection_);
+  }
+
+  outcome::result<std::shared_ptr<RawConnection>> TlsConnection::getRawConnection() const
+  {
+      auto raw_conn = std::get_if<std::shared_ptr<RawConnection>>(&connection_);
+      return *raw_conn;
   }
 }  // namespace libp2p::connection

@@ -1,15 +1,11 @@
 #ifndef LIBP2P_AUTONAT_HPP
 #define LIBP2P_AUTONAT_HPP
-#include <generated/protocol/autonat/protobuf/autonat.pb.h>
-#include <boost/assert.hpp>
-#include <libp2p/basic/protobuf_message_read_writer.hpp>
-#include <libp2p/network/network.hpp>
-#include <libp2p/peer/address_repository.hpp>
-#include <libp2p/protocol/identify/utils.hpp>
 #include <iostream>
 #include <libp2p/event/bus.hpp>
 #include <libp2p/protocol/base_protocol.hpp>
 #include <libp2p/protocol/autonat/autonat_msg_processor.hpp>
+#include <libp2p/protocol/relay/relay.hpp>
+#include <libp2p/transport/upgrader.hpp>
 
 namespace libp2p::multi {
   class Multiaddress;
@@ -24,6 +20,7 @@ namespace libp2p::protocol {
   class Autonat : public BaseProtocol,
                    public std::enable_shared_from_this<Autonat> {
    public:
+    using CompletionCallback = std::function<void()>;
     /**
      * Create an Auto instance; it will immediately start watching
      * connection events and react to them
@@ -32,7 +29,9 @@ namespace libp2p::protocol {
      */
     Autonat(Host &host,
              std::shared_ptr<AutonatMessageProcessor> msg_processor,
-             event::Bus &event_bus);
+             event::Bus &event_bus,
+             std::shared_ptr<libp2p::transport::Upgrader> upgrader,
+             CompletionCallback callback);
 
     ~Autonat() override = default;
 
@@ -54,16 +53,17 @@ namespace libp2p::protocol {
     std::vector<multi::Multiaddress> getObservedAddressesFor(
         const multi::Multiaddress &address) const;
 
+
     peer::Protocol getProtocolId() const override;
 
     /**
-     * In Identify, handle means we are being identified by the other peer, so
-     * we are expected to send the Identify message
+     * In Autonat, handle means we are either getting an autonat response, or request
+     * If it is a request, we are expected to DIAL them from a separate address.
      */
     void handle(StreamResult stream_res) override;
 
     /**
-     * Start accepting NewConnectionEvent-s and asking each of them for Identify
+     * Start accepting NewConnectionEvent-s and asking each of them for Autonat
      */
     void start();
 
@@ -79,8 +79,15 @@ namespace libp2p::protocol {
     std::shared_ptr<AutonatMessageProcessor> msg_processor_;
     event::Bus &bus_;
     event::Handle sub_;  // will unsubscribe during destruction by itself
+    std::shared_ptr<libp2p::protocol::RelayMessageProcessor> relay_msg_processor_;
+    std::shared_ptr<libp2p::protocol::Relay> relay_;
+    bool natstatus_ = false; //False if we are behind a NAT, true if not.
+    log::Logger log_ = log::createLogger("Autonat");
+    std::shared_ptr<libp2p::transport::Upgrader> upgrader_;
 
     bool started_ = false;
+    bool requestautonat_ = true;
+    CompletionCallback callback_;
   };
 }
 

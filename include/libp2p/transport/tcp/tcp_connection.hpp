@@ -20,7 +20,11 @@
 namespace libp2p::security {
   class TlsAdaptor;
 }
-
+namespace libp2p::connection {
+    struct YamuxStream;
+    struct MplexStream;
+    class NoiseConnection;
+}
 namespace libp2p::transport {
 
   /**
@@ -74,7 +78,7 @@ namespace libp2p::transport {
      * @param iterator list of resolved IP addresses of remote service.
      * @param cb callback executed on operation completion.
      */
-    void connect(const ResolverResultsType &iterator, ConnectCallbackFunc cb);
+    void connect(const ResolverResultsType &iterator, ConnectCallbackFunc cb, multi::Multiaddress bindaddress, bool holepunch = false, bool holepunchserver = false);
 
     /**
      * @brief Connect to a remote service with a time limit for connection
@@ -84,7 +88,7 @@ namespace libp2p::transport {
      * @param timeout in milliseconds for connection establishing.
      */
     void connect(const ResolverResultsType &iterator, ConnectCallbackFunc cb,
-                 std::chrono::milliseconds timeout);
+                 std::chrono::milliseconds timeout, multi::Multiaddress bindaddress, bool holepunch = false, bool holepunchserver = false);
 
     void read(gsl::span<uint8_t> out, size_t bytes,
               ReadCallbackFunc cb) override;
@@ -142,6 +146,9 @@ namespace libp2p::transport {
     boost::optional<multi::Multiaddress> local_multiaddress_;
 
     friend class security::TlsAdaptor;
+    friend class connection::NoiseConnection;
+    friend struct connection::YamuxStream;
+    friend struct connection::MplexStream;
 
     std::string debug_str_;
 

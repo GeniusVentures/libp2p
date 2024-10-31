@@ -30,18 +30,30 @@ namespace libp2p::network {
   ConnectionManager::ConnectionSPtr
   ConnectionManagerImpl::getBestConnectionForPeer(const peer::PeerId &p) const {
     // TODO(warchant): maybe make pluggable strategies
+      auto it = connections_.find(p);
+      if (it != connections_.end()) {
+          ConnectionSPtr bestRelayConn = nullptr;
 
-    auto it = connections_.find(p);
-    if (it != connections_.end()) {
-      for (const auto &conn : it->second) {
-        if (!conn->isClosed()) {
-          // for now, return first connection
-          return conn;
-        }
+          for (const auto& conn : it->second) {
+              if (!conn->isClosed()) {
+                  if (!conn->isRelay()) {
+                      // Return the first non-closed direct connection as these are always better
+                      return conn;
+                  }
+                  else if (!bestRelayConn) {
+                      // Keep the first non-closed relay connection in case no direct connections exist
+                      bestRelayConn = conn;
+                  }
+              }
+          }
+
+          // If no direct connection was found, return the relay connection
+          return bestRelayConn;
       }
-    }
-    return nullptr;
+      //No connections found
+      return nullptr;
   }
+  
 
   void ConnectionManagerImpl::addConnectionToPeer(
       const peer::PeerId &p, ConnectionManager::ConnectionSPtr c) {
@@ -49,7 +61,7 @@ namespace libp2p::network {
       log()->error("inconsistency: not adding nullptr to active connections");
       return;
     }
-
+    log()->trace("Adding peer connection to records {}", p.toBase58());
     auto it = connections_.find(p);
     if (it == connections_.end()) {
       connections_.insert({p, {c}});
@@ -152,6 +164,33 @@ namespace libp2p::network {
       bus_->getChannel<event::network::OnPeerDisconnectedChannel>().publish(
           peer_id);
     }
+  }
+
+  void ConnectionManagerImpl::removeRelayedConnections(const peer::PeerId& p)
+  {
+      auto it = connections_.find(p);
+      if (it == connections_.end()) {
+          return;
+      }
+
+      auto connections = it->second;
+
+      if (connections.empty()) {
+          log()->error("inconsistency: iterator and no peers");
+          return;
+      }
+
+      //closing_connections_to_peer_ = p;
+
+      for (const auto& conn : connections) {
+          if (!conn->isClosed() && conn->remoteMultiaddr().value().hasCircuitRelay()) {
+              // ignore errors
+              (void)conn->close();
+          }
+      }
+
+      //closing_connections_to_peer_.reset();
+
   }
 
 }  // namespace libp2p::network

@@ -25,6 +25,8 @@ namespace libp2p::transport {
     using RawSPtr = std::shared_ptr<connection::RawConnection>;
     using SecSPtr = std::shared_ptr<connection::SecureConnection>;
     using CapSPtr = std::shared_ptr<connection::CapableConnection>;
+    using StrSPtr = std::shared_ptr<connection::Stream>;
+
 
     using OnSecuredCallbackFunc = std::function<void(outcome::result<SecSPtr>)>;
     using OnMuxedCallbackFunc = std::function<void(outcome::result<CapSPtr>)>;
@@ -43,6 +45,16 @@ namespace libp2p::transport {
                                          OnSecuredCallbackFunc cb) = 0;
 
     /**
+     * Upgrade outbound raw connection to the secure one
+     * @param conn to be upgraded
+     * @param remoteId peer id of remote peer
+     * @param cb - callback, which is called, when a connection is upgraded or
+     * error happens
+     */
+    virtual void upgradeToSecureOutboundRelay(StrSPtr conn,
+        const peer::PeerId& remoteId,
+        OnSecuredCallbackFunc cb) = 0;
+    /**
      * Upgrade inbound raw connection to the secure one
      * @param conn to be upgraded
      * @param remoteId peer id of remote peer
@@ -51,6 +63,16 @@ namespace libp2p::transport {
      */
     virtual void upgradeToSecureInbound(RawSPtr conn,
                                         OnSecuredCallbackFunc cb) = 0;
+
+    /**
+     * Upgrade inbound raw connection to the secure one
+     * @param conn to be upgraded
+     * @param remoteId peer id of remote peer
+     * @param cb - callback, which is called, when a connection is upgraded or
+     * error happens
+     */
+    virtual void upgradeToSecureInboundRelay(StrSPtr conn,
+        OnSecuredCallbackFunc cb) = 0;
 
     /**
      * Upgrade a secure connection to the muxed (capable) one

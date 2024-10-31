@@ -87,6 +87,11 @@ namespace libp2p::security::secio {
             std::make_shared<libp2p::basic::MessageReadWriterBigEndian>(
                 std::move(connection)))} {}
 
+  Dialer::Dialer(std::shared_ptr<connection::Stream> connection)
+      : rw{ std::make_shared<libp2p::basic::ProtobufMessageReadWriter>(
+            std::make_shared<libp2p::basic::MessageReadWriterBigEndian>(
+                std::move(connection))) } {}
+
   void Dialer::storeLocalPeerProposalBytes(
       const std::shared_ptr<std::vector<uint8_t>> &bytes) {
     local_peer_proposal_bytes_ = *bytes;

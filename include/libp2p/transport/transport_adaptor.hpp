@@ -41,9 +41,10 @@ namespace libp2p::transport {
      * @return connection in case of success, error otherwise
      */
     virtual void dial(const peer::PeerId &remoteId, multi::Multiaddress address,
-                      HandlerFunc handler) {
+                      HandlerFunc handler,
+                      multi::Multiaddress bindaddress, bool holepunch = false, bool holepunchserver = false) {
       dial(remoteId, std::move(address), std::move(handler),
-           std::chrono::milliseconds(0));
+           std::chrono::milliseconds(0),bindaddress, holepunch, holepunchserver);
     }
 
     /**
@@ -56,7 +57,7 @@ namespace libp2p::transport {
      */
     virtual void dial(const peer::PeerId &remoteId, multi::Multiaddress address,
                       HandlerFunc handler,
-                      std::chrono::milliseconds timeout) = 0;
+                      std::chrono::milliseconds timeout, multi::Multiaddress bindaddress, bool holepunch = false, bool holepunchserver = false) = 0;
 
     /**
      * Create a listener for incoming connections of this Transport; in case
@@ -74,6 +75,14 @@ namespace libp2p::transport {
      * @note example: '/tcp/...' on tcp transport will return true
      */
     virtual bool canDial(const multi::Multiaddress &ma) const = 0;
+
+    /**
+     * Upgrade a relay connection's security
+     * @param peer_id to upgrade with
+     * @param connection to upgrade over
+     * @param handler
+     */
+    virtual void upgradeRelaySecure(const peer::PeerId& remoteId, std::shared_ptr<libp2p::connection::Stream> conn, HandlerFunc handler) = 0;
   };
 }  // namespace libp2p::transport
 

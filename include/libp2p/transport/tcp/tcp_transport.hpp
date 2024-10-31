@@ -25,25 +25,33 @@ namespace libp2p::transport {
     ~TcpTransport() override = default;
 
     TcpTransport(std::shared_ptr<boost::asio::io_context> context,
-                 std::shared_ptr<Upgrader> upgrader);
-
-    void dial(const peer::PeerId &remoteId, multi::Multiaddress address,
-              TransportAdaptor::HandlerFunc handler) override;
+        std::shared_ptr<Upgrader> upgrader);
 
     void dial(const peer::PeerId &remoteId, multi::Multiaddress address,
               TransportAdaptor::HandlerFunc handler,
-              std::chrono::milliseconds timeout) override;
+              multi::Multiaddress bindaddress, bool holepunch = false, bool holepunchserver = false) override;
+
+    void dial(const peer::PeerId &remoteId, multi::Multiaddress address,
+              TransportAdaptor::HandlerFunc handler,
+              std::chrono::milliseconds timeout,
+              multi::Multiaddress bindaddress, bool holepunch = false, bool holepunchserver = false) override;
 
     std::shared_ptr<TransportListener> createListener(
         TransportListener::HandlerFunc handler) override;
 
     bool canDial(const multi::Multiaddress &ma) const override;
 
+    bool isLocalHost(const std::string& ip);
+
+    void upgradeRelaySecure(const peer::PeerId& remoteId, std::shared_ptr<libp2p::connection::Stream> conn, TransportAdaptor::HandlerFunc handler) override;
+
     peer::Protocol getProtocolId() const override;
 
    private:
+    void increase_open_file_limit();
     std::shared_ptr<boost::asio::io_context> context_;
     std::shared_ptr<Upgrader> upgrader_;
+
   };  // namespace libp2p::transport
 
 }  // namespace libp2p::transport

@@ -24,6 +24,13 @@ namespace libp2p::multi::converters {
   auto addressToHex(const Protocol &protocol, std::string_view addr)
       -> outcome::result<std::string>;
 
+
+  /**
+  * Checks if a protocol is implemented
+  */
+  auto protocolIsImplemented(const Protocol& protocol)
+      -> outcome::result<std::string>;
+
   /**
    * Converts the given multiaddr string to a byte sequence representing
    * the multiaddr, if provided multiaddr was valid

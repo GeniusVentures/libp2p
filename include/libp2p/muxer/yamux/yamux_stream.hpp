@@ -10,6 +10,7 @@
 #include <libp2p/basic/write_queue.hpp>
 #include <libp2p/common/metrics/instance_count.hpp>
 #include <libp2p/connection/stream.hpp>
+#include <libp2p/transport/tcp/tcp_connection.hpp>
 
 namespace libp2p::connection {
 
@@ -114,6 +115,11 @@ namespace libp2p::connection {
     /// Connection closed by network error
     void closedByConnection(std::error_code ec);
 
+    //Set as incoming relay to allow incoming negotiations
+    void setIncomingRelay(bool isincrelay) override;
+
+    outcome::result<std::shared_ptr<RawConnection>> getRawConnection() const override;
+
    private:
     /// Performs close-related cleanup and notifications
     void doClose(std::error_code ec, bool notify_read_side);
@@ -197,6 +203,9 @@ namespace libp2p::connection {
 
     /// Close callback
     VoidResultHandlerFunc close_cb_;
+
+    //Is Incoming Relay
+    bool incoming_relay_ = false;
 
    public:
     LIBP2P_METRICS_INSTANCE_COUNT_IF_ENABLED(libp2p::connection::YamuxStream);

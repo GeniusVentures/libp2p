@@ -12,6 +12,7 @@
 #include <libp2p/event/bus.hpp>
 #include <libp2p/protocol/base_protocol.hpp>
 #include <libp2p/protocol/identify/identify_msg_processor.hpp>
+#include <libp2p/protocol/autonat/autonat.hpp>
 
 namespace libp2p::multi {
   class Multiaddress;
@@ -26,6 +27,8 @@ namespace libp2p::protocol {
   class Identify : public BaseProtocol,
                    public std::enable_shared_from_this<Identify> {
    public:
+    //Callback for when NAT traversal has gotten our public addresses
+    using CompletionCallback = std::function<void()>;
     /**
      * Create an Identify instance; it will immediately start watching
      * connection events and react to them
@@ -34,7 +37,9 @@ namespace libp2p::protocol {
      */
     Identify(Host &host,
              std::shared_ptr<IdentifyMessageProcessor> msg_processor,
-             event::Bus &event_bus);
+             event::Bus &event_bus,
+             std::shared_ptr<libp2p::transport::Upgrader> upgrader,
+             CompletionCallback callback);
 
     ~Identify() override = default;
 
@@ -55,6 +60,7 @@ namespace libp2p::protocol {
      */
     std::vector<multi::Multiaddress> getObservedAddressesFor(
         const multi::Multiaddress &address) const;
+
 
     peer::Protocol getProtocolId() const override;
 
@@ -81,8 +87,12 @@ namespace libp2p::protocol {
     std::shared_ptr<IdentifyMessageProcessor> msg_processor_;
     event::Bus &bus_;
     event::Handle sub_;  // will unsubscribe during destruction by itself
-
+    std::shared_ptr<libp2p::protocol::AutonatMessageProcessor> autonat_msg_processor_;
+    std::shared_ptr<libp2p::protocol::Autonat> autonat_;
+    log::Logger log_ = log::createLogger("Identify");
     bool started_ = false;
+    CompletionCallback callback_;
+    std::shared_ptr<libp2p::transport::Upgrader> upgrader_;
   };
 }  // namespace libp2p::protocol
 

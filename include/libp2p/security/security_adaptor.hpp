@@ -13,6 +13,7 @@
 #include <libp2p/connection/secure_connection.hpp>
 #include <libp2p/peer/peer_id.hpp>
 #include <libp2p/outcome/outcome.hpp>
+#include <libp2p/connection/stream.hpp>
 
 namespace libp2p::security {
 
@@ -36,6 +37,9 @@ namespace libp2p::security {
         std::shared_ptr<connection::RawConnection> inbound,
         SecConnCallbackFunc cb) = 0;
 
+    virtual void secureInboundRelay(std::shared_ptr<connection::Stream> inbound,
+        SecConnCallbackFunc cb) = 0;
+
     /**
      * @brief Secure the connection, either locally or by communicating with
      * opposing node via outbound connection (we are initiator).
@@ -46,6 +50,10 @@ namespace libp2p::security {
     virtual void secureOutbound(
         std::shared_ptr<connection::RawConnection> outbound,
         const peer::PeerId &p, SecConnCallbackFunc cb) = 0;
+
+    virtual void secureOutboundRelay(
+        std::shared_ptr<connection::Stream> outbound,
+        const peer::PeerId& p, SecConnCallbackFunc cb) = 0;
   };
 }  // namespace libp2p::security
 

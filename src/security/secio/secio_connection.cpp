@@ -86,7 +86,7 @@ namespace libp2p::connection {
       crypto::common::CipherType cipher_type,
       crypto::StretchedKey local_stretched_key,
       crypto::StretchedKey remote_stretched_key)
-      : raw_connection_{std::move(raw_connection)},
+      : connection_{std::move(raw_connection)},
         hmac_provider_{std::move(hmac_provider)},
         key_marshaller_{std::move(key_marshaller)},
         local_{std::move(local_pubkey)},
@@ -97,9 +97,34 @@ namespace libp2p::connection {
         remote_stretched_key_{std::move(remote_stretched_key)},
         aes128_secrets_{boost::none},
         aes256_secrets_{boost::none} {
-    BOOST_ASSERT(raw_connection_);
+    BOOST_ASSERT(std::get<std::shared_ptr<RawConnection>>(connection_));
     BOOST_ASSERT(hmac_provider_);
     BOOST_ASSERT(key_marshaller_);
+  }
+
+  SecioConnection::SecioConnection(
+      std::shared_ptr<Stream> raw_connection,
+      std::shared_ptr<crypto::hmac::HmacProvider> hmac_provider,
+      std::shared_ptr<crypto::marshaller::KeyMarshaller> key_marshaller,
+      crypto::PublicKey local_pubkey, crypto::PublicKey remote_pubkey,
+      crypto::common::HashType hash_type,
+      crypto::common::CipherType cipher_type,
+      crypto::StretchedKey local_stretched_key,
+      crypto::StretchedKey remote_stretched_key)
+      : connection_{ std::move(raw_connection) },
+      hmac_provider_{ std::move(hmac_provider) },
+      key_marshaller_{ std::move(key_marshaller) },
+      local_{ std::move(local_pubkey) },
+      remote_{ std::move(remote_pubkey) },
+      hash_type_{ hash_type },
+      cipher_type_{ cipher_type },
+      local_stretched_key_{ std::move(local_stretched_key) },
+      remote_stretched_key_{ std::move(remote_stretched_key) },
+      aes128_secrets_{ boost::none },
+      aes256_secrets_{ boost::none } {
+      BOOST_ASSERT(std::get<std::shared_ptr<Stream>>(connection_));
+      BOOST_ASSERT(hmac_provider_);
+      BOOST_ASSERT(key_marshaller_);
   }
 
   outcome::result<void> SecioConnection::init() {
@@ -163,25 +188,43 @@ namespace libp2p::connection {
   }
 
   bool SecioConnection::isInitiator() const noexcept {
-    return raw_connection_->isInitiator();
+      // Check if the connection is a Stream first because a Stream could be detected as a RawConnection
+      if (auto stream_conn = std::get_if<std::shared_ptr<Stream>>(&connection_)) {
+          auto result = (*stream_conn)->isInitiator();
+          if (result.has_value()) {
+              return result.value();
+          }
+          log_->error("Failed to get isInitiator from Stream: {}", result.error().message());
+          return false;
+      }
+
+      // Then check if the connection is a RawConnection
+      if (auto raw_conn = std::get_if<std::shared_ptr<RawConnection>>(&connection_)) {
+          return (*raw_conn)->isInitiator();
+      }
+
+      // If neither type matches, return false
+      return false;
   }
 
   outcome::result<multi::Multiaddress> SecioConnection::localMultiaddr() {
-    return raw_connection_->localMultiaddr();
+      return std::visit([](auto&& conn) { return conn->localMultiaddr(); }, connection_);
   }
 
   outcome::result<multi::Multiaddress> SecioConnection::remoteMultiaddr() {
-    return raw_connection_->remoteMultiaddr();
+      return std::visit([](auto&& conn) { return conn->remoteMultiaddr(); }, connection_);
   }
 
   void SecioConnection::deferReadCallback(outcome::result<size_t> res,
                                           ReadCallbackFunc cb) {
-    raw_connection_->deferReadCallback(res, std::move(cb));
+    //raw_connection_->deferReadCallback(res, std::move(cb));
+    std::visit([res, cb](auto&& conn) { conn->deferReadCallback(res, std::move(cb)); }, connection_);
   }
 
   void SecioConnection::deferWriteCallback(std::error_code ec,
                                            WriteCallbackFunc cb) {
-    raw_connection_->deferWriteCallback(ec, std::move(cb));
+    //raw_connection_->deferWriteCallback(ec, std::move(cb));
+    std::visit([ec, cb](auto&& conn) { conn->deferWriteCallback(ec, std::move(cb)); }, connection_);
   }
 
   inline void SecioConnection::popUserData(gsl::span<uint8_t> out,
@@ -277,67 +320,71 @@ namespace libp2p::connection {
   }
 
   void SecioConnection::readNextMessage(ReadCallbackFunc cb) {
-    raw_connection_->read(
-        *read_buffer_, kLenMarkerSize,
-        [self{shared_from_this()}, buffer=read_buffer_,
-         cb{std::move(cb)}](outcome::result<size_t> read_bytes_res) mutable {
-          IO_OUTCOME_TRY(len_marker_size, read_bytes_res, cb)
-          if (len_marker_size != kLenMarkerSize) {
-            self->log_->error(
-                "Cannot read frame header. Read {} bytes when {} expected",
-                len_marker_size, kLenMarkerSize);
-            cb(Error::STREAM_IS_BROKEN);
-            return;
-          }
-          uint32_t frame_len{
-              ntohl(common::convert<uint32_t>(buffer->data()))};  // NOLINT
-          if (frame_len > kMaxFrameSize) {
-            self->log_->error("Frame size {} exceeds maximum allowed size {}",
-                              frame_len, kMaxFrameSize);
-            cb(Error::OVERSIZED_FRAME);
-            return;
-          }
-          SL_TRACE(self->log_, "Expecting frame of size {}.", frame_len);
-          self->raw_connection_->read(
-              *buffer, frame_len,
-              [self, buffer, frame_len,
-               cb{cb}](outcome::result<size_t> read_bytes) mutable {
-                IO_OUTCOME_TRY(read_frame_bytes, read_bytes, cb)
-                if (frame_len != read_frame_bytes) {
-                  self->log_->error(
-                      "Unable to read expected amount of bytes. Read {} when "
-                      "{} expected",
-                      read_frame_bytes, frame_len);
-                  cb(Error::STREAM_IS_BROKEN);
-                  return;
-                }
-                SL_TRACE(self->log_, "Received frame with len {}",
-                                  read_frame_bytes);
-                IO_OUTCOME_TRY(mac_size, self->macSize(), cb)
-                const auto data_size{frame_len - mac_size};
-                auto data_span{gsl::make_span(buffer->data(), data_size)};
-                auto mac_span{
-                    gsl::make_span(*buffer).subspan(data_size, mac_size)};
-                IO_OUTCOME_TRY(remote_mac, self->macRemote(data_span), cb)
-                if (gsl::make_span(remote_mac) != mac_span) {
-                  self->log_->error(
-                      "Signature does not validate for the received frame");
-                  cb(Error::INVALID_MAC);
-                  return;
-                }
-                IO_OUTCOME_TRY(decrypted_bytes,
-                               (*self->remote_decryptor_)->crypt(data_span),
-                               cb);
-                size_t decrypted_bytes_len{decrypted_bytes.size()};
-                for (auto &&e : decrypted_bytes) {
-                  self->user_data_buffer_.emplace(std::forward<decltype(e)>(e));
-                }
-                SL_TRACE(self->log_, "Frame decrypted successfully {} -> {}",
-                                  frame_len, decrypted_bytes_len);
-                cb(decrypted_bytes_len);
+      std::visit([self{ shared_from_this() }, cb{ std::move(cb) }](auto& conn) mutable {
+          conn->read(
+              *self->read_buffer_, kLenMarkerSize,
+              [self, buffer = self->read_buffer_,
+              cb{ std::move(cb) }, conn](outcome::result<size_t> read_bytes_res) mutable {
+                  IO_OUTCOME_TRY(len_marker_size, read_bytes_res, cb)
+                      if (len_marker_size != kLenMarkerSize) {
+                          self->log_->error(
+                              "Cannot read frame header. Read {} bytes when {} expected",
+                              len_marker_size, kLenMarkerSize);
+                          cb(Error::STREAM_IS_BROKEN);
+                          return;
+                      }
+                  uint32_t frame_len{
+                      ntohl(common::convert<uint32_t>(buffer->data())) };  // NOLINT
+                  if (frame_len > kMaxFrameSize) {
+                      self->log_->error("Frame size {} exceeds maximum allowed size {}",
+                          frame_len, kMaxFrameSize);
+                      cb(Error::OVERSIZED_FRAME);
+                      return;
+                  }
+                  SL_TRACE(self->log_, "Expecting frame of size {}.", frame_len);
+
+                  conn->read(
+                      *buffer, frame_len,
+                      [self, buffer, frame_len,
+                      cb{ cb }](outcome::result<size_t> read_bytes) mutable {
+                          IO_OUTCOME_TRY(read_frame_bytes, read_bytes, cb)
+                              if (frame_len != read_frame_bytes) {
+                                  self->log_->error(
+                                      "Unable to read expected amount of bytes. Read {} when "
+                                      "{} expected",
+                                      read_frame_bytes, frame_len);
+                                  cb(Error::STREAM_IS_BROKEN);
+                                  return;
+                              }
+                          SL_TRACE(self->log_, "Received frame with len {}",
+                              read_frame_bytes);
+                          IO_OUTCOME_TRY(mac_size, self->macSize(), cb)
+                              const auto data_size{ frame_len - mac_size };
+                          auto data_span{ gsl::make_span(buffer->data(), data_size) };
+                          auto mac_span{
+                              gsl::make_span(*buffer).subspan(data_size, mac_size) };
+                          IO_OUTCOME_TRY(remote_mac, self->macRemote(data_span), cb)
+                              if (gsl::make_span(remote_mac) != mac_span) {
+                                  self->log_->error(
+                                      "Signature does not validate for the received frame");
+                                  cb(Error::INVALID_MAC);
+                                  return;
+                              }
+                          IO_OUTCOME_TRY(decrypted_bytes,
+                              (*self->remote_decryptor_)->crypt(data_span),
+                              cb);
+                          size_t decrypted_bytes_len{ decrypted_bytes.size() };
+                          for (auto&& e : decrypted_bytes) {
+                              self->user_data_buffer_.emplace(std::forward<decltype(e)>(e));
+                          }
+                          SL_TRACE(self->log_, "Frame decrypted successfully {} -> {}",
+                              frame_len, decrypted_bytes_len);
+                          cb(decrypted_bytes_len);
+                      });
               });
-        });
+          }, connection_);  // This ensures that the correct connection type is used
   }
+
 
   void SecioConnection::write(gsl::span<const uint8_t> in, size_t bytes,
                               basic::Writer::WriteCallbackFunc cb) {
@@ -372,7 +419,8 @@ namespace libp2p::connection {
           }
           user_cb(bytes);
         };
-    raw_connection_->write(frame_buffer, frame_buffer.size(), cb_wrapper);
+    //raw_connection_->write(frame_buffer, frame_buffer.size(), cb_wrapper);
+    std::visit([frame_buffer, cb_wrapper](auto&& conn) { conn->write(frame_buffer, frame_buffer.size(), cb_wrapper); }, connection_);
   }
 
   void SecioConnection::writeSome(gsl::span<const uint8_t> in, size_t bytes,
@@ -381,11 +429,33 @@ namespace libp2p::connection {
   }
 
   bool SecioConnection::isClosed() const {
-    return raw_connection_->isClosed();
+    //return raw_connection_->isClosed();
+    return std::visit([](auto&& conn) { return conn->isClosed(); }, connection_);
+
   }
 
   outcome::result<void> SecioConnection::close() {
-    return raw_connection_->close();
+      return std::visit([this](auto& conn) -> outcome::result<void> {
+          if constexpr (std::is_same_v<decltype(conn), std::shared_ptr<RawConnection>>) {
+              // For RawConnection, directly return the result of close()
+              return conn->close();
+          }
+          else if constexpr (std::is_same_v<decltype(conn), std::shared_ptr<Stream>>) {
+              // For Stream, handle the close operation asynchronously using a lambda
+              conn->close([](outcome::result<void> res) {
+                  return res;  // Just return the result and let the caller handle it
+                  });
+              // Return success immediately since close is now async
+              return outcome::success();
+          }
+          return outcome::failure(std::make_error_code(std::errc::invalid_argument));  // Fallback in case neither type matches
+          }, connection_);
+  }
+
+  outcome::result<std::shared_ptr<RawConnection>> SecioConnection::getRawConnection() const
+  {
+      auto raw_conn = std::get_if<std::shared_ptr<RawConnection>>(&connection_);
+      return *raw_conn;
   }
 
   outcome::result<size_t> SecioConnection::macSize() const {

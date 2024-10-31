@@ -21,6 +21,8 @@
 #include <libp2p/peer/peer_repository.hpp>
 #include <libp2p/peer/protocol.hpp>
 #include <libp2p/protocol/base_protocol.hpp>
+#include <libp2p/protocol/relay/relay_addresses.hpp>
+#include <libp2p/protocol/identify/observed_addresses.hpp>
 
 namespace libp2p {
   /**
@@ -101,6 +103,20 @@ namespace libp2p {
     virtual std::vector<multi::Multiaddress> getObservedAddresses() const = 0;
 
     /**
+     * @brief Get our circuit relay addresses
+     *
+     * May return 0 addresses if we don't have any relay addresses
+     */
+    virtual std::vector<multi::Multiaddress> getRelayAddresses() const = 0;
+
+    /**
+     * @brief Get our real observed addresses that identify might return, i'm not sure why the other observed addresses just gets peer repo stuff.
+     *
+     * May return 0 addresses if we don't have any observed addresses
+     */
+    virtual std::vector<multi::Multiaddress> getObservedAddressesReal(bool checkconfirmed = true) const = 0;
+
+    /**
     * @brief Get connectedness information for given peer
     * @param p Peer info
     * @return Connectedness
@@ -137,7 +153,7 @@ namespace libp2p {
      */
     virtual void connect(const peer::PeerInfo &peer_info,
                          const ConnectionResultHandler &handler,
-                         std::chrono::milliseconds timeout) = 0;
+                         std::chrono::milliseconds timeout, bool holepunch = false, bool holepunchserver = false) = 0;
 
     /**
      * @brief Initiates connection to the peer {@param peer_info}.
@@ -145,8 +161,8 @@ namespace libp2p {
      * @param handler callback, will be executed on success or fail
      */
     inline void connect(const peer::PeerInfo &peer_info,
-                        const ConnectionResultHandler &handler) {
-      connect(peer_info, handler, std::chrono::milliseconds::zero());
+                        const ConnectionResultHandler &handler, bool holepunch = false, bool holepunchserver = false) {
+      connect(peer_info, handler, std::chrono::milliseconds::zero(), holepunch, holepunchserver);
     };
 
     /**
@@ -154,9 +170,9 @@ namespace libp2p {
      * exists, does nothing.
      * @param peer_info peer to connect.
      */
-    inline void connect(const peer::PeerInfo &peer_info) {
+    inline void connect(const peer::PeerInfo &peer_info, bool holepunch = false, bool holepunchserver = false) {
       connect(
-          peer_info, [](auto &&) {}, std::chrono::milliseconds::zero());
+          peer_info, [](auto &&) {}, std::chrono::milliseconds::zero(), holepunch, holepunchserver);
     };
 
     /**
@@ -244,6 +260,16 @@ namespace libp2p {
      * @brief Getter for a peer repository.
      */
     virtual peer::PeerRepository &getPeerRepository() = 0;
+
+    /**
+     * @brief Getter for a relay address repository.
+     */
+    virtual protocol::RelayAddresses& getRelayRepository() = 0;
+
+    /**
+     * @brief Getter for a oberved address repository.
+     */
+    virtual protocol::ObservedAddresses& getObservedRepository() = 0;
 
     /**
      * @brief Getter for a router.
