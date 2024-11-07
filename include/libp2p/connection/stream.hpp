@@ -10,6 +10,7 @@
 #include <libp2p/connection/capable_connection.hpp>
 #include <libp2p/multi/multiaddress.hpp>
 #include <libp2p/outcome/outcome.hpp>
+#include <boost/asio/ip/tcp.hpp>
 
 namespace libp2p::peer {
   class PeerId;
@@ -117,6 +118,13 @@ namespace libp2p::connection {
      * @return multiaddress or error
      */
     virtual outcome::result<multi::Multiaddress> remoteMultiaddr() const = 0;
+    /**
+     * Set whether stream is an incoming relay 
+     * @param whether this is a relay
+     */
+    virtual void setIncomingRelay(bool isincrelay) = 0;
+
+    virtual outcome::result<std::shared_ptr<RawConnection>> getRawConnection() const = 0;
   };
 }  // namespace libp2p::connection
 

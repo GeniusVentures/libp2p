@@ -7,6 +7,7 @@
 #include <memory>
 #include <set>
 #include <vector>
+#include <functional>
 
 #include <boost/beast.hpp>
 
@@ -15,7 +16,16 @@
 #include <libp2p/log/configurator.hpp>
 #include <libp2p/log/sublogger.hpp>
 #include <libp2p/multi/content_identifier_codec.hpp>
+#include <libp2p/protocol/identify/identify.hpp>
 
+ // Conditionally include based on platform
+#ifdef _WIN32
+#include <boost/asio/windows/stream_handle.hpp>
+#include <io.h>  // For _get_osfhandle
+#else
+#include <boost/asio/posix/stream_descriptor.hpp>
+#include <unistd.h>  // For STDIN_FILENO and dup
+#endif
 class Session;
 
 struct Cmp {
@@ -163,13 +173,14 @@ namespace {
   const std::string logger_config(R"(
 # ----------------
 sinks:
-  - name: console
-    type: console
-    color: true
+  - name: file
+    type: file
+    capacity: 40480
+    path: libp2plog.log
 groups:
   - name: main
-    sink: console
-    level: info
+    sink: file
+    level: trace
     children:
       - name: libp2p
 # ----------------
@@ -193,11 +204,11 @@ int main(int argc, char *argv[]) {
   }
 
   libp2p::log::setLoggingSystem(logging_system);
-  if (std::getenv("TRACE_DEBUG") != nullptr) {
+  //if (std::getenv("TRACE_DEBUG") != nullptr) {
     libp2p::log::setLevelOfGroup("main", soralog::Level::TRACE);
-  } else {
-    libp2p::log::setLevelOfGroup("main", soralog::Level::ERROR_);
-  }
+  //} else {
+    //libp2p::log::setLevelOfGroup("main", soralog::Level::ERROR_);
+  //}
 
   // resulting PeerId should be
   // 12D3KooWEgUjBV5FJAuBSoNMRYFRHjV7PjZwRQ7b43EKX9g7D6xV
@@ -233,19 +244,19 @@ int main(int argc, char *argv[]) {
     auto bootstrap_nodes = [] {
       std::vector<std::string> addresses = {
           // clang-format off
-          "/dnsaddr/bootstrap.libp2p.io/ipfs/QmNnooDu7bfjPFoTZYxMNLWUQJyrVwtbZg5gBMjTezGAJN",
-          "/dnsaddr/bootstrap.libp2p.io/ipfs/QmQCU2EcMqAqQPR2i9bChDtGNJchTbq5TbXJJ16u19uLTa",
-          "/dnsaddr/bootstrap.libp2p.io/ipfs/QmbLHAnMoJPWSCR5Zhtx6BHJX9KiKNN6tpvbUcqanj75Nb",
-          "/dnsaddr/bootstrap.libp2p.io/ipfs/QmcZf59bWwK5XFi76CZX8cbJ4BhTzzA3gU1ZjYZcYW3dwt",
+          //"/dnsaddr/bootstrap.libp2p.io/ipfs/QmNnooDu7bfjPFoTZYxMNLWUQJyrVwtbZg5gBMjTezGAJN",
+          //"/dnsaddr/bootstrap.libp2p.io/ipfs/QmQCU2EcMqAqQPR2i9bChDtGNJchTbq5TbXJJ16u19uLTa",
+          //"/dnsaddr/bootstrap.libp2p.io/ipfs/QmbLHAnMoJPWSCR5Zhtx6BHJX9KiKNN6tpvbUcqanj75Nb",
+          //"/dnsaddr/bootstrap.libp2p.io/ipfs/QmcZf59bWwK5XFi76CZX8cbJ4BhTzzA3gU1ZjYZcYW3dwt",
           "/ip4/104.131.131.82/tcp/4001/ipfs/QmaCpDMGvV2BGHeYERUEnRQAwe3N8SzbUtfsmvsqQLuvuJ",            // mars.i.ipfs.io
-          "/ip4/104.236.179.241/tcp/4001/ipfs/QmSoLPppuBtQSGwKDZT2M73ULpjvfd3aZ6ha4oFGL1KrGM",           // pluto.i.ipfs.io
-          "/ip4/128.199.219.111/tcp/4001/ipfs/QmSoLSafTMBsPKadTEgaXctDQVcqN88CNLHXMkTNwMKPnu",           // saturn.i.ipfs.io
-          "/ip4/104.236.76.40/tcp/4001/ipfs/QmSoLV4Bbm51jM9C4gDYZQ9Cy3U6aXMJDAbzgu2fzaDs64",             // venus.i.ipfs.io
-          "/ip4/178.62.158.247/tcp/4001/ipfs/QmSoLer265NRgSp2LA3dPaeykiS1J6DifTC88f5uVQKNAd",            // earth.i.ipfs.io
-          "/ip6/2604:a880:1:20::203:d001/tcp/4001/ipfs/QmSoLPppuBtQSGwKDZT2M73ULpjvfd3aZ6ha4oFGL1KrGM",  // pluto.i.ipfs.io
-          "/ip6/2400:6180:0:d0::151:6001/tcp/4001/ipfs/QmSoLSafTMBsPKadTEgaXctDQVcqN88CNLHXMkTNwMKPnu",  // saturn.i.ipfs.io
-          "/ip6/2604:a880:800:10::4a:5001/tcp/4001/ipfs/QmSoLV4Bbm51jM9C4gDYZQ9Cy3U6aXMJDAbzgu2fzaDs64", // venus.i.ipfs.io
-          "/ip6/2a03:b0c0:0:1010::23:1001/tcp/4001/ipfs/QmSoLer265NRgSp2LA3dPaeykiS1J6DifTC88f5uVQKNAd", // earth.i.ipfs.io
+          //"/ip4/104.236.179.241/tcp/4001/ipfs/QmSoLPppuBtQSGwKDZT2M73ULpjvfd3aZ6ha4oFGL1KrGM",           // pluto.i.ipfs.io
+          //"/ip4/128.199.219.111/tcp/4001/ipfs/QmSoLSafTMBsPKadTEgaXctDQVcqN88CNLHXMkTNwMKPnu",           // saturn.i.ipfs.io
+          //"/ip4/104.236.76.40/tcp/4001/ipfs/QmSoLV4Bbm51jM9C4gDYZQ9Cy3U6aXMJDAbzgu2fzaDs64",             // venus.i.ipfs.io
+          //"/ip4/178.62.158.247/tcp/4001/ipfs/QmSoLer265NRgSp2LA3dPaeykiS1J6DifTC88f5uVQKNAd",            // earth.i.ipfs.io
+          //"/ip6/2604:a880:1:20::203:d001/tcp/4001/ipfs/QmSoLPppuBtQSGwKDZT2M73ULpjvfd3aZ6ha4oFGL1KrGM",  // pluto.i.ipfs.io
+          //"/ip6/2400:6180:0:d0::151:6001/tcp/4001/ipfs/QmSoLSafTMBsPKadTEgaXctDQVcqN88CNLHXMkTNwMKPnu",  // saturn.i.ipfs.io
+          //"/ip6/2604:a880:800:10::4a:5001/tcp/4001/ipfs/QmSoLV4Bbm51jM9C4gDYZQ9Cy3U6aXMJDAbzgu2fzaDs64", // venus.i.ipfs.io
+          //"/ip6/2a03:b0c0:0:1010::23:1001/tcp/4001/ipfs/QmSoLer265NRgSp2LA3dPaeykiS1J6DifTC88f5uVQKNAd", // earth.i.ipfs.io
           // clang-format on
       };
 
@@ -285,6 +296,10 @@ int main(int argc, char *argv[]) {
         injector
             .create<std::shared_ptr<libp2p::protocol::kademlia::Kademlia>>();
 
+    auto m_identifymsgproc = std::make_shared<libp2p::protocol::IdentifyMessageProcessor>(
+        *host, host->getNetwork().getConnectionManager(), *injector.create<std::shared_ptr<libp2p::peer::IdentityManager>>(), injector.create<std::shared_ptr<libp2p::crypto::marshaller::KeyMarshaller>>());
+    auto m_identify = std::make_shared<libp2p::protocol::Identify>(*host, m_identifymsgproc, host->getBus(), injector.create<std::shared_ptr<libp2p::transport::Upgrader>>(), []() { });
+    m_identify->start();
     // Handle streams for observed protocol
     host->setProtocolHandler("/chat/1.0.0", handleIncomingStream);
     host->setProtocolHandler("/chat/1.1.0", handleIncomingStream);
@@ -359,28 +374,54 @@ int main(int argc, char *argv[]) {
       });
     });
 
-    boost::asio::posix::stream_descriptor in(*io, ::dup(STDIN_FILENO));
-    std::array<uint8_t, 1 << 12> buffer{};
+    // Platform-specific stream handle
+//#ifdef _WIN32
+//    //boost::asio::windows::stream_handle in(*io, GetStdHandle(STD_INPUT_HANDLE));
+//    boost::asio::windows::stream_handle in(*io);
+//    in.assign(GetStdHandle(STD_INPUT_HANDLE));
+//#else
+//    boost::asio::posix::stream_descriptor in(io, ::dup(STDIN_FILENO));
+//#endif
+//    std::array<uint8_t, 1 << 12> buffer{};
 
-    // Asynchronous transmit data from standard input to peers, that's privided
-    // same content id
-    std::function<void()> read_from_console = [&] {
-      in.async_read_some(boost::asio::buffer(buffer), [&](auto ec, auto size) {
-        auto i = std::find_if(buffer.begin(), buffer.begin() + size + 1,
-                              [](auto c) { return c == '\n'; });
+    //std::function<void()> read_from_console = [&] {
+    //    in.async_read_some(boost::asio::buffer(buffer), [&](auto ec, auto size) {
+    //        if (!ec) {
+    //            // Find newline character
+    //            auto i = std::find_if(buffer.begin(), buffer.begin() + size, [](auto c) { return c == '\n'; });
 
-        if (i != buffer.begin() + size + 1) {
-          auto out = std::make_shared<std::vector<uint8_t>>();
-          out->assign(buffer.begin(), buffer.begin() + size);
+    //            if (i != buffer.begin() + size) {
+    //                auto out = std::make_shared<std::vector<uint8_t>>();
+    //                out->assign(buffer.begin(), buffer.begin() + size);
 
-          for (const auto &session : sessions) {
-            session->write(out);
-          }
+    //                // Write to all sessions
+    //                for (const auto& session : sessions) {
+    //                    session->write(out);
+    //                }
+    //            }
+
+    //            // Continue reading from console
+    //            read_from_console();
+    //        }
+    //        else {
+    //            std::cerr << "Error reading from console: " << ec.message() << std::endl;
+    //        }
+    //        });
+    //    };
+    std::thread([&] {
+        std::string line;
+        while (std::getline(std::cin, line)) {  // Blocking read from stdin
+            auto out = std::make_shared<std::vector<uint8_t>>(line.begin(), line.end());
+
+            // Post the work to the io_context so it runs in the correct thread
+            boost::asio::post(*io, [&]() {
+                for (const auto& session : sessions) {
+                    session->write(out);  // Asynchronously write to sessions
+                }
+                });
         }
-        read_from_console();
-      });
-    };
-    read_from_console();
+        }).detach();
+    //read_from_console();
 
     boost::asio::signal_set signals(*io, SIGINT, SIGTERM);
     signals.async_wait(

@@ -49,8 +49,14 @@ namespace libp2p::security {
     void secureInbound(std::shared_ptr<connection::RawConnection> inbound,
                        SecConnCallbackFunc cb) override;
 
+    void secureInboundRelay(std::shared_ptr<connection::Stream> inbound,
+        SecConnCallbackFunc cb) override;
+
     void secureOutbound(std::shared_ptr<connection::RawConnection> outbound,
                         const peer::PeerId &p, SecConnCallbackFunc cb) override;
+
+    void secureOutboundRelay(std::shared_ptr<connection::Stream> outbound,
+        const peer::PeerId& p, SecConnCallbackFunc cb) override;
 
    private:
     using MaybePeerId = boost::optional<peer::PeerId>;
@@ -60,10 +66,20 @@ namespace libp2p::security {
         const std::shared_ptr<basic::ProtobufMessageReadWriter> &rw,
         SecConnCallbackFunc cb) const;
 
+    void sendExchangeMsg(
+        const std::shared_ptr<connection::Stream>& conn,
+        const std::shared_ptr<basic::ProtobufMessageReadWriter>& rw,
+        SecConnCallbackFunc cb) const;
+
     void receiveExchangeMsg(
         const std::shared_ptr<connection::RawConnection> &conn,
         const std::shared_ptr<basic::ProtobufMessageReadWriter> &rw,
         const MaybePeerId &p, SecConnCallbackFunc cb) const;
+
+    void receiveExchangeMsg(
+        const std::shared_ptr<connection::Stream>& conn,
+        const std::shared_ptr<basic::ProtobufMessageReadWriter>& rw,
+        const MaybePeerId& p, SecConnCallbackFunc cb) const;
 
     // the callback passed to an async read call in receiveExchangeMsg
     void readCallback(const std::shared_ptr<connection::RawConnection> &conn,
@@ -71,12 +87,20 @@ namespace libp2p::security {
                       const std::shared_ptr<std::vector<uint8_t>> &read_bytes,
                       outcome::result<size_t> read_call_res) const;
 
+    void readCallback(const std::shared_ptr<connection::Stream>& conn,
+        const MaybePeerId& p, const SecConnCallbackFunc& cb,
+        const std::shared_ptr<std::vector<uint8_t>>& read_bytes,
+        outcome::result<size_t> read_call_res) const;
+
     /**
      * Close (\param conn) and report error in case of failure
      */
     void closeConnection(
         const std::shared_ptr<libp2p::connection::RawConnection> &conn,
         const std::error_code &err) const;
+    void closeConnection(
+        const std::shared_ptr<libp2p::connection::Stream>& conn,
+        const std::error_code& err) const;
 
     std::shared_ptr<plaintext::ExchangeMessageMarshaller> marshaller_;
     std::shared_ptr<peer::IdentityManager> idmgr_;

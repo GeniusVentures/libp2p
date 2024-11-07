@@ -14,6 +14,7 @@
 #include <libp2p/security/security_adaptor.hpp>
 #include <libp2p/security/tls/tls_errors.hpp>
 
+
 namespace libp2p::security {
 
   /// TLS 1.3 security adaptor
@@ -36,9 +37,15 @@ namespace libp2p::security {
     void secureInbound(std::shared_ptr<connection::RawConnection> inbound,
                        SecConnCallbackFunc cb) override;
 
+    void secureInboundRelay(std::shared_ptr<connection::Stream> inbound,
+        SecConnCallbackFunc cb) override;
+
     /// Performs async handshake for outbound connection
     void secureOutbound(std::shared_ptr<connection::RawConnection> outbound,
                         const peer::PeerId &p, SecConnCallbackFunc cb) override;
+
+    void secureOutboundRelay(std::shared_ptr<connection::Stream> outbound,
+        const peer::PeerId& p, SecConnCallbackFunc cb) override;
 
    private:
     /// Creates shared SSL context, generates certificate and private key
@@ -48,6 +55,10 @@ namespace libp2p::security {
     void asyncHandshake(std::shared_ptr<connection::RawConnection> conn,
                          boost::optional<peer::PeerId> remote_peer,
                          SecConnCallbackFunc cb);
+
+    void asyncHandshake(std::shared_ptr<connection::Stream> conn,
+        boost::optional<peer::PeerId> remote_peer,
+        SecConnCallbackFunc cb);
 
     /// Identity manager which contains this host's keys and peer id
     std::shared_ptr<peer::IdentityManager> idmgr_;

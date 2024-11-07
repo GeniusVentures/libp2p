@@ -135,7 +135,7 @@ namespace libp2p::protocol {
     network::ConnectionManager &conn_manager_;
     peer::IdentityManager &identity_manager_;
     std::shared_ptr<crypto::marshaller::KeyMarshaller> key_marshaller_;
-    ObservedAddresses observed_addresses_;
+    //ObservedAddresses observed_addresses_;
     boost::signals2::signal<IdentifyCallback> signal_identify_received_;
 
     log::Logger log_ = log::createLogger("IdentifyMsgProcessor");

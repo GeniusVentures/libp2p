@@ -11,6 +11,8 @@
 #include <libp2p/basic/message_read_writer.hpp>
 #include <libp2p/common/types.hpp>
 #include <libp2p/connection/raw_connection.hpp>
+#include <libp2p/connection/stream.hpp>
+#include <variant>
 
 namespace libp2p::security::noise {
 
@@ -34,6 +36,9 @@ namespace libp2p::security::noise {
     InsecureReadWriter(std::shared_ptr<connection::RawConnection> connection,
                        std::shared_ptr<common::ByteArray> buffer);
 
+    InsecureReadWriter(std::shared_ptr<connection::Stream> connection,
+        std::shared_ptr<common::ByteArray> buffer);
+
     /// read next message from the network
     void read(ReadCallbackFunc cb) override;
 
@@ -42,7 +47,8 @@ namespace libp2p::security::noise {
                basic::Writer::WriteCallbackFunc cb) override;
 
    private:
-    std::shared_ptr<connection::RawConnection> connection_;
+    //std::shared_ptr<connection::RawConnection> connection_;
+    std::variant<std::shared_ptr<connection::RawConnection>, std::shared_ptr<connection::Stream>> connection_;
     std::shared_ptr<common::ByteArray> buffer_;
     common::ByteArray outbuf_;
   };

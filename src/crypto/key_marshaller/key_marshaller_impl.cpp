@@ -87,14 +87,12 @@ namespace libp2p::crypto::marshaller {
                                      static_cast<int>(proto_key.key.size()))) {
       return CryptoProviderError::FAILED_UNMARSHAL_DATA;
     }
-
     OUTCOME_TRY((auto &&, type), unmarshalKeyType(protobuf_key.type()));
     auto key = PublicKey{
         {type, {protobuf_key.data().begin(), protobuf_key.data().end()}}};
-
     OUTCOME_TRY(key_validator_->validate(key));
-
     return key;
+
   }
 
   outcome::result<PrivateKey> KeyMarshallerImpl::unmarshalPrivateKey(

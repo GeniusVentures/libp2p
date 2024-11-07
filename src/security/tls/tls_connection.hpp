@@ -17,6 +17,9 @@
 #include <libp2p/crypto/key_marshaller.hpp>
 #include <libp2p/peer/identity_manager.hpp>
 #include <libp2p/security/tls/tls_errors.hpp>
+#include <libp2p/connection/stream.hpp>
+#include <libp2p/log/logger.hpp>
+#include <variant>
 
 namespace libp2p::connection {
 
@@ -43,10 +46,15 @@ namespace libp2p::connection {
     /// \param tcp_socket Raw socket extracted from raw connection
     /// \param remote_peer Expected peer id of remote peer, has value for
     /// outbound connections
-    TlsConnection(std::shared_ptr<RawConnection> raw_connection,
+    explicit TlsConnection(std::shared_ptr<RawConnection> raw_connection,
                   std::shared_ptr<boost::asio::ssl::context> ssl_context,
                   const peer::IdentityManager &idmgr, tcp_socket_t &tcp_socket,
                   boost::optional<peer::PeerId> remote_peer);
+
+    explicit TlsConnection(std::shared_ptr<Stream> raw_connection,
+        std::shared_ptr<boost::asio::ssl::context> ssl_context,
+        const peer::IdentityManager& idmgr, tcp_socket_t& tcp_socket,
+        boost::optional<peer::PeerId> remote_peer);
 
     /// Performs async handshake and passes its result into callback. This fn is
     /// distinct from the ctor because it uses shared_from_this()
@@ -108,6 +116,8 @@ namespace libp2p::connection {
     /// Closes the socket
     outcome::result<void> close() override;
 
+    outcome::result<std::shared_ptr<RawConnection>> getRawConnection() const override;
+
    private:
     /// Async handshake callback. Performs libp2p-specific verification and
     /// extraction of remote peer's identity fields
@@ -119,7 +129,9 @@ namespace libp2p::connection {
     const peer::PeerId local_peer_;
 
     /// Raw TCP connection
-    std::shared_ptr<RawConnection> raw_connection_;
+    //std::shared_ptr<RawConnection> raw_connection_;
+    //std::shared_ptr<Stream> stream_;
+    std::variant<std::shared_ptr<RawConnection>, std::shared_ptr<Stream>> connection_;
 
     /// SSL context, shared among connections
     std::shared_ptr<boost::asio::ssl::context> ssl_context_;
@@ -132,6 +144,8 @@ namespace libp2p::connection {
 
     /// Remote public key, extracted from peer certificate during handshake
     boost::optional<crypto::PublicKey> remote_pubkey_;
+
+    log::Logger log_ = log::createLogger("TlsConnection");
 
    public:
     LIBP2P_METRICS_INSTANCE_COUNT_IF_ENABLED(libp2p::connection::TlsConnection);

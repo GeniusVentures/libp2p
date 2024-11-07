@@ -224,6 +224,10 @@ namespace libp2p::connection {
   }
 
   outcome::result<bool> MplexStream::isInitiator() const {
+      if (incoming_relay_)
+      {
+          return false;
+      }
     TRY_GET_CONNECTION(conn)
     return conn->isInitiator();
   }
@@ -236,6 +240,18 @@ namespace libp2p::connection {
   outcome::result<multi::Multiaddress> MplexStream::remoteMultiaddr() const {
     TRY_GET_CONNECTION(conn)
     return conn->remoteMultiaddr();
+  }
+
+  void MplexStream::setIncomingRelay(bool isincrelay)
+  {
+      incoming_relay_ = isincrelay;
+  }
+
+
+  outcome::result<std::shared_ptr<RawConnection>> MplexStream::getRawConnection() const
+  {
+      auto conn_shared = connection_.lock();
+      return conn_shared->getRawConnection();
   }
 
   outcome::result<void> MplexStream::commitData(gsl::span<const uint8_t> data,

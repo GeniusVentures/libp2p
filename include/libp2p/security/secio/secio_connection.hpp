@@ -16,6 +16,8 @@
 #include <libp2p/crypto/common.hpp>
 #include <libp2p/crypto/key_marshaller.hpp>
 #include <libp2p/log/logger.hpp>
+#include <libp2p/connection/stream.hpp>
+#include <variant>
 
 namespace libp2p::crypto {
   namespace aes {
@@ -59,8 +61,18 @@ namespace libp2p::connection {
       SecretType remote;
     };
 
-    SecioConnection(
+    explicit SecioConnection(
         std::shared_ptr<RawConnection> raw_connection,
+        std::shared_ptr<crypto::hmac::HmacProvider> hmac_provider,
+        std::shared_ptr<crypto::marshaller::KeyMarshaller> key_marshaller,
+        crypto::PublicKey local_pubkey, crypto::PublicKey remote_pubkey,
+        crypto::common::HashType hash_type,
+        crypto::common::CipherType cipher_type,
+        crypto::StretchedKey local_stretched_key,
+        crypto::StretchedKey remote_stretched_key);
+
+    explicit SecioConnection(
+        std::shared_ptr<Stream> raw_connection,
         std::shared_ptr<crypto::hmac::HmacProvider> hmac_provider,
         std::shared_ptr<crypto::marshaller::KeyMarshaller> key_marshaller,
         crypto::PublicKey local_pubkey, crypto::PublicKey remote_pubkey,
@@ -116,6 +128,8 @@ namespace libp2p::connection {
 
     outcome::result<void> close() override;
 
+    outcome::result<std::shared_ptr<RawConnection>> getRawConnection() const override;
+
    private:
     /**
      * Retrieves the next available SECIO message from the network.
@@ -149,7 +163,9 @@ namespace libp2p::connection {
     /// Returns MAC digest size in bytes for the chosen algorithm
     outcome::result<size_t> macSize() const;
 
-    std::shared_ptr<RawConnection> raw_connection_;
+    //std::shared_ptr<RawConnection> raw_connection_;
+    //std::shared_ptr<Stream> stream_;
+    std::variant<std::shared_ptr<connection::RawConnection>, std::shared_ptr<connection::Stream>> connection_;
     std::shared_ptr<crypto::hmac::HmacProvider> hmac_provider_;
     std::shared_ptr<crypto::marshaller::KeyMarshaller> key_marshaller_;
 

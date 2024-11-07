@@ -10,6 +10,8 @@
 #include <libp2p/host/host.hpp>
 #include <libp2p/peer/identity_manager.hpp>
 #include <libp2p/network/transport_manager.hpp>
+#include <libp2p/protocol/relay/relay_addresses.hpp>
+#include <libp2p/protocol/identify/observed_addresses.hpp>
 
 namespace libp2p::host {
 
@@ -44,11 +46,15 @@ namespace libp2p::host {
 
     std::vector<multi::Multiaddress> getObservedAddresses() const override;
 
+    std::vector<multi::Multiaddress> getRelayAddresses() const override;
+
+    std::vector<multi::Multiaddress> getObservedAddressesReal(bool checkconfirmed = true) const override;
+
     Connectedness connectedness(const peer::PeerInfo &p) const override;
 
     void connect(const peer::PeerInfo &peer_info,
                  const ConnectionResultHandler &handler,
-                 std::chrono::milliseconds timeout) override;
+                 std::chrono::milliseconds timeout, bool holepunch = false, bool holepunchserver = false) override;
 
     void disconnect(const peer::PeerId &peer_id) override;
 
@@ -83,6 +89,10 @@ namespace libp2p::host {
 
     peer::PeerRepository &getPeerRepository() override;
 
+    protocol::RelayAddresses& getRelayRepository() override;
+
+    protocol::ObservedAddresses& getObservedRepository() override;
+
     network::Router &getRouter() override;
 
     event::Bus &getBus() override;
@@ -96,6 +106,8 @@ namespace libp2p::host {
     std::unique_ptr<peer::PeerRepository> repo_;
     std::shared_ptr<event::Bus> bus_;
     std::shared_ptr<network::TransportManager> transport_manager_;
+    std::unique_ptr<protocol::RelayAddresses> relayaddr_;
+    std::unique_ptr<protocol::ObservedAddresses> obsaddrrepo_;
   };
 
 }  // namespace libp2p::host

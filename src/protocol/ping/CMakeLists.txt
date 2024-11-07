@@ -8,4 +8,5 @@ libp2p_add_library(p2p_ping
     )
 target_link_libraries(p2p_ping
     Boost::boost
+    p2p_event
     )

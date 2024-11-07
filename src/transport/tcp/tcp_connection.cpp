@@ -9,6 +9,7 @@
 
 #define TRACE_ENABLED 0
 #include <libp2p/common/trace.hpp>
+#include <iostream>
 
 namespace libp2p::transport {
 
@@ -26,7 +27,6 @@ namespace libp2p::transport {
       return ec;
     }
   }  // namespace
-
   TcpConnection::TcpConnection(boost::asio::io_context &ctx,
                                boost::asio::ip::tcp::socket &&socket)
       : context_(ctx),
@@ -49,6 +49,7 @@ namespace libp2p::transport {
   }
 
   void TcpConnection::close(std::error_code reason) {
+ //     log().error("Closing connection");
     assert(reason);
 
     if (!close_reason_) {
@@ -153,68 +154,152 @@ namespace libp2p::transport {
 
   void TcpConnection::connect(
       const TcpConnection::ResolverResultsType &iterator,
-      TcpConnection::ConnectCallbackFunc cb) {
-    connect(iterator, std::move(cb), std::chrono::milliseconds::zero());
+      TcpConnection::ConnectCallbackFunc cb, multi::Multiaddress bindaddress, bool holepunch, bool holepunchserver) {
+    connect(iterator, std::move(cb), std::chrono::milliseconds::zero(), bindaddress, holepunch, holepunchserver);
   }
 
+#include <functional>  // Include this to use std::function
+
   void TcpConnection::connect(
-      const TcpConnection::ResolverResultsType &iterator,
-      ConnectCallbackFunc cb, std::chrono::milliseconds timeout) {
-    if (timeout > std::chrono::milliseconds::zero()) {
-      connecting_with_timeout_ = true;
-      deadline_timer_.expires_from_now(
-          boost::posix_time::milliseconds(timeout.count()));
-      deadline_timer_.async_wait(
-          [wptr{weak_from_this()}, cb](const boost::system::error_code &error) {
-            auto self = wptr.lock();
-            if (!self || self->closed_by_host_) {
-              return;
-            }
-            bool expected = false;
-            if (self->connection_phase_done_.compare_exchange_strong(expected,
-                                                                     true)) {
-              if (!error) {
-                // timeout happened, timer expired before connection was
-                // established
-                cb(boost::system::error_code{boost::system::errc::timed_out,
-                                             boost::system::generic_category()},
-                   Tcp::endpoint{});
-              }
-              // Another case is: boost::asio::error::operation_aborted == error
-              // connection was established before timeout and timer has been
-              // cancelled
-            }
-          });
-    }
-    boost::asio::async_connect(
-        socket_, iterator,
-        [wptr{weak_from_this()}, cb{std::move(cb)}](auto &&ec,
-                                                    auto &&endpoint) {
-          auto self = wptr.lock();
-          if (!self || self->closed_by_host_) {
-            return;
-          }
-          bool expected = false;
-          if (!self->connection_phase_done_.compare_exchange_strong(expected,
-                                                                       true)) {
-            BOOST_ASSERT(expected);
-            // connection phase already done - means that user's callback was
-            // already called by timer expiration so we are closing socket if
-            // it was actually connected
-            if (!ec) {
-              self->socket_.close();
-            }
-            return;
-          }
-          if (self->connecting_with_timeout_) {
-            self->deadline_timer_.cancel();
-          }
-          self->initiator_ = true;
-          std::ignore = self->saveMultiaddresses();
-          cb(std::forward<decltype(ec)>(ec),
-             std::forward<decltype(endpoint)>(endpoint));
-        });
+      const TcpConnection::ResolverResultsType& iterator,
+      ConnectCallbackFunc cb, std::chrono::milliseconds timeout, multi::Multiaddress bindaddress, bool holepunch, bool holepunchserver) {
+      if (timeout > std::chrono::milliseconds::zero()) {
+          connecting_with_timeout_ = true;
+          deadline_timer_.expires_from_now(
+              boost::posix_time::milliseconds(timeout.count()));
+          deadline_timer_.async_wait(
+              [wptr{ weak_from_this() }, cb](const boost::system::error_code& error) {
+                  auto self = wptr.lock();
+                  if (!self || self->closed_by_host_) {
+                      return;
+                  }
+                  bool expected = false;
+                  if (self->connection_phase_done_.compare_exchange_strong(expected, true)) {
+                      if (!error) {
+                          // timeout happened, timer expired before connection was
+                          // established
+                          self->socket_.close();
+                          cb(boost::system::error_code{ boost::system::errc::timed_out,
+                                                        boost::system::generic_category() },
+                              Tcp::endpoint{});
+                      }
+                      // Another case is: boost::asio::error::operation_aborted == error
+                      // connection was established before timeout and timer has been
+                      // cancelled
+                  }
+              });
+      }
+      //Get address to bind to from MA
+      std::string ip_address;
+      uint16_t port;
+      auto ip_address_opt = bindaddress.getFirstValueForProtocol(libp2p::multi::Protocol::Code::IP4);
+      if (!ip_address_opt) {
+          std::cerr << "Error: IP address not found in Multiaddress" << std::endl;
+          return;
+      }
+      ip_address = ip_address_opt.value();
+
+      auto port_opt = bindaddress.getFirstValueForProtocol(libp2p::multi::Protocol::Code::TCP);
+      if (!port_opt) {
+          std::cerr << "Error: Port not found in Multiaddress" << std::endl;
+          return;
+      }
+      port = static_cast<uint16_t>(std::stoi(port_opt.value()));
+      //Bind with reuse port.
+      boost::system::error_code reec;
+      boost::asio::ip::tcp::endpoint local_endpoint(boost::asio::ip::make_address(ip_address), port);
+      socket_.open(boost::asio::ip::tcp::v4());
+      boost::asio::socket_base::reuse_address option(true);
+      socket_.set_option(option, reec);
+      if (reec) {
+          std::cerr << "Error setting reuse address: " << reec.message() << std::endl;
+          socket_.close();
+          return;
+      }
+#ifdef SO_REUSEPORT
+      boost::asio::detail::socket_option::boolean<SOL_SOCKET, SO_REUSEPORT> reuse_port_option(true);
+      socket_.set_option(reuse_port_option, reec);
+#endif
+
+      socket_.bind(local_endpoint, reec);
+      if (reec) {
+          std::cerr << "Error binding socket: " << reec.message() << std::endl;
+          socket_.close();
+          return;
+      }
+
+      if (iterator.begin() != iterator.end()) {
+          auto iter = iterator.begin();
+          auto end = iterator.end();
+          //std::cout << "Connect to: " << iter->endpoint().address().to_string() << std::endl;;
+          //auto connect_next = std::make_shared<std::function<void(boost::asio::ip::tcp::resolver::results_type::const_iterator)>>();
+
+          //*connect_next = [this, wptr{ weak_from_this() }, cb, local_endpoint, connect_next, end, holepunch, holepunchserver]
+          //(boost::asio::ip::tcp::resolver::results_type::const_iterator iter) mutable {
+          //    auto self = wptr.lock();
+          //    if (!self || self->closed_by_host_) {
+          //        return;
+          //    }
+
+              socket_.async_connect(*iter, [this, wptr{ weak_from_this() }, cb, iter, end, local_endpoint, holepunch, holepunchserver](const boost::system::error_code& ec) mutable {
+                  auto self = wptr.lock();
+                  if (!self || self->closed_by_host_) {
+                      return;
+                  }
+
+                  if (!ec) {
+                      // Connection successful
+                      if (self->connecting_with_timeout_) {
+                          self->deadline_timer_.cancel();
+                      }
+                      self->initiator_ = true;
+                      if (holepunch)
+                      {
+                          if (!holepunchserver)
+                          {
+                              self->initiator_ = false;
+                          }
+                      }
+                      std::ignore = self->saveMultiaddresses();
+                      cb(ec, self->socket_.remote_endpoint());
+                      return;
+                  }
+//                  else if (++iter != end) {
+//                      // Try the next endpoint
+//                      self->socket_.close();
+//                      self->socket_.open(boost::asio::ip::tcp::v4());
+//                      boost::asio::socket_base::reuse_address option(true);
+//                      self->socket_.set_option(option);
+//
+//#ifdef SO_REUSEPORT
+//                      boost::asio::detail::socket_option::boolean<SOL_SOCKET, SO_REUSEPORT> reuse_port_option(true);
+//                      self->socket_.set_option(reuse_port_option);
+//#endif
+//
+//                      self->socket_.bind(local_endpoint);
+//                      std::cout << "Iterate" << std::endl;
+//                      (*connect_next)(iter);  // Recursively call the function through the shared_ptr
+//                      return;
+//                  }
+                  else {
+                      // All endpoints tried and failed
+                      //cb(ec, Tcp::endpoint{});
+                      self->socket_.close();
+                  }
+                  });
+             // };
+
+          // Start the first connection attempt
+          //(*connect_next)(iterator.begin());
+      }
+      else {
+          // No endpoints available, handle the error
+          //cb(boost::system::error_code{ boost::system::errc::address_not_available, boost::system::generic_category() }, Tcp::endpoint{});
+          socket_.close();
+      }
   }
+
+
 
   void TcpConnection::read(gsl::span<uint8_t> out, size_t bytes,
                            TcpConnection::ReadCallbackFunc cb) {

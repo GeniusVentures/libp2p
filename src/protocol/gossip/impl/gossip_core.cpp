@@ -73,6 +73,11 @@ namespace libp2p::protocol::gossip {
   outcome::result<void> GossipCore::addBootstrapPeer(
       const std::string &address) {
     OUTCOME_TRY((auto &&, ma), libp2p::multi::Multiaddress::create(address));
+      //auto ma = libp2p::multi::Multiaddress::create(address);
+      //if (!ma)
+      //{
+      //    return multi::Multiaddress::Error::INVALID_INPUT;
+      //}
     auto peer_id_str = ma.getPeerId();
     if (!peer_id_str) {
       return multi::Multiaddress::Error::INVALID_INPUT;

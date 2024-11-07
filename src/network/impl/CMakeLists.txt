@@ -33,6 +33,7 @@ target_link_libraries(p2p_dialer
     p2p_multiselect
     p2p_peer_id
     p2p_logger
+	p2p_relay_upgrader
     )
 
 
@@ -41,6 +42,7 @@ libp2p_add_library(p2p_network
     )
 target_link_libraries(p2p_network
     Boost::boost
+    p2p_event
     )
 
 libp2p_add_library(p2p_transport_manager
@@ -55,6 +57,7 @@ libp2p_add_library(p2p_connection_manager
     )
 target_link_libraries(p2p_connection_manager
     Boost::boost
+    p2p_event
     )
 
 libp2p_add_library(p2p_dnsaddr_resolver

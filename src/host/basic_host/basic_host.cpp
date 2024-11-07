@@ -21,12 +21,15 @@ namespace libp2p::host {
         network_(std::move(network)),
         repo_(std::move(repo)),
         bus_(std::move(bus)),
-        transport_manager_(std::move(transport_manager)) {
+        transport_manager_(std::move(transport_manager)),
+        relayaddr_(std::make_unique<libp2p::protocol::RelayAddresses>()),
+      obsaddrrepo_(std::make_unique<libp2p::protocol::ObservedAddresses>())
+  {
     BOOST_ASSERT(idmgr_ != nullptr);
     BOOST_ASSERT(network_ != nullptr);
     BOOST_ASSERT(repo_ != nullptr);
     BOOST_ASSERT(bus_ != nullptr);
-    BOOST_ASSERT(transport_manager_ != nullptr);
+    BOOST_ASSERT(transport_manager_ != nullptr);    
   }
 
   std::string_view BasicHost::getLibp2pVersion() const {
@@ -43,9 +46,23 @@ namespace libp2p::host {
 
   peer::PeerInfo BasicHost::getPeerInfo() const {
     auto addresses = getAddresses();
-    auto observed = getObservedAddresses();
+    auto observed = getObservedAddressesReal();
     auto interfaces = getAddressesInterfaces();
+    auto relays = getRelayAddresses();
 
+    //for (const auto& addr : addresses) {
+    //    std::cout << "Addresses: " << addr.getStringAddress() << std::endl; 
+    //}
+    //for (const auto& addr : interfaces) {
+    //    std::cout << "Interface: " << addr.getStringAddress() << std::endl;
+    //}
+    //for (const auto& addr : observed) {
+    //    std::cout << "Observed: " << addr.getStringAddress() << std::endl;
+    //}
+    //for (const auto& addr : relays) {
+    //    std::cout << "Relays: " << addr.getStringAddress() << std::endl;
+    //}
+    //std::cout << "Relay address size? " << relays.size() << std::endl;
     std::set<multi::Multiaddress> unique_addresses;
     unique_addresses.insert(std::make_move_iterator(addresses.begin()),
                             std::make_move_iterator(addresses.end()));
@@ -53,7 +70,11 @@ namespace libp2p::host {
                             std::make_move_iterator(interfaces.end()));
     unique_addresses.insert(std::make_move_iterator(observed.begin()),
                             std::make_move_iterator(observed.end()));
+    unique_addresses.insert(std::make_move_iterator(relays.begin()),
+        std::make_move_iterator(relays.end()));
 
+
+    //std::cout << "Unique Addresses: " << unique_addresses.size() << std::endl;
     // TODO(xDimon): Needs to filter special interfaces (e.g. INADDR_ANY, etc.)
     for (auto i = unique_addresses.begin(); i != unique_addresses.end();) {
       bool is_good_addr = true;
@@ -71,16 +92,17 @@ namespace libp2p::host {
         }
       }
       if (!is_good_addr) {
+          std::cout << "bad address ?" << i->getStringAddress() << std::endl;
         i = unique_addresses.erase(i);
       } else {
         ++i;
       }
     }
-
+    //std::cout << "Unique Addresses after filter: " << unique_addresses.size() << std::endl;
     std::vector<multi::Multiaddress> unique_addr_list(
         std::make_move_iterator(unique_addresses.begin()),
         std::make_move_iterator(unique_addresses.end()));
-
+    //std::cout << "Final unique addr list size: " << unique_addr_list.size() << std::endl;
     return {getId(), std::move(unique_addr_list)};
   }
 
@@ -100,6 +122,14 @@ namespace libp2p::host {
 
     // we don't know our addresses
     return {};
+  }
+
+  std::vector<multi::Multiaddress> BasicHost::getRelayAddresses() const {
+      return relayaddr_->getAllAddresses();
+  }
+
+  std::vector<multi::Multiaddress> BasicHost::getObservedAddressesReal(bool checkconfirmed) const {
+      return obsaddrrepo_->getAllAddresses(checkconfirmed);
   }
 
   Host::Connectedness BasicHost::connectedness(const peer::PeerInfo &p) const {
@@ -148,13 +178,15 @@ namespace libp2p::host {
                             const peer::Protocol &protocol,
                             const Host::StreamResultHandler &handler,
                             std::chrono::milliseconds timeout) {
-    network_->getDialer().newStream(p, protocol, handler, timeout);
+      network_->getConnectionManager().collectGarbage();
+    network_->getDialer().newStream(p, protocol, handler, timeout, network_->getListener().getListenAddresses().at(0));
   }
 
   void BasicHost::newStream(const peer::PeerId &peer_id,
                             const peer::Protocol &protocol,
                             const StreamResultHandler &handler) {
-    network_->getDialer().newStream(peer_id, protocol, handler);
+      network_->getConnectionManager().collectGarbage();
+    network_->getDialer().newStream(peer_id, protocol, handler, network_->getListener().getListenAddresses().at(0));
   }
 
   outcome::result<void> BasicHost::listen(const multi::Multiaddress &ma) {
@@ -209,6 +241,14 @@ namespace libp2p::host {
     return *repo_;
   }
 
+  protocol::RelayAddresses& BasicHost::getRelayRepository() {
+      return *relayaddr_;
+  }
+
+  protocol::ObservedAddresses& BasicHost::getObservedRepository() {
+      return *obsaddrrepo_;
+  }
+
   network::Router &BasicHost::getRouter() {
     return network_->getListener().getRouter();
   }
@@ -219,8 +259,9 @@ namespace libp2p::host {
 
   void BasicHost::connect(const peer::PeerInfo &peer_info,
                           const ConnectionResultHandler &handler,
-                          std::chrono::milliseconds timeout) {
-    network_->getDialer().dial(peer_info, handler, timeout);
+                          std::chrono::milliseconds timeout, bool holepunch, bool holepunchserver) {
+      network_->getConnectionManager().collectGarbage();
+    network_->getDialer().dial(peer_info, handler, timeout, network_->getListener().getListenAddresses().at(0), holepunch, holepunchserver);
   }
 
   void BasicHost::disconnect(const peer::PeerId &peer_id) {

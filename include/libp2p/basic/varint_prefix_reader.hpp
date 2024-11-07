@@ -39,6 +39,10 @@ namespace libp2p::basic {
       return value_;
     }
 
+    size_t size() const {
+        return got_bytes_;
+    }
+
     /// Resets reader's state
     void reset();
 

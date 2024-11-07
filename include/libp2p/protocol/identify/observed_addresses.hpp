@@ -32,13 +32,13 @@ namespace libp2p::protocol {
      * @return set of addresses
      */
     std::vector<multi::Multiaddress> getAddressesFor(
-        const multi::Multiaddress &address) const;
+        const multi::Multiaddress &address, bool checkconfirmed = true) const;
 
     /**
      * Get all addresses, which were observed by other peers
      * @return the addresses
      */
-    std::vector<multi::Multiaddress> getAllAddresses() const;
+    std::vector<multi::Multiaddress> getAllAddresses(bool checkconfirmed = true) const;
 
     /**
      * Add an address, which was observed by another peer
@@ -50,6 +50,20 @@ namespace libp2p::protocol {
      */
     void add(multi::Multiaddress observed, multi::Multiaddress local,
              const multi::Multiaddress &observer, bool is_initiator);
+
+    /**
+     * Add an address, which was observed by another peer
+     * @param local - local address to confirm observed
+     * @param observed - observe MA to confirm
+     */
+    void confirm(const multi::Multiaddress& local, const multi::Multiaddress& observed);
+
+    /**
+     * Add an address, which was observed by another peer
+     * @param local - local address to unconfirm observed
+     * @param observed - observe MA to unconfirm
+     */
+    void unconfirm(const multi::Multiaddress& local, const multi::Multiaddress& observed);
 
     /**
      * Get rid of expired addresses; should be called from time to time
@@ -71,6 +85,7 @@ namespace libp2p::protocol {
       std::unordered_map<multi::Multiaddress, Observation> seen_by;
       Clock::time_point last_seen;
       Milliseconds ttl = peer::ttl::kOwnObserved;
+      bool confirmed = false;
     };
 
     std::unordered_map<multi::Multiaddress, std::vector<ObservedAddress>>

@@ -6,6 +6,8 @@
 #include <libp2p/security/plaintext/exchange_message_marshaller_impl.hpp>
 
 #include <generated/security/plaintext/protobuf/plaintext.pb.h>
+#include <generated/crypto/protobuf/keys.pb.h>
+#include <libp2p/crypto/protobuf/protobuf_key.hpp>
 
 OUTCOME_CPP_DEFINE_CATEGORY_3(libp2p::security::plaintext,
                             ExchangeMessageMarshallerImpl::Error, e) {

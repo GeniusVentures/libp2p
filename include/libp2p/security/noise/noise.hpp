@@ -30,8 +30,14 @@ namespace libp2p::security {
     void secureInbound(std::shared_ptr<connection::RawConnection> inbound,
                        SecConnCallbackFunc cb) override;
 
+    void secureInboundRelay(std::shared_ptr<connection::Stream> inbound,
+        SecConnCallbackFunc cb) override;
+
     void secureOutbound(std::shared_ptr<connection::RawConnection> outbound,
                         const peer::PeerId &p, SecConnCallbackFunc cb) override;
+
+    void secureOutboundRelay(std::shared_ptr<connection::Stream> outbound,
+        const peer::PeerId& p, SecConnCallbackFunc cb) override;
 
    private:
     log::Logger log_ = log::createLogger("Noise");

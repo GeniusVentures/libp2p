@@ -13,6 +13,7 @@
 #include <boost/noncopyable.hpp>
 #include <libp2p/connection/stream.hpp>
 #include <libp2p/log/logger.hpp>
+#include <libp2p/transport/tcp/tcp_connection.hpp>
 
 namespace libp2p::connection {
   class MplexedConnection;
@@ -87,6 +88,12 @@ namespace libp2p::connection {
 
     outcome::result<multi::Multiaddress> remoteMultiaddr() const override;
 
+    //Set as incoming relay to allow incoming negotiations
+    void setIncomingRelay(bool isincrelay) override;
+
+
+    outcome::result<std::shared_ptr<RawConnection>> getRawConnection() const override;
+
    private:
     /**
      * Internal proxy method for reads; (\param some) denotes if the read should
@@ -122,6 +129,9 @@ namespace libp2p::connection {
 
     /// was the stream reset?
     bool is_reset_ = false;
+
+    //Is Incoming Relay
+    bool incoming_relay_ = false;
 
     /// how much unread data can be in this stream at one time; if new data
     /// exceeding this value is received, the stream is reset
