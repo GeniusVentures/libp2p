@@ -39,13 +39,8 @@ namespace libp2p::security::plaintext {
     plaintext::protobuf::Exchange exchange_msg;
 
     OUTCOME_TRY((auto &&, proto_pubkey_bytes), marshaller_->marshal(msg.pubkey));
-    libp2p::crypto::protobuf::PublicKey nested_pubkey;
-    nested_pubkey.set_type(libp2p::crypto::protobuf::KeyType::Ed25519);
-    nested_pubkey.set_data(proto_pubkey_bytes.key.data(), proto_pubkey_bytes.key.size());
-    auto nested_pubkey_str = nested_pubkey.SerializeAsString();
-    auto finalkey = libp2p::crypto::ProtobufKey{{nested_pubkey_str.begin(), nested_pubkey_str.end()}};
     if (!exchange_msg.mutable_pubkey()->ParseFromArray(
-            finalkey.key.data(), finalkey.key.size())) {
+            proto_pubkey_bytes.key.data(), proto_pubkey_bytes.key.size())) {
       return Error::PUBLIC_KEY_SERIALIZING_ERROR;
     }
 

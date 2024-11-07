@@ -208,24 +208,6 @@ namespace libp2p::security {
 
     // PeerId is derived from the Protobuf-serialized public key, not a raw one
     auto derived_pid_res = peer::PeerId::fromPublicKey(in_exchange_msg.second);
-    libp2p::crypto::protobuf::PublicKey outer_key;
-    if (outer_key.ParseFromArray(in_exchange_msg.second.key.data(), in_exchange_msg.second.key.size())) {
-        // Check if the Data field of the outer_key contains serialized data of another PublicKey
-        if (outer_key.data().size() > 0) {
-            libp2p::crypto::protobuf::PublicKey inner_key;
-            if (inner_key.ParseFromArray(outer_key.data().data(), outer_key.data().size())) {
-                // Successfully parsed inner PublicKey from the Data field of outer_key
-
-                std::vector<uint8_t> outer_key_data(inner_key.ByteSizeLong());
-                inner_key.SerializeToArray(outer_key_data.data(), outer_key_data.size());
-                libp2p::crypto::ProtobufKey protokey_outer(outer_key_data);
-                derived_pid_res = peer::PeerId::fromPublicKey(protokey_outer);
-            } else {
-                // Failed to parse inner PublicKey from the Data field of outer_key
-                //auto derived_pid_res = peer::PeerId::fromPublicKey(in_exchange_msg.second);
-            }
-        }
-    }
     
     if (!derived_pid_res) {
       log_->error("cannot create a PeerId from the received public key: {}",
@@ -275,25 +257,6 @@ namespace libp2p::security {
 
       // PeerId is derived from the Protobuf-serialized public key, not a raw one
       auto derived_pid_res = peer::PeerId::fromPublicKey(in_exchange_msg.second);
-      libp2p::crypto::protobuf::PublicKey outer_key;
-      if (outer_key.ParseFromArray(in_exchange_msg.second.key.data(), in_exchange_msg.second.key.size())) {
-          // Check if the Data field of the outer_key contains serialized data of another PublicKey
-          if (outer_key.data().size() > 0) {
-              libp2p::crypto::protobuf::PublicKey inner_key;
-              if (inner_key.ParseFromArray(outer_key.data().data(), outer_key.data().size())) {
-                  // Successfully parsed inner PublicKey from the Data field of outer_key
-
-                  std::vector<uint8_t> outer_key_data(inner_key.ByteSizeLong());
-                  inner_key.SerializeToArray(outer_key_data.data(), outer_key_data.size());
-                  libp2p::crypto::ProtobufKey protokey_outer(outer_key_data);
-                  derived_pid_res = peer::PeerId::fromPublicKey(protokey_outer);
-              }
-              else {
-                  // Failed to parse inner PublicKey from the Data field of outer_key
-                  //auto derived_pid_res = peer::PeerId::fromPublicKey(in_exchange_msg.second);
-              }
-          }
-      }
 
       if (!derived_pid_res) {
           log_->error("cannot create a PeerId from the received public key: {}",
