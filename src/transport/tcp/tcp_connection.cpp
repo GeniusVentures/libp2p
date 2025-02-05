@@ -195,6 +195,9 @@ namespace libp2p::transport {
       auto ip_address_opt = bindaddress.getFirstValueForProtocol(libp2p::multi::Protocol::Code::IP4);
       if (!ip_address_opt) {
           std::cerr << "Error: IP address not found in Multiaddress" << std::endl;
+          cb(boost::system::error_code{boost::system::errc::invalid_argument,
+          boost::system::generic_category()}, 
+          Tcp::endpoint{});
           return;
       }
       ip_address = ip_address_opt.value();
@@ -202,6 +205,9 @@ namespace libp2p::transport {
       auto port_opt = bindaddress.getFirstValueForProtocol(libp2p::multi::Protocol::Code::TCP);
       if (!port_opt) {
           std::cerr << "Error: Port not found in Multiaddress" << std::endl;
+          cb(boost::system::error_code{boost::system::errc::invalid_argument,
+          boost::system::generic_category()}, 
+          Tcp::endpoint{});
           return;
       }
       port = static_cast<uint16_t>(std::stoi(port_opt.value()));
@@ -214,6 +220,7 @@ namespace libp2p::transport {
       if (reec) {
           std::cerr << "Error setting reuse address: " << reec.message() << std::endl;
           socket_.close();
+          cb(reec, Tcp::endpoint{});
           return;
       }
 #ifdef SO_REUSEPORT
@@ -225,6 +232,9 @@ namespace libp2p::transport {
       if (reec) {
           std::cerr << "Error binding socket: " << reec.message() << std::endl;
           socket_.close();
+          cb(boost::system::error_code{boost::system::errc::address_not_available,
+          boost::system::generic_category()}, 
+          Tcp::endpoint{});
           return;
       }
 
@@ -260,8 +270,30 @@ namespace libp2p::transport {
                               self->initiator_ = false;
                           }
                       }
-                      std::ignore = self->saveMultiaddresses();
-                      cb(ec, self->socket_.remote_endpoint());
+                      auto save_result = self->saveMultiaddresses();
+                      if (!save_result) {
+                          cb(boost::system::error_code{save_result.error().value(), 
+                            boost::system::generic_category()}, 
+                            Tcp::endpoint{});
+                          return;
+                      }
+                      boost::system::error_code endpoint_ec;
+                      Tcp::endpoint remote_ep;
+                      try {
+                          if (self->socket_.is_open()) {
+                              remote_ep = self->socket_.remote_endpoint(endpoint_ec);
+                              if (!endpoint_ec) {
+                                  cb(ec, remote_ep);
+                                  return;
+                              }
+                          }
+                      } catch (const boost::system::system_error& e) {
+                          endpoint_ec = e.code();
+                      }
+                      cb(endpoint_ec ? endpoint_ec : 
+                      boost::system::error_code{boost::system::errc::not_connected, 
+                      boost::system::generic_category()}, 
+                      Tcp::endpoint{});
                       return;
                   }
 //                  else if (++iter != end) {
