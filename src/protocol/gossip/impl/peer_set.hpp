@@ -8,7 +8,7 @@
 
 #include <functional>
 #include <set>
-#include <mutex>
+#include <shared_mutex>
 
 #include "peer_context.hpp"
 
@@ -62,7 +62,7 @@ namespace libp2p::protocol::gossip {
     void eraseIf(const FilterCallback &filter);
 
    private:
-    mutable std::mutex mutex_;  // Added for thread safety
+    mutable std::shared_mutex mutex_;  // Added for thread safety
     std::set<PeerContextPtr, std::less<>> peers_;
   };
 
