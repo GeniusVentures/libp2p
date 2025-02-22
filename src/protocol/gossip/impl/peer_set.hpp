@@ -8,6 +8,7 @@
 
 #include <functional>
 #include <set>
+#include <mutex>
 
 #include "peer_context.hpp"
 
@@ -16,6 +17,10 @@ namespace libp2p::protocol::gossip {
   /// Peer set for pub-sub protocols
   class PeerSet {
    public:
+    PeerSet() = default;
+    PeerSet(PeerSet&& other) noexcept;  // Move constructor
+    PeerSet& operator=(PeerSet&& other) noexcept;  // Move assignment
+
     /// Finds peer context by id
     boost::optional<PeerContextPtr> find(const peer::PeerId &id) const;
 
@@ -57,6 +62,7 @@ namespace libp2p::protocol::gossip {
     void eraseIf(const FilterCallback &filter);
 
    private:
+    mutable std::mutex mutex_;  // Added for thread safety
     std::set<PeerContextPtr, std::less<>> peers_;
   };
 
