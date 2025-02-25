@@ -678,9 +678,11 @@ namespace libp2p::connection {
 
     auto write_func =
         packet.some ? &CapableConnection::writeSome : &CapableConnection::write;
-    auto span = gsl::span<const uint8_t>(packet.packet);
+    write_buffer_->assign(packet.packet.begin(), packet.packet.end());
+
     auto sz = packet.packet.size();
     auto cb = [wptr{weak_from_this()},
+               buf{write_buffer_},
                packet = std::move(packet)](outcome::result<size_t> res) {
       auto self = wptr.lock();
       if (self)
@@ -688,7 +690,7 @@ namespace libp2p::connection {
     };
 
     is_writing_ = true;
-    ((connection_.get())->*write_func)(span, sz, std::move(cb));
+    ((connection_.get())->*write_func)(*write_buffer_, sz, std::move(cb));
   }
 
   void YamuxedConnection::onDataWritten(outcome::result<size_t> res,

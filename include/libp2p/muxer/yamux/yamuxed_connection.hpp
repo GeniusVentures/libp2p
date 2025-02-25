@@ -249,6 +249,8 @@ namespace libp2p::connection {
     //Whether this is relay
     bool isRelay_ = false;
 
+    std::shared_ptr<Buffer> write_buffer_ = std::make_shared<Buffer>();
+
    public:
     LIBP2P_METRICS_INSTANCE_COUNT_IF_ENABLED(
         libp2p::connection::YamuxedConnection);
