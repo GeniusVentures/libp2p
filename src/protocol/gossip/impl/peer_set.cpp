@@ -22,6 +22,7 @@ namespace libp2p::protocol::gossip {
     if (this != &other) {
       std::unique_lock<std::shared_mutex> lock_this(mutex_, std::defer_lock);
       std::unique_lock<std::shared_mutex> lock_other(other.mutex_, std::defer_lock);
+      std::lock(lock_this, lock_other);
       peers_ = std::move(other.peers_);
     }
     return *this;
