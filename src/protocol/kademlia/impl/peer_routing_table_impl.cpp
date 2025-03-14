@@ -67,6 +67,12 @@ bool Bucket::moveToFront(const PeerId& pid) {
   return true;
 }
 
+void Bucket::emplaceToFront(const PeerId &pid,
+  bool is_replaceable,
+  bool is_connected) {
+    peers_.emplace(peers_.begin(), pid, is_replaceable, is_connected);
+}
+
 // Fix the removeReplaceableItem method
 boost::optional<PeerId> Bucket::removeReplaceableItem() {
   boost::optional<PeerId> result;
