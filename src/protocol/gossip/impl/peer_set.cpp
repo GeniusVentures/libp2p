@@ -112,5 +112,17 @@ namespace libp2p::protocol::gossip {
       }
     }
   }
+  
+  std::vector<peer::PeerId> PeerSet::getAllPeerIds() const {
+    std::shared_lock lock(mutex_);
+    std::vector<peer::PeerId> result;
+    result.reserve(peers_.size());
+    
+    for (const auto& peer : peers_) {
+      result.push_back(peer->peer_id);
+    }
+    
+    return result;
+  }
 
 }  // namespace libp2p::protocol::gossip

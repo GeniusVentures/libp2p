@@ -51,6 +51,12 @@ namespace libp2p::protocol::gossip {
     /// Remote peer kicks this host out of its mesh
     void onPrune(const PeerContextPtr &p, Time dont_bother_until);
 
+    /// Get Number of Peers in this topic
+    size_t getPeerCount() const;
+
+    /// Get PeerIDs subscribed to this topic
+    std::vector<peer::PeerId> getAllPeers() const;
+
    private:
     /// Adds a peer to mesh
     void addToMesh(const PeerContextPtr &p);

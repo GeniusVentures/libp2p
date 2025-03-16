@@ -213,6 +213,16 @@ namespace libp2p::protocol::gossip {
     }
   }
 
+  size_t TopicSubscriptions::getPeerCount() const
+  {
+      return subscribed_peers_.size();
+  }
+
+  std::vector<peer::PeerId> TopicSubscriptions::getAllPeers() const
+  {
+    return subscribed_peers_.getAllPeerIds();
+  }
+
   void TopicSubscriptions::addToMesh(const PeerContextPtr &p) {
     assert(p->message_builder);
 

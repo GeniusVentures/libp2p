@@ -62,6 +62,15 @@ namespace libp2p::protocol::gossip {
         log_("gossip", "Gossip", local_peer_id_.toBase58().substr(46)) {}
   // clang-format on
 
+  size_t GossipCore::getPeerCount(TopicId& topic) const
+  {
+    return remote_subscriptions_->getPeerCount(topic);
+  }
+
+  std::vector<peer::PeerId> GossipCore::getAllPeers(TopicId& topic) const
+  {
+    return remote_subscriptions_->getAllPeers(topic);
+  }
   void GossipCore::addBootstrapPeer(
       const peer::PeerId &id, boost::optional<multi::Multiaddress> address) {
     if (started_) {
