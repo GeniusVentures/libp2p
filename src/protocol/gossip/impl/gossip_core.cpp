@@ -64,11 +64,19 @@ namespace libp2p::protocol::gossip {
 
   size_t GossipCore::getPeerCount(TopicId& topic) const
   {
+    if(!remote_subscriptions_)
+    {
+      return 0;
+    }
     return remote_subscriptions_->getPeerCount(topic);
   }
 
   std::vector<peer::PeerId> GossipCore::getAllPeers(TopicId& topic) const
   {
+    if(!remote_subscriptions_)
+    {
+      return {};
+    }
     return remote_subscriptions_->getAllPeers(topic);
   }
   void GossipCore::addBootstrapPeer(
