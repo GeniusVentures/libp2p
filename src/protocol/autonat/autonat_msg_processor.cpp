@@ -1,4 +1,4 @@
-
+#include <fmt/std.h>
 #include "libp2p/protocol/autonat/autonat_msg_processor.hpp"
 
 #include <tuple>

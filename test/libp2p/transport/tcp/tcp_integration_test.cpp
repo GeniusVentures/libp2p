@@ -337,7 +337,7 @@ int main(int argc, char *argv[]) {
   if (std::getenv("TRACE_DEBUG") != nullptr) {
     testutil::prepareLoggers(soralog::Level::TRACE);
   } else {
-    testutil::prepareLoggers(soralog::Level::ERROR);
+    testutil::prepareLoggers(soralog::Level::ERROR_);
   }
 
   ::testing::InitGoogleTest(&argc, argv);
