@@ -104,11 +104,6 @@ namespace libp2p::protocol {
         return conn_manager_;
     }
 
-    //const RelayAddresses& RelayMessageProcessor::getObservedAddresses()
-    //    const noexcept {
-    //    return relay_addresses_;
-    //}
-
     void RelayMessageProcessor::relayReservationReceived(
         outcome::result<relay::pb::HopMessage> msg_res,
         const StreamSPtr& stream) {
@@ -233,13 +228,6 @@ namespace libp2p::protocol {
             return stream->reset();
         }
         
-        //Make sure reservation is OK
-        //if (msg.status() != relay::pb::OK)
-        //{
-        //    log_->info("Relay Connect got status that indicates reservations are unavailable from: {}, {}", peer_id_str,
-        //        peer_addr_str);
-        //    return stream->reset();
-        //}
         //Send a positive response
         relayConnectResponse(stream, remotepeer_res.value(), cb);
     }

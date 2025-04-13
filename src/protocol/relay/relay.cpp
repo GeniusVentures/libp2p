@@ -31,7 +31,7 @@ namespace libp2p::protocol {
         else {
             log_->info("Starting holepunch since we have an established relay now");
             callback_();
-            //holepunch_->start();
+            holepunch_->start();
         }
         });
     
@@ -42,15 +42,6 @@ namespace libp2p::protocol {
       const std::function<RelayMessageProcessor::RelayCallback> &cb) {
     return msg_processor_->onRelayReceived(cb);
   }
-
-  //std::vector<multi::Multiaddress> Relay::getAllObservedAddresses() const {
-  //  return msg_processor_->getObservedAddresses().getAllAddresses();
-  //}
-
-  //std::vector<multi::Multiaddress> Relay::getObservedAddressesFor(
-  //    const multi::Multiaddress &address) const {
-  //  return msg_processor_->getObservedAddresses().getAddressesFor(address);
-  //}
 
   peer::Protocol Relay::getProtocolId() const {
     return kRelayProto;

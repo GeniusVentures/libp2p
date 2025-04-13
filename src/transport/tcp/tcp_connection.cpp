@@ -241,7 +241,7 @@ namespace libp2p::transport {
       if (iterator.begin() != iterator.end()) {
           auto iter = iterator.begin();
           auto end = iterator.end();
-          //std::cout << "Connect to: " << iter->endpoint().address().to_string() << std::endl;;
+          //TODO: We need to loop through iterator for the purpose of DNS results with multiple returns. The commented code below somewhat works, but has issues in some situations with crashing due to lost context
           //auto connect_next = std::make_shared<std::function<void(boost::asio::ip::tcp::resolver::results_type::const_iterator)>>();
 
           //*connect_next = [this, wptr{ weak_from_this() }, cb, local_endpoint, connect_next, end, holepunch, holepunchserver]

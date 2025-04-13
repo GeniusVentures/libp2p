@@ -29,7 +29,7 @@ namespace libp2p::protocol {
         if (!status)
         {
             log_->info("Starting relay after deciding we are behind a nat");
-            //relay_->start();
+            relay_->start();
         }
         else {
             callback_();
@@ -80,6 +80,7 @@ namespace libp2p::protocol {
     //BOOST_ASSERT(!started_);
     started_ = true;
 
+    //TODO: If we want to act as an autonat host, we need to enable this handler. This is largely untested at the moment. Lower priority since the larger ipfs network can handle this.
     //host_.setProtocolHandler(
     //    kAutonatProto,
     //    [wp = weak_from_this()](protocol::BaseProtocol::StreamResult rstream) {

@@ -27,14 +27,6 @@ namespace libp2p::protocol {
     return msg_processor_->onHolepunchReceived(cb);
   }
 
-  //std::vector<multi::Multiaddress> HolepunchClient::getAllObservedAddresses() const {
-  //  return msg_processor_->getObservedAddresses().getAllAddresses();
-  //}
-
-  //std::vector<multi::Multiaddress> HolepunchClient::getObservedAddressesFor(
-  //    const multi::Multiaddress &address) const {
-  //  return msg_processor_->getObservedAddresses().getAddressesFor(address);
-  //}
 
   peer::Protocol HolepunchClient::getProtocolId() const {
     return kHolepunchClientProto;
@@ -60,12 +52,5 @@ namespace libp2p::protocol {
             self->handle(std::move(rstream));
           }
         });
-    //msg_processor_->sendHolepunchClientConnect(stream, peer_info);
-    //sub_ = bus_.getChannel<event::network::OnNewConnectionChannel>().subscribe(
-    //    [wp = weak_from_this(), obsaddr](auto &&conn) {
-    //      if (auto self = wp.lock()) {
-    //        return self->onNewConnection(conn, obsaddr);
-    //      }
-    //    });
   }
 }

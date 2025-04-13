@@ -66,7 +66,6 @@ namespace libp2p::protocol {
 
         //Set our Addresses we think we are available on
         for (const auto& addr : host_.getObservedAddressesReal(false)) {
-            //std::cout << "Adding address to Autonat PB: " << addr.getStringAddress() << std::endl;
             dialpeer->add_addrs(fromMultiaddrToString(addr));
         }
         dialmsg->set_allocated_peer(dialpeer);

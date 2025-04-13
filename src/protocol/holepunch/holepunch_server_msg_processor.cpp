@@ -184,32 +184,6 @@ namespace libp2p::protocol {
                     });
             });
 
-
-        //rw->read<holepunch::pb::HolePunch>(
-        //    [self{ shared_from_this() }, stream, rtt, peer_info](auto&& res) {
-        //        if (!res) {
-        //            self->log_->error("Failed to read HolePunch message: {}", res.error().message());
-        //            return;
-        //        }
-
-        //        // Calculate the delay time (RTT / 2)
-        //        auto delay_duration = std::chrono::milliseconds(rtt / 2);
-
-        //        // Create an asynchronous timer
-        //        auto timer = std::make_shared<boost::asio::steady_timer>(self->io_context_, delay_duration);
-
-        //        // Set the timer to wait for RTT / 2 asynchronously
-        //        timer->async_wait([self, timer, peer_info](const boost::system::error_code& ec) {
-        //            if (!ec) {
-        //                // Now attempt to connect to the peer
-        //                self->host_.connect(peer_info);
-        //            }
-        //            else {
-        //                self->log_->error("Error during RTT wait: {}", ec.message());
-        //            }
-        //            });
-        //    });
-
     }
 
     Host& HolepunchServerMsgProc::getHost() const noexcept {
@@ -221,10 +195,6 @@ namespace libp2p::protocol {
         return conn_manager_;
     }
 
-    //const ObservedAddresses& HolepunchServerMsgProc::getObservedAddresses()
-    //    const noexcept {
-    //    return observed_addresses_;
-    //}
 }
 
   // namespace libp2p::protocol

@@ -27,14 +27,6 @@ namespace libp2p::protocol {
     return msg_processor_->onHolepunchReceived(cb);
   }
 
-  //std::vector<multi::Multiaddress> HolepunchServer::getAllObservedAddresses() const {
-  //  return msg_processor_->getObservedAddresses().getAllAddresses();
-  //}
-
-  //std::vector<multi::Multiaddress> HolepunchServer::getObservedAddressesFor(
-  //    const multi::Multiaddress &address) const {
-  //  return msg_processor_->getObservedAddresses().getAddressesFor(address);
-  //}
   void HolepunchServer::handle(StreamResult stream_res)
   {
   }
