@@ -52,6 +52,12 @@ namespace libp2p::protocol::gossip {
     /// Periodic job needed to update meshes and shift "I have" caches
     void onHeartbeat();
 
+    /// Get Number of Peers in topic
+    size_t getPeerCount(TopicId& topic) const;
+
+    /// Get PeerIDs subscribed to topic
+    std::vector<peer::PeerId> getAllPeers(TopicId& topic) const;
+
    private:
     /// Returns table item, creates a new one if needed
     boost::optional<TopicSubscriptions &> getItem(const TopicId &topic,

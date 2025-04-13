@@ -1,4 +1,4 @@
-
+#include <fmt/std.h>
 #include "libp2p/protocol/relay/relay_conupgrader_msg_processor.hpp"
 
 #include <tuple>
@@ -101,7 +101,7 @@ namespace libp2p::protocol {
         if (msg.status() != relay::pb::OK)
         {
             log_->error("Relay got status that indicates connections are unavailable from: {}, {}  : {}", peer_id_str,
-                peer_addr_str, msg.status());
+                peer_addr_str, relay::pb::Status_Name(msg.status()));
             return cb(false);
         }
         //Run Callback

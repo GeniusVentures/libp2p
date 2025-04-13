@@ -104,6 +104,12 @@ namespace libp2p::protocol::gossip {
    public:
     virtual ~Gossip() = default;
 
+    /// Get Number of Peers in topic
+    virtual size_t getPeerCount(TopicId& topic) const = 0;
+
+    /// Get PeerIDs subscribed to topic
+    virtual std::vector<peer::PeerId> getAllPeers(TopicId& topic) const = 0;
+
     /// Adds bootstrap peer to the set of connectable peers
     virtual void addBootstrapPeer(
         const peer::PeerId &id,

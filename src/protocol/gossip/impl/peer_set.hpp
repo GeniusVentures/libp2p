@@ -61,6 +61,9 @@ namespace libp2p::protocol::gossip {
     /// Conditionally erases peers from the set
     void eraseIf(const FilterCallback &filter);
 
+    /// Get all peer IDs from this peerset
+    std::vector<peer::PeerId> getAllPeerIds() const;
+
    private:
     mutable std::shared_mutex mutex_;  // Added for thread safety
     std::set<PeerContextPtr, std::less<>> peers_;

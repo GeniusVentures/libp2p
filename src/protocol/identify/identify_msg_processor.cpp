@@ -2,7 +2,7 @@
  * Copyright Soramitsu Co., Ltd. All Rights Reserved.
  * SPDX-License-Identifier: Apache-2.0
  */
-
+#include <fmt/std.h>
 #include "libp2p/protocol/identify/identify_msg_processor.hpp"
 
 #include <tuple>

@@ -43,6 +43,12 @@ namespace libp2p::protocol::gossip {
 
     ~GossipCore() override = default;
 
+    /// Get Number of Peers in topic
+    size_t getPeerCount(TopicId& topic) const override;
+
+    /// Get PeerIDs subscribed to topic
+    std::vector<peer::PeerId> getAllPeers(TopicId& topic) const override;
+
    private:
     // Gossip overrides
     void addBootstrapPeer(

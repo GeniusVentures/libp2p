@@ -138,7 +138,8 @@ namespace libp2p::protocol::kademlia {
 
     // Subscribtion to new connections
     event::Handle new_connection_subscription_;
-
+    event::Handle on_disconnected_;
+    
     struct StreamPtrComparator {
       bool operator()(const std::shared_ptr<connection::Stream> &lhs,
                       const std::shared_ptr<connection::Stream> &rhs) const {
