@@ -251,7 +251,7 @@ namespace libp2p::transport {
           //        return;
           //    }
 
-              socket_.async_connect(*iter, [this, wptr{ weak_from_this() }, cb, iter, end, local_endpoint, holepunch, holepunchserver](const boost::system::error_code& ec) mutable {
+              socket_.async_connect(*iter, [wptr{ weak_from_this() }, cb, iter, end, local_endpoint, holepunch, holepunchserver](const boost::system::error_code& ec) mutable {
                   auto self = wptr.lock();
                   if (!self || self->closed_by_host_) {
                       return;

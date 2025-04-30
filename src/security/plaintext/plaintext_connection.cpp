@@ -130,7 +130,7 @@ namespace libp2p::connection {
   }
 
   outcome::result<void> PlaintextConnection::close() {
-      return std::visit([this](auto& conn) -> outcome::result<void> {
+      return std::visit([](auto& conn) -> outcome::result<void> {
           if constexpr (std::is_same_v<decltype(conn), std::shared_ptr<RawConnection>>) {
               // For RawConnection, directly return the result of close()
               return conn->close();

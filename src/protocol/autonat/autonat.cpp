@@ -18,7 +18,7 @@ namespace libp2p::protocol {
         event::Bus& event_bus, 
         std::shared_ptr<libp2p::transport::Upgrader> upgrader,
         CompletionCallback callback)
-        : host_{ host }, msg_processor_{ std::move(msg_processor) }, bus_{ event_bus }, callback_(callback), upgrader_ { upgrader }
+        : host_{ host }, msg_processor_{ std::move(msg_processor) }, bus_{ event_bus }, upgrader_ { upgrader }, callback_(callback)
   {
       relay_msg_processor_ = std::make_shared<libp2p::protocol::RelayMessageProcessor>(host, host.getNetwork().getConnectionManager(), upgrader_);
       relay_ = std::make_shared<libp2p::protocol::Relay>(host, relay_msg_processor_, host.getBus(), callback);
