@@ -6,8 +6,16 @@
 #include <cassert>
 
 #include <libp2p/basic/write_queue.hpp>
+#include <libp2p/log/logger.hpp>
 
 namespace libp2p::basic {
+
+  namespace {
+    auto log() {
+      static auto logger = log::createLogger("write-queue");
+      return logger.get();
+    }
+  }  // namespace
 
   bool WriteQueue::canEnqueue(size_t size) const {
     return (size + total_unsent_size_ <= size_limit_);
@@ -48,7 +56,19 @@ namespace libp2p::basic {
 
     assert(sz == item.unsent);
 
+    // Prevent tiny packet transmission during window exhaustion
+    // Only send if we have enough window for a reasonable packet size,
+    // OR if this is the last chunk of data for this item
     if (sz > window_size) {
+      // Check if remaining window is too small for efficient transmission
+      if (window_size < kMinimumPacketSize && item.unsent > window_size) {
+        // Window too small and more data available - wait for window to recover
+        log()->trace("Window exhaustion detected: window_size={}, unsent={}, waiting for recovery", 
+                    window_size, item.unsent);
+        out = DataRef{};
+        return window_size;
+      }
+      
       sz = window_size;
       out = out.subspan(0, window_size);
     }

@@ -18,6 +18,12 @@ namespace libp2p::basic {
     using DataRef = gsl::span<const uint8_t>;
 
     static constexpr size_t kDefaultSizeLimit = 64 * 1024 * 1024;
+    
+    /// Minimum packet size to send (prevents tiny packets during window exhaustion)
+    /// This prevents inefficient transmission of very small packets when the flow
+    /// control window is nearly exhausted. 4KB provides a good balance between
+    /// efficiency and responsiveness. Can be adjusted based on network conditions.
+    static constexpr size_t kMinimumPacketSize = 4 * 1024;  // 4KB minimum
 
     explicit WriteQueue(size_t size_limit = kDefaultSizeLimit)
         : size_limit_(size_limit) {}
