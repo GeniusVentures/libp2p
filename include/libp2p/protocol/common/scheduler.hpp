@@ -10,6 +10,7 @@
 #include <functional>
 #include <map>
 #include <memory>
+#include <mutex>
 
 #include <boost/noncopyable.hpp>
 
@@ -117,6 +118,9 @@ namespace libp2p::protocol {
 
     std::map<Ticket, Callback> table_;
     Counter counter_;
+
+    // Thread safety for table_ operations
+    mutable std::mutex table_mutex_;
 
     // enable rescheduling from inside callback
     Counter counter_in_progress_ = 0;

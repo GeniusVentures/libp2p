@@ -59,7 +59,12 @@ namespace libp2p::protocol {
                                          Scheduler::Callback cb) {
     auto abs_delay = (delay != 0) ? now() + delay : 0;
     Ticket ticket(abs_delay, ++counter_);
-    table_[ticket] = std::move(cb);
+    
+    {
+      std::lock_guard<std::mutex> lock(table_mutex_);
+      table_[ticket] = std::move(cb);
+    }
+    
     if (delay == 0) {
       scheduleImmediate();
     }
@@ -71,6 +76,7 @@ namespace libp2p::protocol {
   }
 
   void Scheduler::cancel(const Ticket &ticket) {
+    std::lock_guard<std::mutex> lock(table_mutex_);
     table_.erase(ticket);
   }
 
@@ -80,12 +86,16 @@ namespace libp2p::protocol {
       // recheduling from inside current callback
       return newTicket(delay, cb_in_progress_);
     }
-    auto it = table_.find(ticket);
-
-    assert(it != table_.end());
-
-    auto cb = std::move(it->second);
-    table_.erase(it);
+    
+    Callback cb;
+    {
+      std::lock_guard<std::mutex> lock(table_mutex_);
+      auto it = table_.find(ticket);
+      assert(it != table_.end());
+      cb = std::move(it->second);
+      table_.erase(it);
+    }
+    
     return newTicket(delay, std::move(cb));
   }
 
@@ -99,13 +109,24 @@ namespace libp2p::protocol {
   }
 
   bool Scheduler::nextCallback(Ticks time) {
+    std::lock_guard<std::mutex> lock(table_mutex_);
+    
     if (table_.empty()) {
       return false;
     }
+    
     auto it = table_.begin();
+    // Double-check that iterator is valid (should be impossible, but defensive)
+    if (it == table_.end()) {
+      // This should never happen, but if it does, clear the corrupted state
+      table_.clear();
+      return false;
+    }
+    
     if (it->first.first > time) {
       return false;
     }
+    
     counter_in_progress_ = it->first.second;
     cb_in_progress_ = std::move(it->second);
     table_.erase(it);
