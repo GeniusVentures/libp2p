@@ -21,15 +21,22 @@ namespace libp2p::network {
     /// Configuration for connection threshold management
     struct Config {
       /// Maximum number of total connections before triggering idle purge
-      size_t max_connections = 1000;
+      size_t max_connections;
       /// Target number of connections to maintain after purging
-      size_t target_connections = 800;
+      size_t target_connections;
       /// Enable automatic purging when threshold is exceeded
-      bool auto_purge_enabled = true;
+      bool auto_purge_enabled;
       /// Enable periodic purging (requires external scheduling)
-      bool periodic_purge_enabled = false;
+      bool periodic_purge_enabled;
       /// Minimum interval between periodic purges (in seconds)
-      std::chrono::seconds min_purge_interval{300}; // 5 minutes
+      std::chrono::seconds min_purge_interval;
+      
+      /// Default configuration
+      Config() : max_connections(1000),
+                 target_connections(800),
+                 auto_purge_enabled(true),
+                 periodic_purge_enabled(false),
+                 min_purge_interval(300) {}
     };
 
     explicit ConnectionManagerImpl(std::shared_ptr<libp2p::event::Bus> bus, 
