@@ -644,15 +644,8 @@ namespace libp2p::protocol::kademlia {
       return;
     }
 
-    // Limit total Kademlia sessions to prevent FD exhaustion
-    const size_t MAX_KADEMLIA_SESSIONS = 50;
-    if (sessions_.size() >= MAX_KADEMLIA_SESSIONS) {
-      log_.warn("Kademlia session limit reached ({}), rejecting new session from {}", 
-                sessions_.size(), stream->remotePeerId().value().toBase58().substr(46));
-      stream->reset();
-      return;
-    }
-
+    // Note: Session limits removed - ConnectionManager now handles resource management
+    // with grace periods, watermarks, and value-based trimming (go-libp2p style)
     log_.debug("incoming stream with {} (sessions: {})",
                stream->remotePeerId().value().toBase58().substr(46), sessions_.size());
 

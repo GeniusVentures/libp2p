@@ -67,12 +67,22 @@ namespace libp2p::network {
     auto it = connections_.find(p);
     if (it == connections_.end()) {
       connections_.insert({p, {c}});
+      // Check if peer already has pre-connection metadata (protection/tagging)
+      auto info_it = connection_info_.find(p);
+      if (info_it == connection_info_.end()) {
+        // No pre-existing metadata, create new entry with connection timestamp
+        connection_info_[p] = ConnectionInfo{};
+      } else {
+        // Pre-existing metadata exists, update connection timestamp but preserve tags/protection
+        info_it->second.connected_at = std::chrono::steady_clock::now();
+        log()->debug("Applied pre-connection metadata to newly connected peer {}", p.toBase58());
+      }
     } else {
       connections_[p].insert(c);
     }
     bus_->getChannel<event::network::OnNewConnectionChannel>().publish(c);
     
-    // Check if we need to purge idle connections due to threshold
+    // Check if we need to trim connections due to high watermark
     checkConnectionThreshold();
   }
 
@@ -91,7 +101,7 @@ namespace libp2p::network {
   ConnectionManagerImpl::ConnectionManagerImpl(
       std::shared_ptr<libp2p::event::Bus> bus, Config config)
       : bus_(std::move(bus)), config_(std::move(config)), 
-        last_purge_time_(std::chrono::steady_clock::now()) {}
+        last_trim_time_(std::chrono::steady_clock::now()) {}
 
   void ConnectionManagerImpl::collectGarbage() {
     for (auto it = connections_.begin(); it != connections_.end();) {
@@ -122,6 +132,9 @@ namespace libp2p::network {
 
     auto connections = std::move(it->second);
     connections_.erase(it);
+    
+    // Clean up connection metadata
+    connection_info_.erase(p);
 
     if (connections.empty()) {
       log()->error("inconsistency: iterator and no peers");
@@ -167,6 +180,8 @@ namespace libp2p::network {
 
     if (it->second.empty()) {
       connections_.erase(peer_id);
+      // Clean up connection metadata when last connection to peer is removed
+      connection_info_.erase(peer_id);
       bus_->getChannel<event::network::OnPeerDisconnectedChannel>().publish(
           peer_id);
     }
@@ -200,35 +215,10 @@ namespace libp2p::network {
   }
 
   void ConnectionManagerImpl::purgeIdleConnections() {
-      log()->trace("Starting idle connection purge");
+      log()->debug("Legacy purgeIdleConnections called - using go-libp2p style trim instead");
       
-      std::vector<peer::PeerId> peers_to_close;
-      
-      for (const auto& [peer_id, connections] : connections_) {
-          for (const auto& conn : connections) {
-              if (!conn->isClosed()) {
-                  // Get all active streams for this connection
-                  auto streams = conn->getStreams();
-                  
-                  // If connection has no active streams, mark it for closure
-                  if (streams.empty()) {
-                      log()->debug("Found idle connection to peer {}, marking for closure", 
-                                   peer_id.toBase58());
-                      peers_to_close.push_back(peer_id);
-                      break; // Only need to mark peer once
-                  }
-              }
-          }
-      }
-      
-      // Close idle connections
-      for (const auto& peer_id : peers_to_close) {
-          log()->info("Closing idle connection to peer {}", peer_id.toBase58());
-          closeConnectionsToPeer(peer_id);
-      }
-      
-      log()->trace("Idle connection purge completed, closed {} connections", 
-                   peers_to_close.size());
+      // Just call forceTrim which implements the proper go-libp2p approach
+      forceTrim();
   }
 
   void ConnectionManagerImpl::checkConnectionThreshold() {
@@ -237,28 +227,31 @@ namespace libp2p::network {
     }
     
     size_t total_connections = getTotalConnectionCount();
-    if (total_connections > config_.max_connections) {
-      log()->warn("Connection count {} exceeds threshold {}, triggering idle purge",
-                  total_connections, config_.max_connections);
-      
-      // Log stats before purge
-      auto stats_before = getConnectionStats();
-      log()->debug("Pre-purge stats: {} peers, {} active, {} idle connections",
-                   stats_before.total_peers, stats_before.active_connections, 
-                   stats_before.idle_connections);
-      
-      purgeIdleConnections();
-      
-      // Log post-purge count
-      size_t connections_after_purge = getTotalConnectionCount();
-      log()->info("Threshold-triggered purge: {} -> {} connections (saved {})",
-                  total_connections, connections_after_purge,
-                  total_connections - connections_after_purge);
-    } else {
-      log()->trace("Connection count {} within threshold {} ({:.1f}%)",
-                   total_connections, config_.max_connections,
-                   (100.0 * total_connections) / config_.max_connections);
+    
+    // Check high watermark (go-libp2p style)
+    if (total_connections <= config_.high_water) {
+      log()->trace("Connection count {} within high watermark {} ({:.1f}%)",
+                   total_connections, config_.high_water,
+                   (100.0 * total_connections) / config_.high_water);
+      return;
     }
+    
+    // Check silence period (go-libp2p style)
+    auto now = std::chrono::steady_clock::now();
+    auto time_since_last_trim = now - last_trim_time_;
+    if (time_since_last_trim < config_.silence_period) {
+      log()->debug("Skipping trim due to silence period: {}s < {}s",
+                   std::chrono::duration_cast<std::chrono::seconds>(time_since_last_trim).count(),
+                   config_.silence_period.count());
+      return;
+    }
+    
+    log()->warn("Connection count {} exceeds high watermark {}, triggering trim to low watermark {}",
+                total_connections, config_.high_water, config_.low_water);
+    
+    // Perform go-libp2p style trim
+    forceTrim();
+    last_trim_time_ = now;
   }
 
   size_t ConnectionManagerImpl::getTotalConnectionCount() const {
@@ -275,30 +268,34 @@ namespace libp2p::network {
   }
 
   bool ConnectionManagerImpl::triggerPeriodicPurge() {
-    if (!config_.periodic_purge_enabled) {
+    // Check if we exceed high watermark first
+    size_t total_connections = getTotalConnectionCount();
+    if (total_connections <= config_.high_water) {
+      log()->trace("Periodic trim skipped: {} <= high watermark {}",
+                   total_connections, config_.high_water);
       return false;
     }
     
+    // Check silence period
     auto now = std::chrono::steady_clock::now();
-    auto time_since_last_purge = now - last_purge_time_;
+    auto time_since_last_trim = now - last_trim_time_;
     
-    if (time_since_last_purge < config_.min_purge_interval) {
-      log()->trace("Skipping periodic purge, only {}s since last purge (min {}s)",
-                   std::chrono::duration_cast<std::chrono::seconds>(time_since_last_purge).count(),
-                   config_.min_purge_interval.count());
+    if (time_since_last_trim < config_.silence_period) {
+      log()->trace("Skipping periodic trim due to silence period: {}s < {}s",
+                   std::chrono::duration_cast<std::chrono::seconds>(time_since_last_trim).count(),
+                   config_.silence_period.count());
       return false;
     }
     
-    size_t connections_before = getTotalConnectionCount();
-    log()->debug("Triggering periodic idle connection purge, {} total connections",
-                 connections_before);
+    log()->debug("Triggering periodic trim: {} connections > high watermark {}",
+                 total_connections, config_.high_water);
     
-    purgeIdleConnections();
-    last_purge_time_ = now;
+    forceTrim();
+    last_trim_time_ = now;
     
     size_t connections_after = getTotalConnectionCount();
-    log()->info("Periodic purge completed: {} -> {} connections",
-                connections_before, connections_after);
+    log()->info("Periodic trim completed: {} -> {} connections",
+                total_connections, connections_after);
     
     return true;
   }
@@ -344,12 +341,129 @@ namespace libp2p::network {
                 stats.active_connections, stats.idle_connections,
                 stats.max_connections_per_peer);
     
-    // Log threshold status
+    // Log watermark status (go-libp2p style)
     if (config_.auto_purge_enabled) {
-      log()->info("Auto-purge threshold: {}/{} ({}% full)", 
-                  stats.active_connections, config_.max_connections,
-                  (stats.active_connections * 100) / config_.max_connections);
+      log()->info("Watermark status: {}/{} ({}% full, high={}, low={})", 
+                  stats.active_connections, config_.high_water,
+                  (stats.active_connections * 100) / config_.high_water,
+                  config_.high_water, config_.low_water);
     }
+  }
+
+  // go-libp2p style connection management implementations
+  
+  void ConnectionManagerImpl::tagPeer(const peer::PeerId& peer_id, const std::string& tag, int value) {
+    auto it = connection_info_.find(peer_id);
+    if (it != connection_info_.end()) {
+      it->second.tags[tag] = value;
+      log()->trace("Tagged peer {} with {}={}", peer_id.toBase58(), tag, value);
+    } else {
+      // Pre-connection tagging: create entry for future connection
+      connection_info_[peer_id].tags[tag] = value;
+      log()->trace("Pre-tagged peer {} with {}={} (not yet connected)", peer_id.toBase58(), tag, value);
+    }
+  }
+  
+  void ConnectionManagerImpl::untagPeer(const peer::PeerId& peer_id, const std::string& tag) {
+    auto it = connection_info_.find(peer_id);
+    if (it != connection_info_.end()) {
+      it->second.tags.erase(tag);
+      log()->trace("Removed tag {} from peer {}", tag, peer_id.toBase58());
+    }
+  }
+  
+  void ConnectionManagerImpl::protectPeer(const peer::PeerId& peer_id, const std::string& tag) {
+    auto it = connection_info_.find(peer_id);
+    if (it != connection_info_.end()) {
+      it->second.is_protected = true;
+      // Also add a protection tag for tracking
+      it->second.tags["protection:" + tag] = 1000;  // High value
+      log()->debug("Protected peer {} with tag {}", peer_id.toBase58(), tag);
+    } else {
+      // Pre-connection protection: create entry for future connection
+      auto& info = connection_info_[peer_id];
+      info.is_protected = true;
+      info.tags["protection:" + tag] = 1000;
+      log()->debug("Pre-protected peer {} with tag {} (not yet connected)", peer_id.toBase58(), tag);
+    }
+  }
+  
+  bool ConnectionManagerImpl::unprotectPeer(const peer::PeerId& peer_id, const std::string& tag) {
+    auto it = connection_info_.find(peer_id);
+    if (it != connection_info_.end() && it->second.is_protected) {
+      it->second.is_protected = false;
+      it->second.tags.erase("protection:" + tag);
+      log()->debug("Unprotected peer {} with tag {}", peer_id.toBase58(), tag);
+      return true;
+    }
+    return false;
+  }
+
+  void ConnectionManagerImpl::forceTrim() {
+    log()->info("Force trimming connections to low watermark {}", config_.low_water);
+    
+    size_t total_connections = getTotalConnectionCount();
+    if (total_connections <= config_.low_water) {
+      log()->debug("No trimming needed: {} <= {}", total_connections, config_.low_water);
+      return;
+    }
+    
+    // Build candidate list with values (go-libp2p style)
+    struct TrimCandidate {
+      peer::PeerId peer_id;
+      int value;
+      bool in_grace_period;
+      bool is_protected;
+    };
+    
+    std::vector<TrimCandidate> candidates;
+    for (const auto& [peer_id, connections] : connections_) {
+      // Skip peers with no live connections
+      bool has_live_connection = false;
+      for (const auto& conn : connections) {
+        if (!conn->isClosed()) {
+          has_live_connection = true;
+          break;
+        }
+      }
+      if (!has_live_connection) continue;
+      
+      candidates.push_back({
+        peer_id,
+        calculateConnectionValue(peer_id),
+        isInGracePeriod(peer_id),
+        connection_info_.count(peer_id) && connection_info_.at(peer_id).is_protected
+      });
+    }
+    
+    // Sort by: grace period (protected), then protection status, then value (ascending)
+    std::sort(candidates.begin(), candidates.end(), 
+              [](const TrimCandidate& a, const TrimCandidate& b) {
+                if (a.in_grace_period != b.in_grace_period) {
+                  return b.in_grace_period;  // Grace period connections last
+                }
+                if (a.is_protected != b.is_protected) {
+                  return b.is_protected;     // Protected connections last
+                }
+                return a.value < b.value;    // Lower value first
+              });
+    
+    // Trim from lowest value until we reach low watermark
+    size_t to_trim = total_connections - config_.low_water;
+    size_t trimmed = 0;
+    
+    for (const auto& candidate : candidates) {
+      if (trimmed >= to_trim) break;
+      
+      log()->debug("Trimming peer {} (value={}, grace={}, protected={})",
+                   candidate.peer_id.toBase58(), candidate.value,
+                   candidate.in_grace_period, candidate.is_protected);
+      
+      closeConnectionsToPeer(candidate.peer_id);
+      trimmed++;
+    }
+    
+    log()->info("Force trim completed: removed {} connections", trimmed);
   }
 
 }  // namespace libp2p::network

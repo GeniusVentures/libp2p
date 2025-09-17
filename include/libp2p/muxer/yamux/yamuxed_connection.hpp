@@ -188,12 +188,8 @@ namespace libp2p::connection {
     /// Erases entry from pending streams, may affect incactivity timer
     void erasePendingOutboundStream(PendingOutboundStreams::iterator it);
 
-    /// Sets expire timer if last stream was just closed. Called from erase*()
-    /// functions
-    void adjustExpireTimer();
-
-    /// Expire timer callback
-    void onExpireTimer();
+    // NOTE: adjustExpireTimer and onExpireTimer methods removed
+    // Connection lifecycle is now managed by ConnectionManager using grace periods
 
     /// Copy of config
     const muxer::MuxedConnectionConfig config_;
@@ -241,8 +237,7 @@ namespace libp2p::connection {
     /// Cleanup for detached streams
     basic::Scheduler::Handle cleanup_handle_;
 
-    /// Timer handle for auto closing if inactive
-    basic::Scheduler::Handle inactivity_handle_;
+    // NOTE: inactivity_handle_ removed - lifecycle managed by ConnectionManager
 
     /// Called on connection close
     ConnectionClosedCallback closed_callback_;

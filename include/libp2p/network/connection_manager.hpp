@@ -66,6 +66,23 @@ namespace libp2p::network {
 
     // purge idle connections (connections with no active streams)
     virtual void purgeIdleConnections() = 0;
+    
+    // go-libp2p style peer management methods
+    
+    /// Tag a peer with a named tag and value (for prioritization)
+    virtual void tagPeer(const peer::PeerId& peer_id, const std::string& tag, int value) = 0;
+    
+    /// Remove a tag from a peer
+    virtual void untagPeer(const peer::PeerId& peer_id, const std::string& tag) = 0;
+    
+    /// Protect a peer from connection trimming
+    virtual void protectPeer(const peer::PeerId& peer_id, const std::string& tag) = 0;
+    
+    /// Remove protection from a peer
+    virtual bool unprotectPeer(const peer::PeerId& peer_id, const std::string& tag) = 0;
+    
+    /// Force trim connections to low watermark (for testing/manual cleanup)
+    virtual void forceTrim() = 0;
   };
 
 }  // namespace libp2p::network
