@@ -644,8 +644,17 @@ namespace libp2p::protocol::kademlia {
       return;
     }
 
-    log_.debug("incoming stream with {}",
-               stream->remotePeerId().value().toBase58());
+    // Limit total Kademlia sessions to prevent FD exhaustion
+    const size_t MAX_KADEMLIA_SESSIONS = 50;
+    if (sessions_.size() >= MAX_KADEMLIA_SESSIONS) {
+      log_.warn("Kademlia session limit reached ({}), rejecting new session from {}", 
+                sessions_.size(), stream->remotePeerId().value().toBase58().substr(46));
+      stream->reset();
+      return;
+    }
+
+    log_.debug("incoming stream with {} (sessions: {})",
+               stream->remotePeerId().value().toBase58().substr(46), sessions_.size());
 
     auto session = openSession(stream);
 

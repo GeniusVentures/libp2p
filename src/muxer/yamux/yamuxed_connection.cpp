@@ -241,6 +241,18 @@ namespace libp2p::connection {
       return isRelay_;
   }
 
+  std::vector<std::shared_ptr<Stream>> YamuxedConnection::getStreams() const {
+    std::vector<std::shared_ptr<Stream>> active_streams;
+    active_streams.reserve(streams_.size());
+    
+    for (const auto& [stream_id, yamux_stream] : streams_) {
+      // Convert YamuxStream to Stream (YamuxStream inherits from Stream)
+      active_streams.push_back(yamux_stream);
+    }
+    
+    return active_streams;
+  }
+
   void YamuxedConnection::continueReading() {
     SL_TRACE(log_(), "YamuxedConnection::continueReading");
     connection_->readSome(*raw_read_buffer_, raw_read_buffer_->size(),

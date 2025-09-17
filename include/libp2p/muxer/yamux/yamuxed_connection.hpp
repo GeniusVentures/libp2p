@@ -12,6 +12,7 @@
 #include <libp2p/basic/scheduler.hpp>
 #include <libp2p/common/metrics/instance_count.hpp>
 #include <libp2p/connection/capable_connection.hpp>
+#include <libp2p/connection/stream.hpp>
 #include <libp2p/muxer/muxed_connection_config.hpp>
 #include <libp2p/muxer/yamux/yamux_reading_state.hpp>
 #include <libp2p/muxer/yamux/yamux_stream.hpp>
@@ -83,6 +84,9 @@ namespace libp2p::connection {
     void setRelay(bool isrelay) override;
 
     bool isRelay() override;
+
+    /// Get all active streams for idle connection detection
+    std::vector<std::shared_ptr<Stream>> getStreams() const override;
 
    private:
     using Streams = std::unordered_map<StreamId, std::shared_ptr<YamuxStream>>;

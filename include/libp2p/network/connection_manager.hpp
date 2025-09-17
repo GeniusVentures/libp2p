@@ -63,6 +63,9 @@ namespace libp2p::network {
         const std::shared_ptr<connection::CapableConnection> &conn) = 0;
 
     virtual void removeRelayedConnections(const peer::PeerId& peer_id) = 0;
+
+    // purge idle connections (connections with no active streams)
+    virtual void purgeIdleConnections() = 0;
   };
 
 }  // namespace libp2p::network
