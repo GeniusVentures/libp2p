@@ -466,4 +466,55 @@ namespace libp2p::network {
     log()->info("Force trim completed: removed {} connections", trimmed);
   }
 
+  bool ConnectionManagerImpl::isInGracePeriod(const peer::PeerId& peer_id) const {
+    auto it = connection_info_.find(peer_id);
+    if (it == connection_info_.end()) {
+      return false;
+    }
+    
+    auto now = std::chrono::steady_clock::now();
+    auto connection_age = now - it->second.connected_at;
+    return connection_age < config_.grace_period;
+  }
+  
+  int ConnectionManagerImpl::calculateConnectionValue(const peer::PeerId& peer_id) const {
+    auto it = connection_info_.find(peer_id);
+    if (it == connection_info_.end()) {
+      return 0;
+    }
+    
+    int value = 0;
+    
+    // Add stream count (active streams boost value)
+    value += getStreamCount(peer_id) * 10;
+    
+    // Add tag values
+    for (const auto& [tag, tag_value] : it->second.tags) {
+      value += tag_value;
+    }
+    
+    // Protection boost
+    if (it->second.is_protected) {
+      value += 10000;  // Very high protection value
+    }
+    
+    return value;
+  }
+  
+  size_t ConnectionManagerImpl::getStreamCount(const peer::PeerId& peer_id) const {
+    auto it = connections_.find(peer_id);
+    if (it == connections_.end()) {
+      return 0;
+    }
+    
+    size_t total_streams = 0;
+    for (const auto& conn : it->second) {
+      if (!conn->isClosed()) {
+        auto streams = conn->getStreams();
+        total_streams += streams.size();
+      }
+    }
+    return total_streams;
+  }
+
 }  // namespace libp2p::network
