@@ -321,6 +321,18 @@ namespace libp2p::protocol::gossip {
       return;
     }
 
+    // Tag peer as valuable - they sent us a valid topic message
+    if (from) {
+      // Get peer ID from the message sender
+      auto peer_id_res = peer::PeerId::fromBytes(msg->from);
+      if (peer_id_res) {
+        auto& conn_mgr = host_->getNetwork().getConnectionManager();
+        conn_mgr.tagPeer(peer_id_res.value(), "gossip-active", 200);
+        log_.debug("tagged peer {} for sending valuable message on topic {}", 
+                  peer_id_res.value().toBase58(), msg->topic);
+      }
+    }
+
     log_.debug("forwarding message");
 
     local_subscriptions_->forwardMessage(msg);
@@ -345,6 +357,12 @@ namespace libp2p::protocol::gossip {
     // heartbeat changes per topic
     remote_subscriptions_->onHeartbeat();
 
+    // Tag active peers during heartbeat - they maintain gossip connections
+    // Note: We could iterate through active peers here if we had access to them
+    // from connectivity_ or remote_subscriptions_, but for now we'll rely on
+    // message-based and connection-based tagging
+    log_.trace("heartbeat completed - maintaining gossip network health");
+
     // send changes to peers
     connectivity_->onHeartbeat(broadcast_on_heartbeat_);
     broadcast_on_heartbeat_.clear();
@@ -360,6 +378,14 @@ namespace libp2p::protocol::gossip {
 
     if (connected) {
       log_.debug("peer {} connected", ctx->str);
+      
+      // Tag peer as gossip participant - they connected to our gossip network
+      if (ctx) {
+        auto& conn_mgr = host_->getNetwork().getConnectionManager();
+        conn_mgr.tagPeer(ctx->peer_id, "gossip-connected", 100);
+        log_.debug("tagged peer {} for joining gossip network", ctx->str);
+      }
+      
       // notify the new peer about all topics we subscribed to
       if (!local_subscriptions_->subscribedTo().empty()) {
         for (const auto &local_sub : local_subscriptions_->subscribedTo()) {
