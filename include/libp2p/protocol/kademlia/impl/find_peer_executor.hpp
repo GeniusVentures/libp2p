@@ -84,6 +84,17 @@ namespace libp2p::protocol::kademlia {
     bool started_ = false;
     std::atomic_bool done_ = false;
 
+    // Connection explosion protection (go-libp2p style fixed limits)
+    size_t total_connections_attempted_ = 0;
+    size_t total_peers_processed_ = 0;
+    
+    // Fixed protective limits (independent of config_.closerPeerCount)
+    static constexpr size_t MAX_CONNECTIONS_PER_QUERY = 50;  // Hard limit on total connections
+    static constexpr size_t MAX_QUEUE_SIZE = 100;            // Prevent unbounded queue growth  
+    static constexpr size_t MAX_PEERS_PER_RESPONSE = 10;     // Fixed response processing limit
+    static constexpr size_t MAX_PEERS_PER_IP = 3;            // IP diversity protection
+    static constexpr size_t MAX_TOTAL_PEERS_PROCESSED = 200; // Global processing budget
+
     log::SubLogger log_;
   };
 

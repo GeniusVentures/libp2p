@@ -9,6 +9,8 @@
 #include <libp2p/protocol/kademlia/error.hpp>
 #include <libp2p/protocol/kademlia/impl/session.hpp>
 #include <libp2p/protocol/kademlia/message.hpp>
+#include <unordered_set>
+#include <string>
 
 namespace libp2p::protocol::kademlia {
 
@@ -106,7 +108,8 @@ namespace libp2p::protocol::kademlia {
     auto self_peer_id = host_->getId();
 
     while (started_ && !done_ && !queue_.empty()
-           && requests_in_progress_ < config_.requestConcurency) {
+           && requests_in_progress_ < config_.requestConcurency
+           && total_connections_attempted_ < FindPeerExecutor::MAX_CONNECTIONS_PER_QUERY) {  // Add connection limit
       auto peer_id = *queue_.top();
       queue_.pop();
 
@@ -128,9 +131,11 @@ namespace libp2p::protocol::kademlia {
       }
 
       ++requests_in_progress_;
+      ++total_connections_attempted_;  // Track total attempts
 
-      log_.debug("connecting to {}; active {}, in queue {}", peer_id.toBase58(),
-                 requests_in_progress_, queue_.size());
+      log_.debug("connecting to {}; active {}, in queue {}, total_attempted {}", 
+                 peer_id.toBase58(), requests_in_progress_, queue_.size(), 
+                 total_connections_attempted_);
 
       auto holder =
           std::make_shared<std::pair<std::shared_ptr<FindPeerExecutor>,
@@ -160,7 +165,16 @@ namespace libp2p::protocol::kademlia {
     }
 
     if (requests_in_progress_ == 0) {
-      done(Error::VALUE_NOT_FOUND);
+      // Check if we've exhausted our connection budget
+      if (total_connections_attempted_ >= FindPeerExecutor::MAX_CONNECTIONS_PER_QUERY) {
+        log_.debug("Terminating: reached max connections limit ({})", FindPeerExecutor::MAX_CONNECTIONS_PER_QUERY);
+        done(Error::VALUE_NOT_FOUND);
+      } else if (total_peers_processed_ >= FindPeerExecutor::MAX_TOTAL_PEERS_PROCESSED) {
+        log_.debug("Terminating: reached max peer processing limit ({})", FindPeerExecutor::MAX_TOTAL_PEERS_PROCESSED);
+        done(Error::VALUE_NOT_FOUND);
+      } else {
+        done(Error::VALUE_NOT_FOUND);
+      }
     }
   }
 
@@ -240,15 +254,68 @@ namespace libp2p::protocol::kademlia {
 
     auto self_peer_id = host_->getId();
 
-    log_.debug("Result from {} is gotten; active {}, in queue {}",
-               remote_peer_id.toBase58(), requests_in_progress_, queue_.size());
+    log_.debug("Result from {} is gotten; active {}, in queue {}, total_attempted {}",
+               remote_peer_id.toBase58(), requests_in_progress_, queue_.size(),
+               total_connections_attempted_);
 
-    // Append gotten peer to queue
+    // Append gotten peer to queue with protective limits (go-libp2p style)
     if (msg.closer_peers) {
+      size_t peers_processed_this_response = 0;
+      std::unordered_set<std::string> ip_addresses_seen;  // For IP diversity
+      
       for (auto &peer : msg.closer_peers.value()) {
+        // LIMIT 1: Max peers per response (prevent single response flooding)
+        if (peers_processed_this_response >= FindPeerExecutor::MAX_PEERS_PER_RESPONSE) {
+          log_.debug("Reached max peers per response limit ({}), ignoring remaining {} peers",
+                     FindPeerExecutor::MAX_PEERS_PER_RESPONSE, 
+                     msg.closer_peers.value().size() - peers_processed_this_response);
+          break;
+        }
+        
+        // LIMIT 2: Max total peers processed across all responses (fixed budget)
+        if (total_peers_processed_ >= FindPeerExecutor::MAX_TOTAL_PEERS_PROCESSED) {
+          log_.debug("Reached total peer processing limit ({}), stopping peer discovery",
+                     FindPeerExecutor::MAX_TOTAL_PEERS_PROCESSED);
+          break;
+        }
+        
+        // LIMIT 3: Max queue size (prevent unbounded memory growth)
+        if (queue_.size() >= FindPeerExecutor::MAX_QUEUE_SIZE) {
+          log_.debug("Queue size limit reached ({}), ignoring remaining peers", FindPeerExecutor::MAX_QUEUE_SIZE);
+          break;
+        }
+
         // Skip non connectable peers
         if (peer.conn_status == Message::Connectedness::CAN_NOT_CONNECT) {
           continue;
+        }
+
+        // LIMIT 4: IP Diversity filtering (go-libp2p style protection)
+        // Extract IP address from first address for diversity check
+        if (!peer.info.addresses.empty()) {
+          try {
+            auto first_addr = peer.info.addresses[0];
+            auto addr_str = first_addr.getStringAddress();
+            
+            // Extract IP portion (simplified - go-libp2p is more sophisticated)
+            auto ip_end = addr_str.find("/tcp/");
+            if (ip_end == std::string::npos) {
+              ip_end = addr_str.find("/udp/");
+            }
+            if (ip_end != std::string::npos) {
+              std::string ip_part = std::string(addr_str.substr(0, ip_end));  // Explicit conversion
+              
+              // Allow maximum MAX_PEERS_PER_IP peers per IP block (go-libp2p style)
+              if (ip_addresses_seen.count(ip_part) >= FindPeerExecutor::MAX_PEERS_PER_IP) {
+                log_.debug("IP diversity limit: skipping peer {} from IP {} (already have {}+ from this IP)",
+                           peer.info.id.toBase58(), ip_part, FindPeerExecutor::MAX_PEERS_PER_IP);
+                continue;
+              }
+              ip_addresses_seen.insert(ip_part);
+            }
+          } catch (...) {
+            // If IP extraction fails, continue processing peer
+          }
         }
 
         // Add/Update peer info
@@ -272,6 +339,7 @@ namespace libp2p::protocol::kademlia {
         // Found
         if (peer.info.id == sought_peer_id_) {
           done(peer.info);
+          return;  // Early termination when target found
         }
 
         // Skip himself
@@ -287,8 +355,18 @@ namespace libp2p::protocol::kademlia {
         // New peer add to queue
         if (auto [it, ok] = nearest_peer_ids_.emplace(peer.info.id); ok) {
           queue_.emplace(*it, target_);
+          peers_processed_this_response++;
+          total_peers_processed_++;
+          
+          log_.debug("Added peer {} to queue (response: {}/{}, total: {}, queue_size: {})",
+                     peer.info.id.toBase58(), peers_processed_this_response, 
+                     FindPeerExecutor::MAX_PEERS_PER_RESPONSE, total_peers_processed_, queue_.size());
         }
       }
+      
+      log_.debug("Processed {}/{} peers from response (total_processed: {}, queue_size: {})",
+                 peers_processed_this_response, msg.closer_peers.value().size(),
+                 total_peers_processed_, queue_.size());
     }
   }
 
