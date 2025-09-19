@@ -530,4 +530,12 @@ namespace libp2p::network {
     return total_streams;
   }
 
+  ConnectionManagerImpl::Config& ConnectionManagerImpl::getConfig() {
+    return config_;
+  }
+
+  const ConnectionManagerImpl::Config& ConnectionManagerImpl::getConfig() const {
+    return config_;
+  }
+
 }  // namespace libp2p::network

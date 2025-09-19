@@ -18,27 +18,6 @@ namespace libp2p::network {
 
   class ConnectionManagerImpl : public ConnectionManager {
    public:
-    /// Configuration for connection threshold management
-    struct Config {
-      /// High watermark - triggers trimming when exceeded (like go-libp2p)
-      size_t high_water;
-      /// Low watermark - target after trimming (like go-libp2p)  
-      size_t low_water;
-      /// Grace period for new connections (go-libp2p style)
-      std::chrono::seconds grace_period;
-      /// Silence period - minimum time between trims (go-libp2p style)
-      std::chrono::seconds silence_period;
-      /// Enable automatic purging when threshold is exceeded
-      bool auto_purge_enabled;
-      
-      /// Default configuration following go-libp2p patterns
-      Config() : high_water(1000),
-                 low_water(800), 
-                 grace_period(10),          // 10 seconds grace period
-                 silence_period(10),        // 10 seconds between trims
-                 auto_purge_enabled(true) {}
-    };
-
     explicit ConnectionManagerImpl(std::shared_ptr<libp2p::event::Bus> bus, 
                                   Config config = Config{});
 
@@ -97,6 +76,12 @@ namespace libp2p::network {
 
     /// Log current connection statistics for debugging
     void logConnectionStats() const;
+
+    /// Get configuration for inspection/adjustment
+    Config& getConfig();
+    
+    /// Get configuration (read-only access)
+    const Config& getConfig() const;
 
    private:
     /// Connection metadata for value-based trimming (go-libp2p style)

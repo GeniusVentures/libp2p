@@ -7,6 +7,7 @@
 #define LIBP2P_CONNECTION_MANAGER_HPP
 
 #include <memory>
+#include <chrono>
 
 #include <libp2p/basic/garbage_collectable.hpp>
 #include <libp2p/connection/capable_connection.hpp>
@@ -35,6 +36,27 @@ namespace libp2p::network {
   struct ConnectionManager : public basic::GarbageCollectable {
     using Connection = connection::CapableConnection;
     using ConnectionSPtr = std::shared_ptr<Connection>;
+
+    /// Configuration for connection threshold management
+    struct Config {
+      /// High watermark - triggers trimming when exceeded (like go-libp2p)
+      size_t high_water;
+      /// Low watermark - target after trimming (like go-libp2p)  
+      size_t low_water;
+      /// Grace period for new connections (go-libp2p style)
+      std::chrono::seconds grace_period;
+      /// Silence period - minimum time between trims (go-libp2p style)
+      std::chrono::seconds silence_period;
+      /// Enable automatic purging when threshold is exceeded
+      bool auto_purge_enabled;
+      
+      /// Default configuration following go-libp2p patterns
+      Config() : high_water(1000),
+                 low_water(800), 
+                 grace_period(10),          // 10 seconds grace period
+                 silence_period(10),        // 10 seconds between trims
+                 auto_purge_enabled(true) {}
+    };
 
     ~ConnectionManager() override = default;
 
@@ -83,6 +105,12 @@ namespace libp2p::network {
     
     /// Force trim connections to low watermark (for testing/manual cleanup)
     virtual void forceTrim() = 0;
+
+    /// Get configuration for inspection/adjustment
+    virtual Config& getConfig() = 0;
+    
+    /// Get configuration (read-only access)
+    virtual const Config& getConfig() const = 0;
   };
 
 }  // namespace libp2p::network

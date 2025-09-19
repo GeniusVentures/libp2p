@@ -268,4 +268,12 @@ namespace libp2p::host {
     network_->closeConnections(peer_id);
   }
 
+  network::ConnectionManager::Config& BasicHost::getConnectionManagerConfig() {
+    return network_->getConnectionManager().getConfig();
+  }
+
+  const network::ConnectionManager::Config& BasicHost::getConnectionManagerConfig() const {
+    return network_->getConnectionManager().getConfig();
+  }
+
 }  // namespace libp2p::host
