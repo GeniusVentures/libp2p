@@ -314,9 +314,9 @@ namespace libp2p::transport {
 //                      return;
 //                  }
                   else {
-                      // All endpoints tried and failed
-                      //cb(ec, Tcp::endpoint{});
+                      // All endpoints tried and failed - must call callback!
                       self->socket_.close();
+                      cb(ec, Tcp::endpoint{});
                   }
                   });
              // };
@@ -325,9 +325,10 @@ namespace libp2p::transport {
           //(*connect_next)(iterator.begin());
       }
       else {
-          // No endpoints available, handle the error
-          //cb(boost::system::error_code{ boost::system::errc::address_not_available, boost::system::generic_category() }, Tcp::endpoint{});
+          // No endpoints available, handle the error - must call callback!
           socket_.close();
+          cb(boost::system::error_code{boost::system::errc::address_not_available, 
+             boost::system::generic_category()}, Tcp::endpoint{});
       }
   }
 

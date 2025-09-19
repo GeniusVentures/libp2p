@@ -143,12 +143,25 @@ namespace libp2p::network {
 
     closing_connections_to_peer_ = p;
 
+    size_t closed_count = 0;
+    size_t already_closed = 0;
+    
     for (const auto &conn : connections) {
       if (!conn->isClosed()) {
-        // ignore errors
-        (void)conn->close();
+        auto close_result = conn->close();
+        if (close_result) {
+          closed_count++;
+          log()->trace("Successfully closed connection to peer {}", p.toBase58());
+        } else {
+          log()->error("Failed to close connection to peer {}: {}", p.toBase58(), close_result.error().message());
+        }
+      } else {
+        already_closed++;
       }
     }
+    
+    log()->debug("Closed {} connections to peer {}, {} were already closed", 
+                 closed_count, p.toBase58(), already_closed);
 
     closing_connections_to_peer_.reset();
 
