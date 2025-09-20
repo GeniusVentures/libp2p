@@ -101,10 +101,10 @@ namespace libp2p::host {
         const NewConnectionHandler &h) const override;
 
     /// Get connection manager configuration for platform-specific adjustments
-    network::ConnectionManager::Config& getConnectionManagerConfig();
+    network::ConnectionManager::Config& getConnectionManagerConfig() override;
     
     /// Get connection manager configuration (read-only access)
-    const network::ConnectionManager::Config& getConnectionManagerConfig() const;
+    const network::ConnectionManager::Config& getConnectionManagerConfig() const override;
 
    private:
     std::shared_ptr<peer::IdentityManager> idmgr_;
