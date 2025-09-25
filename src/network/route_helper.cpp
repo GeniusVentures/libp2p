@@ -128,6 +128,31 @@ namespace libp2p::network {
     // For unspecified (0.0.0.0) listeners, get the OS-preferred source IP 
     // and construct a specific address using the listener's port
     if (!unspecified_listeners.empty()) {
+      // Check IP version compatibility first
+      bool destination_is_ipv6 = destination_ip.find(':') != std::string::npos;
+      bool have_ipv4_listeners = false;
+      bool have_ipv6_listeners = false;
+      
+      for (const auto &listener : unspecified_listeners) {
+        auto listener_ip = extractIPFromMultiaddress(listener);
+        if (listener_ip) {
+          if (listener_ip.value().find(':') != std::string::npos) {
+            have_ipv6_listeners = true;
+          } else {
+            have_ipv4_listeners = true;
+          }
+        }
+      }
+      
+      // If we have IPv6 destination but only IPv4 listeners, skip route lookup
+      if (destination_is_ipv6 && !have_ipv6_listeners) {
+        log().debug("IPv6 destination {} but only IPv4 listeners available, skipping route lookup", destination_ip);
+        const auto &selected = unspecified_listeners[0];
+        log().warn("IP version mismatch, falling back to unspecified source address: {} -> {}", 
+                  selected.getStringAddress(), destination_multiaddr.getStringAddress());
+        return selected;
+      }
+      
       // Get the OS-preferred route for this destination
       auto route_result = getPreferredRoute(destination_ip);
       if (route_result) {
@@ -135,23 +160,30 @@ namespace libp2p::network {
         log().debug("OS prefers source address {} for destination {} (unspecified listener case)", 
                    route.source_address, destination_ip);
         
-        // Extract port from the unspecified listener
-        const auto &unspecified_listener = unspecified_listeners[0];
-        auto port_opt = unspecified_listener.getFirstValueForProtocol(multi::Protocol::Code::TCP);
-        if (port_opt) {
-          // Construct a specific multiaddress with the route-preferred IP and listener port
-          auto specific_addr_result = multi::Multiaddress::create(
-              "/ip4/" + route.source_address + "/tcp/" + port_opt.value());
-          if (specific_addr_result) {
-            auto specific_addr = specific_addr_result.value();
-            log().info("Selected route-based specific address: {} -> {} (derived from unspecified listener)", 
-                      specific_addr.getStringAddress(), destination_multiaddr.getStringAddress());
-            return specific_addr;
-          } else {
-            log().debug("Failed to create specific multiaddress from route IP");
+        // Find a compatible unspecified listener (matching IP version)
+        for (const auto &unspecified_listener : unspecified_listeners) {
+          auto port_opt = unspecified_listener.getFirstValueForProtocol(multi::Protocol::Code::TCP);
+          if (!port_opt) continue;
+          
+          // Check if this listener is compatible with the route IP version
+          bool route_is_ipv6 = route.source_address.find(':') != std::string::npos;
+          auto listener_ip = extractIPFromMultiaddress(unspecified_listener);
+          bool listener_is_ipv6 = listener_ip && listener_ip.value().find(':') != std::string::npos;
+          
+          if (route_is_ipv6 == listener_is_ipv6) {
+            // Construct a specific multiaddress with the route-preferred IP and listener port
+            std::string protocol = route_is_ipv6 ? "ip6" : "ip4";
+            auto specific_addr_result = multi::Multiaddress::create(
+                "/" + protocol + "/" + route.source_address + "/tcp/" + port_opt.value());
+            if (specific_addr_result) {
+              auto specific_addr = specific_addr_result.value();
+              log().info("Selected route-based specific address: {} -> {} (derived from unspecified listener)", 
+                        specific_addr.getStringAddress(), destination_multiaddr.getStringAddress());
+              return specific_addr;
+            } else {
+              log().debug("Failed to create specific multiaddress from route IP");
+            }
           }
-        } else {
-          log().debug("Failed to extract port from unspecified listener");
         }
       } else {
         log().debug("Failed to get route info for unspecified listener: {}", route_result.error().message());
@@ -221,53 +253,174 @@ namespace libp2p::network {
 
 #elif defined(__linux__)
   outcome::result<RouteHelper::RouteInfo> RouteHelper::getRouteLinux(const std::string &destination_ip) {
-    // Simple implementation using /proc/net/route
-    std::ifstream route_file("/proc/net/route");
-    if (!route_file.is_open()) {
-      log().debug("Failed to open /proc/net/route");
-      return std::error_code{static_cast<int>(std::errc::no_such_file_or_directory), std::system_category()};
-    }
-
-    std::string line;
-    std::getline(route_file, line); // skip header
+    // Determine if this is IPv4 or IPv6
+    bool is_ipv6 = destination_ip.find(':') != std::string::npos;
     
-    uint32_t dest_addr = inet_addr(destination_ip.c_str());
-    uint32_t best_metric = UINT32_MAX;
-    std::string best_interface;
+    // First try to read routing table files (may fail on Android due to permissions)
+    const char* route_file_path = is_ipv6 ? "/proc/net/ipv6_route" : "/proc/net/route";
+    std::ifstream route_file(route_file_path);
+    bool proc_accessible = route_file.is_open();
     
-    while (std::getline(route_file, line)) {
-      std::istringstream iss(line);
-      std::string iface, dest_str, gateway_str, flags_str, refcnt_str, use_str, metric_str;
+    if (proc_accessible && !is_ipv6) {
+      // IPv4 routing table parsing (original method)
+      log().debug("Using /proc/net/route for IPv4 route lookup");
       
-      if (iss >> iface >> dest_str >> gateway_str >> flags_str >> refcnt_str >> use_str >> metric_str) {
-        uint32_t dest = strtoul(dest_str.c_str(), nullptr, 16);
-        uint32_t metric = strtoul(metric_str.c_str(), nullptr, 10);
+      std::string line;
+      std::getline(route_file, line); // skip header
+      
+      uint32_t dest_addr = inet_addr(destination_ip.c_str());
+      uint32_t best_metric = UINT32_MAX;
+      std::string best_interface;
+      
+      while (std::getline(route_file, line)) {
+        std::istringstream iss(line);
+        std::string iface, dest_str, gateway_str, flags_str, refcnt_str, use_str, metric_str;
         
-        // Check if this route matches (simple check for default route)
-        if ((dest == 0 || (dest_addr & dest) == dest) && metric < best_metric) {
-          best_metric = metric;
-          best_interface = iface;
+        if (iss >> iface >> dest_str >> gateway_str >> flags_str >> refcnt_str >> use_str >> metric_str) {
+          uint32_t dest = strtoul(dest_str.c_str(), nullptr, 16);
+          uint32_t metric = strtoul(metric_str.c_str(), nullptr, 10);
+          
+          // Check if this route matches (simple check for default route)
+          if ((dest == 0 || (dest_addr & dest) == dest) && metric < best_metric) {
+            best_metric = metric;
+            best_interface = iface;
+          }
+        }
+      }
+      
+      if (!best_interface.empty()) {
+        // Get interface IP address
+        struct ifaddrs *ifaddrs_ptr;
+        if (getifaddrs(&ifaddrs_ptr) == 0) {
+          RouteInfo info;
+          info.interface_name = best_interface;
+          info.metric = static_cast<int>(best_metric);
+          
+          for (auto ifa = ifaddrs_ptr; ifa != nullptr; ifa = ifa->ifa_next) {
+            if (ifa->ifa_addr && ifa->ifa_addr->sa_family == AF_INET && 
+                std::string(ifa->ifa_name) == best_interface) {
+              auto sin = reinterpret_cast<sockaddr_in*>(ifa->ifa_addr);
+              char ip_str[INET_ADDRSTRLEN];
+              inet_ntop(AF_INET, &sin->sin_addr, ip_str, sizeof(ip_str));
+              info.source_address = ip_str;
+              break;
+            }
+          }
+          
+          freeifaddrs(ifaddrs_ptr);
+          
+          if (!info.source_address.empty()) {
+            log().debug("Linux IPv4 route found: interface={}, source={}, metric={}", 
+                       info.interface_name, info.source_address, info.metric);
+            return info;
+          }
         }
       }
     }
-
-    if (best_interface.empty()) {
-      return std::error_code{static_cast<int>(std::errc::network_unreachable), std::system_category()};
-    }
-
-    // Get interface IP address
+    
+    // Fallback method for Android or when proc files aren't accessible
+    log().debug("Proc routing files not accessible (Android?), using interface fallback method");
+    
     struct ifaddrs *ifaddrs_ptr;
     if (getifaddrs(&ifaddrs_ptr) == -1) {
+      log().debug("getifaddrs failed: {}", strerror(errno));
       return std::error_code{errno, std::system_category()};
     }
 
     RouteInfo info;
-    info.interface_name = best_interface;
-    info.metric = static_cast<int>(best_metric);
+    info.interface_name = "default";
+    info.metric = 0;
+    
+    // Android/fallback strategy: Find best available interface
+    // Priority: WiFi > cellular/mobile > ethernet > other
+    std::string wifi_ip, cellular_ip, ethernet_ip, other_ip;
+    std::string wifi_if, cellular_if, ethernet_if, other_if;
     
     for (auto ifa = ifaddrs_ptr; ifa != nullptr; ifa = ifa->ifa_next) {
-      if (ifa->ifa_addr && ifa->ifa_addr->sa_family == AF_INET && 
-          std::string(ifa->ifa_name) == best_interface) {
+      if (!ifa->ifa_addr || !(ifa->ifa_flags & IFF_UP) || (ifa->ifa_flags & IFF_LOOPBACK)) {
+        continue;
+      }
+      
+      bool addr_matches_version = (is_ipv6 && ifa->ifa_addr->sa_family == AF_INET6) ||
+                                 (!is_ipv6 && ifa->ifa_addr->sa_family == AF_INET);
+      
+      if (!addr_matches_version) continue;
+      
+      char ip_str[INET6_ADDRSTRLEN];
+      if (is_ipv6) {
+        auto sin6 = reinterpret_cast<sockaddr_in6*>(ifa->ifa_addr);
+        inet_ntop(AF_INET6, &sin6->sin6_addr, ip_str, sizeof(ip_str));
+        // Skip link-local IPv6 addresses
+        if (strncmp(ip_str, "fe80:", 5) == 0) continue;
+      } else {
+        auto sin = reinterpret_cast<sockaddr_in*>(ifa->ifa_addr);
+        inet_ntop(AF_INET, &sin->sin_addr, ip_str, sizeof(ip_str));
+      }
+      
+      std::string if_name = ifa->ifa_name;
+      log().debug("Found interface: {} with IP: {}", if_name, ip_str);
+      
+      // Interface priority detection (Android naming patterns)
+      if (if_name.find("wlan") == 0 || if_name.find("wifi") != std::string::npos) {
+        // WiFi interface (highest priority)
+        if (wifi_ip.empty()) {
+          wifi_ip = ip_str;
+          wifi_if = if_name;
+        }
+      } else if (if_name.find("rmnet") == 0 || if_name.find("ccmni") == 0 || 
+                 if_name.find("pdp") == 0 || if_name.find("ppp") == 0 ||
+                 if_name.find("mobile") != std::string::npos) {
+        // Cellular interface (medium priority)
+        if (cellular_ip.empty()) {
+          cellular_ip = ip_str;
+          cellular_if = if_name;
+        }
+      } else if (if_name.find("eth") == 0) {
+        // Ethernet (low priority)
+        if (ethernet_ip.empty()) {
+          ethernet_ip = ip_str;
+          ethernet_if = if_name;
+        }
+      } else {
+        // Other interfaces (lowest priority)
+        if (other_ip.empty()) {
+          other_ip = ip_str;
+          other_if = if_name;
+        }
+      }
+    }
+    
+    freeifaddrs(ifaddrs_ptr);
+    
+    // Select interface by priority: WiFi > Cellular > Ethernet > Other
+    if (!wifi_ip.empty()) {
+      info.source_address = wifi_ip;
+      info.interface_name = wifi_if;
+      info.metric = 10; // WiFi gets best metric
+    } else if (!cellular_ip.empty()) {
+      info.source_address = cellular_ip;
+      info.interface_name = cellular_if;
+      info.metric = 20; // Cellular gets higher metric
+    } else if (!ethernet_ip.empty()) {
+      info.source_address = ethernet_ip;
+      info.interface_name = ethernet_if;
+      info.metric = 30;
+    } else if (!other_ip.empty()) {
+      info.source_address = other_ip;
+      info.interface_name = other_if;
+      info.metric = 40;
+    }
+    
+    if (info.source_address.empty()) {
+      log().debug("No suitable {} address found on any interface", is_ipv6 ? "IPv6" : "IPv4");
+      return std::error_code{static_cast<int>(std::errc::network_unreachable), std::system_category()};
+    }
+    
+    log().debug("Android fallback route found: interface={}, source={}, metric={} ({})", 
+               info.interface_name, info.source_address, info.metric,
+               info.metric == 10 ? "WiFi" : info.metric == 20 ? "Cellular" : "Other");
+    return info;
+  }
         auto sin = reinterpret_cast<sockaddr_in*>(ifa->ifa_addr);
         char ip_str[INET_ADDRSTRLEN];
         inet_ntop(AF_INET, &sin->sin_addr, ip_str, sizeof(ip_str));
