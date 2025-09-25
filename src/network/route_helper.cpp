@@ -421,24 +421,6 @@ namespace libp2p::network {
                info.metric == 10 ? "WiFi" : info.metric == 20 ? "Cellular" : "Other");
     return info;
   }
-        auto sin = reinterpret_cast<sockaddr_in*>(ifa->ifa_addr);
-        char ip_str[INET_ADDRSTRLEN];
-        inet_ntop(AF_INET, &sin->sin_addr, ip_str, sizeof(ip_str));
-        info.source_address = ip_str;
-        break;
-      }
-    }
-    
-    freeifaddrs(ifaddrs_ptr);
-    
-    if (info.source_address.empty()) {
-      return std::error_code{static_cast<int>(std::errc::network_unreachable), std::system_category()};
-    }
-    
-    log().debug("Linux route found: interface={}, source={}, metric={}", 
-               info.interface_name, info.source_address, info.metric);
-    return info;
-  }
 
 #elif defined(__APPLE__)
   outcome::result<RouteHelper::RouteInfo> RouteHelper::getRouteMacOS(const std::string &destination_ip) {
