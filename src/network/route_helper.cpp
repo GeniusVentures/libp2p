@@ -5,7 +5,7 @@
 
 #include <libp2p/network/route_helper.hpp>
 
-#include <libp2p/common/logger.hpp>
+#include <libp2p/log/logger.hpp>
 #include <iostream>
 #include <sstream>
 
