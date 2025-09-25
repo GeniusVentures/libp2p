@@ -124,11 +124,42 @@ namespace libp2p::network {
       return selected;
     }
 
-    // Strategy 3: Unspecified fallback
-    // Use unspecified (0.0.0.0) listeners - let OS pick source interface
+    // Strategy 3: Unspecified fallback with route-based IP selection
+    // For unspecified (0.0.0.0) listeners, get the OS-preferred source IP 
+    // and construct a specific address using the listener's port
     if (!unspecified_listeners.empty()) {
-      const auto &selected = unspecified_listeners[0]; // Could randomize like go-libp2p
-      log().info("Selected unspecified source address: {} -> {}", 
+      // Get the OS-preferred route for this destination
+      auto route_result = getPreferredRoute(destination_ip);
+      if (route_result) {
+        const auto &route = route_result.value();
+        log().debug("OS prefers source address {} for destination {} (unspecified listener case)", 
+                   route.source_address, destination_ip);
+        
+        // Extract port from the unspecified listener
+        const auto &unspecified_listener = unspecified_listeners[0];
+        auto port_opt = unspecified_listener.getFirstValueForProtocol(multi::Protocol::Code::TCP);
+        if (port_opt) {
+          // Construct a specific multiaddress with the route-preferred IP and listener port
+          auto specific_addr_result = multi::Multiaddress::create(
+              "/ip4/" + route.source_address + "/tcp/" + port_opt.value());
+          if (specific_addr_result) {
+            auto specific_addr = specific_addr_result.value();
+            log().info("Selected route-based specific address: {} -> {} (derived from unspecified listener)", 
+                      specific_addr.getStringAddress(), destination_multiaddr.getStringAddress());
+            return specific_addr;
+          } else {
+            log().debug("Failed to create specific multiaddress from route IP");
+          }
+        } else {
+          log().debug("Failed to extract port from unspecified listener");
+        }
+      } else {
+        log().debug("Failed to get route info for unspecified listener: {}", route_result.error().message());
+      }
+      
+      // Fallback to original unspecified behavior if route lookup fails
+      const auto &selected = unspecified_listeners[0];
+      log().warn("Route lookup failed, falling back to unspecified source address: {} -> {}", 
                 selected.getStringAddress(), destination_multiaddr.getStringAddress());
       return selected;
     }
