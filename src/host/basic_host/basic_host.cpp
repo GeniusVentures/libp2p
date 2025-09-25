@@ -8,6 +8,7 @@
 #include <boost/assert.hpp>
 #include <libp2p/common/hexutil.hpp>
 #include <libp2p/crypto/key_marshaller/key_marshaller_impl.hpp>
+#include <libp2p/network/route_helper.hpp>
 
 namespace libp2p::host {
 
@@ -179,14 +180,21 @@ namespace libp2p::host {
                             const Host::StreamResultHandler &handler,
                             std::chrono::milliseconds timeout) {
       network_->getConnectionManager().collectGarbage();
-    network_->getDialer().newStream(p, protocol, handler, timeout, network_->getListener().getListenAddresses().at(0));
+    network_->getDialer().newStream(p, protocol, handler, timeout, chooseBestSourceAddress(p));
   }
 
   void BasicHost::newStream(const peer::PeerId &peer_id,
                             const peer::Protocol &protocol,
                             const StreamResultHandler &handler) {
       network_->getConnectionManager().collectGarbage();
-    network_->getDialer().newStream(peer_id, protocol, handler, network_->getListener().getListenAddresses().at(0));
+    // For peer ID only, we need to construct PeerInfo from repository
+    auto peer_info = repo_->getPeerInfo(peer_id);
+    if (!peer_info.addresses.empty()) {
+      network_->getDialer().newStream(peer_id, protocol, handler, chooseBestSourceAddress(peer_info));
+    } else {
+      // Fallback to first listener if peer info not found
+      network_->getDialer().newStream(peer_id, protocol, handler, network_->getListener().getListenAddresses().at(0));
+    }
   }
 
   outcome::result<void> BasicHost::listen(const multi::Multiaddress &ma) {
@@ -261,7 +269,7 @@ namespace libp2p::host {
                           const ConnectionResultHandler &handler,
                           std::chrono::milliseconds timeout, bool holepunch, bool holepunchserver) {
       network_->getConnectionManager().collectGarbage();
-    network_->getDialer().dial(peer_info, handler, timeout, network_->getListener().getListenAddresses().at(0), holepunch, holepunchserver);
+    network_->getDialer().dial(peer_info, handler, timeout, chooseBestSourceAddress(peer_info), holepunch, holepunchserver);
   }
 
   void BasicHost::disconnect(const peer::PeerId &peer_id) {
@@ -274,6 +282,32 @@ namespace libp2p::host {
 
   const network::ConnectionManager::Config& BasicHost::getConnectionManagerConfig() const {
     return network_->getConnectionManager().getConfig();
+  }
+
+  multi::Multiaddress BasicHost::chooseBestSourceAddress(const peer::PeerInfo &peer_info) const {
+    // Get all addresses we're currently listening on
+    auto available_listeners = network_->getListener().getListenAddresses();
+    
+    if (available_listeners.empty()) {
+      // No listeners available - should not happen but handle gracefully
+      static auto log = log::createLogger("basic-host");
+      log->warn("No listen addresses available for source selection");
+      return multi::Multiaddress::create("/ip4/0.0.0.0/tcp/0").value();
+    }
+
+    // Try each destination address until we find a good source
+    for (const auto &dest_addr : peer_info.addresses) {
+      auto result = network::RouteHelper::chooseBestSourceAddress(dest_addr, available_listeners);
+      if (result) {
+        return result.value();
+      }
+    }
+
+    // Fallback to first available listener (usually 0.0.0.0)
+    static auto log = log::createLogger("basic-host");
+    log->debug("Route-based selection failed, using fallback address: {}", 
+              available_listeners[0].getStringAddress());
+    return available_listeners[0];
   }
 
 }  // namespace libp2p::host
