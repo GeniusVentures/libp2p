@@ -16,6 +16,7 @@
 #include <libp2p/common/metrics/instance_count.hpp>
 #include <libp2p/connection/raw_connection.hpp>
 #include <libp2p/multi/multiaddress.hpp>
+#include <libp2p/network/route_helper.hpp>
 
 namespace libp2p::security {
   class TlsAdaptor;
@@ -89,6 +90,25 @@ namespace libp2p::transport {
      */
     void connect(const ResolverResultsType &iterator, ConnectCallbackFunc cb,
                  std::chrono::milliseconds timeout, multi::Multiaddress bindaddress, bool holepunch = false, bool holepunchserver = false);
+
+    /**
+     * @brief Connect to a remote service with dual source addresses (chooses appropriate one based on resolved addresses).
+     * @param iterator list of resolved IP addresses of remote service.
+     * @param cb callback executed on operation completion.
+     * @param source_addresses both IPv4 and IPv6 source addresses available.
+     */
+    void connect(const ResolverResultsType &iterator, ConnectCallbackFunc cb, 
+                 const libp2p::network::RouteHelper::SourceAddresses &source_addresses, bool holepunch = false, bool holepunchserver = false);
+
+    /**
+     * @brief Connect to a remote service with dual source addresses and timeout.
+     * @param iterator list of resolved IP addresses of remote service.
+     * @param cb callback executed on operation completion.
+     * @param timeout in milliseconds for connection establishing.
+     * @param source_addresses both IPv4 and IPv6 source addresses available.
+     */
+    void connect(const ResolverResultsType &iterator, ConnectCallbackFunc cb,
+                 std::chrono::milliseconds timeout, const libp2p::network::RouteHelper::SourceAddresses &source_addresses, bool holepunch = false, bool holepunchserver = false);
 
     void read(gsl::span<uint8_t> out, size_t bytes,
               ReadCallbackFunc cb) override;

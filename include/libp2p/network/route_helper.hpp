@@ -28,6 +28,13 @@ namespace libp2p::network {
       int metric;                     ///< Route metric (lower = preferred)
     };
 
+    struct SourceAddresses {
+      multi::Multiaddress ipv4_source;  ///< IPv4 source address (may be empty)
+      multi::Multiaddress ipv6_source;  ///< IPv6 source address (may be empty)
+      bool has_ipv4 = false;
+      bool has_ipv6 = false;
+    };
+
     /**
      * Get the preferred source address for reaching a destination.
      * This queries the OS routing table to determine which interface
@@ -37,6 +44,16 @@ namespace libp2p::network {
      * @return RouteInfo with preferred source interface details
      */
     static outcome::result<RouteInfo> getPreferredRoute(const std::string &destination_ip);
+
+    /**
+     * Get both IPv4 and IPv6 source addresses for outbound connections.
+     * Returns the best available source addresses for both IP versions,
+     * allowing the connection layer to choose based on destination.
+     * 
+     * @param available_listeners List of addresses we're currently listening on
+     * @return SourceAddresses with IPv4 and/or IPv6 source addresses
+     */
+    static SourceAddresses getBestSourceAddresses(const std::vector<multi::Multiaddress> &available_listeners);
 
     /**
      * Choose the best source address for dialing to a destination.
@@ -53,6 +70,12 @@ namespace libp2p::network {
         const multi::Multiaddress &destination_multiaddr,
         const std::vector<multi::Multiaddress> &available_listeners);
 
+    /**
+     * Extract IP address from multiaddress
+     */
+    static outcome::result<std::string> extractIPFromMultiaddress(
+        const multi::Multiaddress &addr);
+
    private:
     /**
      * Platform-specific routing table query implementation
@@ -66,12 +89,6 @@ namespace libp2p::network {
 #else
     static outcome::result<RouteInfo> getRouteGeneric(const std::string &destination_ip);
 #endif
-
-    /**
-     * Extract IP address from multiaddress
-     */
-    static outcome::result<std::string> extractIPFromMultiaddress(
-        const multi::Multiaddress &addr);
 
     /**
      * Check if an IP address is loopback

@@ -54,6 +54,114 @@ namespace libp2p::network {
 #endif
   }
 
+  RouteHelper::SourceAddresses RouteHelper::getBestSourceAddresses(
+      const std::vector<multi::Multiaddress> &available_listeners) {
+    
+    log().debug("Getting best source addresses for both IPv4 and IPv6");
+    
+    // Initialize with default addresses
+    auto default_ipv4 = multi::Multiaddress::create("/ip4/0.0.0.0").value();
+    auto default_ipv6 = multi::Multiaddress::create("/ip6/::").value();
+    SourceAddresses result{default_ipv4, default_ipv6, false, false};
+    
+    // Categorize available listeners by IP version
+    std::vector<multi::Multiaddress> ipv4_specific, ipv4_unspecified;
+    std::vector<multi::Multiaddress> ipv6_specific, ipv6_unspecified;
+    std::vector<multi::Multiaddress> ipv4_loopback, ipv6_loopback;
+    
+    for (const auto &listener : available_listeners) {
+      auto ip_result = extractIPFromMultiaddress(listener);
+      if (!ip_result) continue;
+      
+      const auto &ip = ip_result.value();
+      bool is_ipv6 = ip.find(':') != std::string::npos;
+      
+      if (is_ipv6) {
+        if (isLoopback(ip)) {
+          ipv6_loopback.push_back(listener);
+        } else if (isUnspecified(ip)) {
+          ipv6_unspecified.push_back(listener);
+        } else {
+          ipv6_specific.push_back(listener);
+        }
+      } else {
+        if (isLoopback(ip)) {
+          ipv4_loopback.push_back(listener);
+        } else if (isUnspecified(ip)) {
+          ipv4_unspecified.push_back(listener);
+        } else {
+          ipv4_specific.push_back(listener);
+        }
+      }
+    }
+    
+    // Get IPv4 source address
+    if (!ipv4_specific.empty()) {
+      // Use first specific IPv4 address
+      result.ipv4_source = ipv4_specific[0];
+      result.has_ipv4 = true;
+      log().debug("Selected specific IPv4 source: {}", result.ipv4_source.getStringAddress());
+    } else if (!ipv4_unspecified.empty()) {
+      // For unspecified IPv4, try to get route-based address
+      auto ipv4_route = getPreferredRoute("8.8.8.8"); // Use Google DNS as test destination
+      if (ipv4_route) {
+        auto port_opt = ipv4_unspecified[0].getFirstValueForProtocol(multi::Protocol::Code::TCP);
+        if (port_opt) {
+          auto specific_addr_result = multi::Multiaddress::create(
+              "/ip4/" + ipv4_route.value().source_address + "/tcp/" + port_opt.value());
+          if (specific_addr_result) {
+            result.ipv4_source = specific_addr_result.value();
+            result.has_ipv4 = true;
+            log().debug("Selected route-based IPv4 source: {}", result.ipv4_source.getStringAddress());
+          }
+        }
+      }
+      
+      if (!result.has_ipv4) {
+        // Fallback to unspecified
+        result.ipv4_source = ipv4_unspecified[0];
+        result.has_ipv4 = true;
+        log().debug("Selected unspecified IPv4 source: {}", result.ipv4_source.getStringAddress());
+      }
+    }
+    
+    // Get IPv6 source address  
+    if (!ipv6_specific.empty()) {
+      // Use first specific IPv6 address
+      result.ipv6_source = ipv6_specific[0];
+      result.has_ipv6 = true;
+      log().debug("Selected specific IPv6 source: {}", result.ipv6_source.getStringAddress());
+    } else if (!ipv6_unspecified.empty()) {
+      // For unspecified IPv6, try to get route-based address
+      auto ipv6_route = getPreferredRoute("2001:4860:4860::8888"); // Use Google DNS IPv6 as test destination
+      if (ipv6_route) {
+        auto port_opt = ipv6_unspecified[0].getFirstValueForProtocol(multi::Protocol::Code::TCP);
+        if (port_opt) {
+          auto specific_addr_result = multi::Multiaddress::create(
+              "/ip6/" + ipv6_route.value().source_address + "/tcp/" + port_opt.value());
+          if (specific_addr_result) {
+            result.ipv6_source = specific_addr_result.value();
+            result.has_ipv6 = true;
+            log().debug("Selected route-based IPv6 source: {}", result.ipv6_source.getStringAddress());
+          }
+        }
+      }
+      
+      if (!result.has_ipv6) {
+        // Fallback to unspecified
+        result.ipv6_source = ipv6_unspecified[0];
+        result.has_ipv6 = true;
+        log().debug("Selected unspecified IPv6 source: {}", result.ipv6_source.getStringAddress());
+      }
+    }
+    
+    log().info("Source addresses selected - IPv4: {}, IPv6: {}", 
+              result.has_ipv4 ? result.ipv4_source.getStringAddress() : "none",
+              result.has_ipv6 ? result.ipv6_source.getStringAddress() : "none");
+    
+    return result;
+  }
+
   outcome::result<multi::Multiaddress> RouteHelper::chooseBestSourceAddress(
       const multi::Multiaddress &destination_multiaddr,
       const std::vector<multi::Multiaddress> &available_listeners) {

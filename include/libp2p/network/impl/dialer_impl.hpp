@@ -16,6 +16,7 @@
 #include <libp2p/network/transport_manager.hpp>
 #include <libp2p/protocol_muxer/protocol_muxer.hpp>
 #include <libp2p/protocol/relay/relay_conupgrader.hpp>
+#include <libp2p/network/route_helper.hpp>
 
 namespace libp2p::network {
 
@@ -32,16 +33,16 @@ namespace libp2p::network {
 
     // Establishes a connection to a given peer
     void dial(const peer::PeerInfo &p, DialResultFunc cb,
-              std::chrono::milliseconds timeout, multi::Multiaddress bindaddress, bool holepunch = false, bool holepunchserver = false) override;
+              std::chrono::milliseconds timeout, const libp2p::network::RouteHelper::SourceAddresses &source_addresses, bool holepunch = false, bool holepunchserver = false) override;
 
     // NewStream returns a new stream to given peer p.
     // If there is no connection to p, attempts to create one.
     void newStream(const peer::PeerInfo &p, const peer::Protocol &protocol,
                    StreamResultFunc cb,
-                   std::chrono::milliseconds timeout, multi::Multiaddress bindaddress) override;
+                   std::chrono::milliseconds timeout, const libp2p::network::RouteHelper::SourceAddresses &source_addresses) override;
 
     void newStream(const peer::PeerId &peer_id, const peer::Protocol &protocol,
-                   StreamResultFunc cb, multi::Multiaddress bindaddress) override;
+                   StreamResultFunc cb, const libp2p::network::RouteHelper::SourceAddresses &source_addresses) override;
 
    private:
     // A context to handle an intermediary state of the peer we are dialing to
@@ -53,8 +54,8 @@ namespace libp2p::network {
       /// Timeout for a single connection attempt
       std::chrono::milliseconds timeout;
 
-      // Bind address for dialers
-      multi::Multiaddress bindaddress;
+      // Source addresses for dialers
+      libp2p::network::RouteHelper::SourceAddresses source_addresses;
 
       // If this is a holepunch, and whether we are the server in this situation
       bool holepunch = false;
