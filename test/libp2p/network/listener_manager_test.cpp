@@ -77,7 +77,7 @@ TEST_F(ListenerManagerTest, ListenValidAddr) {
 
   auto random_port_resolved = "/ip4/127.0.0.1/tcp/12345"_multiaddr;
   EXPECT_CALL(*transport_listener, getListenMultiaddr())
-      .WillOnce(Return(random_port_resolved));
+      .WillOnce(Return(std::vector<multi::Multiaddress>{random_port_resolved}));
 
   auto addrs_resolved = listener->getListenAddressesInterfaces();
   EXPECT_EQ(addrs_resolved,

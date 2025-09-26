@@ -30,7 +30,7 @@ namespace libp2p::transport {
 
     bool canListen(const multi::Multiaddress &ma) const override;
 
-    outcome::result<multi::Multiaddress> getListenMultiaddr() const override;
+    outcome::result<std::vector<multi::Multiaddress>> getListenMultiaddr() const override;
 
     bool isClosed() const override;
 
@@ -43,6 +43,14 @@ namespace libp2p::transport {
     TransportListener::HandlerFunc handle_;
 
     void doAccept();
+    
+    /**
+     * Enumerate network interfaces and create multiaddresses for each
+     * @param port The port number to use
+     * @param ipv6 Whether to enumerate IPv6 (true) or IPv4 (false) interfaces
+     * @return Vector of multiaddresses for available interfaces
+     */
+    std::vector<multi::Multiaddress> enumerateNetworkInterfaces(uint16_t port, bool ipv6) const;
   };
 
 }  // namespace libp2p::transport

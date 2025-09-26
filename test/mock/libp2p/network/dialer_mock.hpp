@@ -7,6 +7,7 @@
 #define LIBP2P_DIALER_MOCK_HPP
 
 #include <libp2p/network/dialer.hpp>
+#include <libp2p/network/route_helper.hpp>
 
 #include <gmock/gmock.h>
 
@@ -19,15 +20,24 @@ namespace libp2p::network {
     MOCK_METHOD3(dial,
                  void(const peer::PeerInfo &, DialResultFunc,
                       std::chrono::milliseconds));
+    MOCK_METHOD4(dial,
+                 void(const peer::PeerInfo &, DialResultFunc,
+                      std::chrono::milliseconds, const libp2p::network::RouteHelper::SourceAddresses &));
     MOCK_METHOD3(newStream,
                  void(const peer::PeerInfo &, const peer::Protocol &,
                       StreamResultFunc));
     MOCK_METHOD4(newStream,
                  void(const peer::PeerInfo &, const peer::Protocol &,
                       StreamResultFunc, std::chrono::milliseconds));
+    MOCK_METHOD5(newStream,
+                 void(const peer::PeerInfo &, const peer::Protocol &,
+                      StreamResultFunc, std::chrono::milliseconds, const libp2p::network::RouteHelper::SourceAddresses &));
     MOCK_METHOD3(newStream,
                  void(const peer::PeerId &, const peer::Protocol &,
                      StreamResultFunc));
+    MOCK_METHOD4(newStream,
+                 void(const peer::PeerId &, const peer::Protocol &,
+                     StreamResultFunc, const libp2p::network::RouteHelper::SourceAddresses &));
   };
 
 }  // namespace libp2p::network
