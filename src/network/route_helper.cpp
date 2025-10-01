@@ -25,7 +25,6 @@
 #elif defined(__APPLE__)
 #include <sys/socket.h>
 #include <sys/sysctl.h>
-#include <net/route.h>
 #include <net/if.h>
 #include <arpa/inet.h>
 #include <ifaddrs.h>
