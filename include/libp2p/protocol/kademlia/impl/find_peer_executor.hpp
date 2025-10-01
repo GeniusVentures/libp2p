@@ -60,7 +60,8 @@ namespace libp2p::protocol::kademlia {
 
     /// Handles result of connection
     void onConnected(
-        outcome::result<std::shared_ptr<connection::Stream>> stream_res);
+        outcome::result<std::shared_ptr<connection::Stream>> stream_res,
+        const PeerId& attempted_peer_id);
 
     static std::atomic_size_t instance_number;
 
@@ -87,6 +88,7 @@ namespace libp2p::protocol::kademlia {
     // Connection explosion protection (go-libp2p style fixed limits)
     size_t total_connections_attempted_ = 0;
     size_t total_peers_processed_ = 0;
+    std::unordered_set<PeerId> failed_peers_;  // Track peers that failed to connect
     
     // Fixed protective limits (independent of config_.closerPeerCount)
     static constexpr size_t MAX_CONNECTIONS_PER_QUERY = 50;  // Hard limit on total connections

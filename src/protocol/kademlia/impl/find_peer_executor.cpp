@@ -107,6 +107,9 @@ namespace libp2p::protocol::kademlia {
 
     auto self_peer_id = host_->getId();
 
+    log_.debug("spawn: queue_size={}, requests_in_progress={}, concurrency_limit={}, failed_peers={}", 
+               queue_.size(), requests_in_progress_, config_.requestConcurency, failed_peers_.size());
+
     while (started_ && !done_ && !queue_.empty()
            && requests_in_progress_ < config_.requestConcurency
            && total_connections_attempted_ < FindPeerExecutor::MAX_CONNECTIONS_PER_QUERY) {  // Add connection limit
@@ -115,6 +118,12 @@ namespace libp2p::protocol::kademlia {
 
       // Exclude yoursef, because not found locally anyway
       if (peer_id == self_peer_id) {
+        continue;
+      }
+
+      // Skip peers that have already failed to connect
+      if (failed_peers_.count(peer_id) > 0) {
+        log_.debug("skipping previously failed peer: {}", peer_id.toBase58());
         continue;
       }
 
@@ -127,6 +136,8 @@ namespace libp2p::protocol::kademlia {
       // Check if connectable
       auto connectedness = host_->connectedness(peer_info);
       if (connectedness == Message::Connectedness::CAN_NOT_CONNECT) {
+        // Mark as failed to avoid retrying
+        failed_peers_.insert(peer_id);
         continue;
       }
 
@@ -143,10 +154,10 @@ namespace libp2p::protocol::kademlia {
 
       holder->first = shared_from_this();
       holder->second = scheduler_->scheduleWithHandle(
-          [holder] {
+          [holder, peer_id] {
             if (holder->first) {
               holder->second.cancel();
-              holder->first->onConnected(Error::TIMEOUT);
+              holder->first->onConnected(Error::TIMEOUT, peer_id);
               holder->first.reset();
             }
           },
@@ -154,10 +165,10 @@ namespace libp2p::protocol::kademlia {
 
       host_->newStream(
           peer_info, config_.protocolId,
-          [holder](auto &&stream_res) {
+          [holder, peer_id](auto &&stream_res) {
             if (holder->first) {
               holder->second.cancel();
-              holder->first->onConnected(stream_res);
+              holder->first->onConnected(stream_res, peer_id);
               holder->first.reset();
             }
           },
@@ -172,20 +183,30 @@ namespace libp2p::protocol::kademlia {
       } else if (total_peers_processed_ >= FindPeerExecutor::MAX_TOTAL_PEERS_PROCESSED) {
         log_.debug("Terminating: reached max peer processing limit ({})", FindPeerExecutor::MAX_TOTAL_PEERS_PROCESSED);
         done(Error::VALUE_NOT_FOUND);
+      } else if (queue_.empty()) {
+        log_.debug("Terminating: queue is empty, failed_peers={}", failed_peers_.size());
+        done(Error::VALUE_NOT_FOUND);
       } else {
+        log_.debug("Terminating: no more work available");
         done(Error::VALUE_NOT_FOUND);
       }
+    } else {
+      log_.debug("spawn_exit: still have {} requests in progress", requests_in_progress_);
     }
   }
 
   void FindPeerExecutor::onConnected(
-      outcome::result<std::shared_ptr<connection::Stream>> stream_res) {
+      outcome::result<std::shared_ptr<connection::Stream>> stream_res,
+      const PeerId& attempted_peer_id) {
     if (!stream_res) {
       --requests_in_progress_;
 
-      log_.debug("cannot connect to peer: {}; active {}, in queue {}",
-                 stream_res.error().message(), requests_in_progress_,
-                 queue_.size());
+      // Mark this peer as failed to avoid retrying
+      failed_peers_.insert(attempted_peer_id);
+
+      log_.debug("cannot connect to peer {}: {}; active {}, in queue {}, marked as failed",
+                 attempted_peer_id.toBase58(), stream_res.error().message(), 
+                 requests_in_progress_, queue_.size());
 
       spawn();
       return;
@@ -349,6 +370,12 @@ namespace libp2p::protocol::kademlia {
 
         // Skip remote
         if (peer.info.id == remote_peer_id) {
+          continue;
+        }
+
+        // Skip peers that have already failed
+        if (failed_peers_.count(peer.info.id) > 0) {
+          log_.debug("Skipping failed peer {} when adding to queue", peer.info.id.toBase58());
           continue;
         }
 
