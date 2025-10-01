@@ -9,7 +9,6 @@
 
 #define TRACE_ENABLED 0
 #include <libp2p/common/trace.hpp>
-#include <iostream>
 
 namespace libp2p::transport {
 
@@ -194,7 +193,7 @@ namespace libp2p::transport {
       uint16_t port;
       auto ip_address_opt = bindaddress.getFirstValueForProtocol(libp2p::multi::Protocol::Code::IP4);
       if (!ip_address_opt) {
-          std::cerr << "Error: IP address not found in Multiaddress" << std::endl;
+          log().error("IP address not found in Multiaddress");
           cb(boost::system::error_code{boost::system::errc::invalid_argument,
           boost::system::generic_category()}, 
           Tcp::endpoint{});
@@ -204,7 +203,7 @@ namespace libp2p::transport {
 
       auto port_opt = bindaddress.getFirstValueForProtocol(libp2p::multi::Protocol::Code::TCP);
       if (!port_opt) {
-          std::cerr << "Error: Port not found in Multiaddress" << std::endl;
+          log().error("Port not found in Multiaddress");
           cb(boost::system::error_code{boost::system::errc::invalid_argument,
           boost::system::generic_category()}, 
           Tcp::endpoint{});
@@ -218,7 +217,7 @@ namespace libp2p::transport {
       boost::asio::socket_base::reuse_address option(true);
       socket_.set_option(option, reec);
       if (reec) {
-          std::cerr << "Error setting reuse address: " << reec.message() << std::endl;
+          log().error("Error setting reuse address: {}", reec.message());
           socket_.close();
           cb(reec, Tcp::endpoint{});
           return;
@@ -230,7 +229,7 @@ namespace libp2p::transport {
 
       socket_.bind(local_endpoint, reec);
       if (reec) {
-          std::cerr << "Error binding socket: " << reec.message() << std::endl;
+          log().error("Error binding socket: {}", reec.message());
           socket_.close();
           cb(boost::system::error_code{boost::system::errc::address_not_available,
           boost::system::generic_category()}, 
@@ -241,7 +240,7 @@ namespace libp2p::transport {
       if (iterator.begin() != iterator.end()) {
           auto iter = iterator.begin();
           auto end = iterator.end();
-          //std::cout << "Connect to: " << iter->endpoint().address().to_string() << std::endl;;
+          // Connect to destination
           //auto connect_next = std::make_shared<std::function<void(boost::asio::ip::tcp::resolver::results_type::const_iterator)>>();
 
           //*connect_next = [this, wptr{ weak_from_this() }, cb, local_endpoint, connect_next, end, holepunch, holepunchserver]
@@ -408,7 +407,7 @@ namespace libp2p::transport {
           auto ip_address_opt = chosen_source.getFirstValueForProtocol(
               dest_is_ipv4 ? libp2p::multi::Protocol::Code::IP4 : libp2p::multi::Protocol::Code::IP6);
           if (!ip_address_opt) {
-              std::cerr << "Error: IP address not found in chosen source Multiaddress" << std::endl;
+              log().error("IP address not found in chosen source Multiaddress");
               cb(boost::system::error_code{boost::system::errc::invalid_argument,
               boost::system::generic_category()}, 
               Tcp::endpoint{});
@@ -418,7 +417,7 @@ namespace libp2p::transport {
 
           auto port_opt = chosen_source.getFirstValueForProtocol(libp2p::multi::Protocol::Code::TCP);
           if (!port_opt) {
-              std::cerr << "Error: Port not found in chosen source Multiaddress" << std::endl;
+              log().error("Port not found in chosen source Multiaddress");
               cb(boost::system::error_code{boost::system::errc::invalid_argument,
               boost::system::generic_category()}, 
               Tcp::endpoint{});
@@ -433,7 +432,7 @@ namespace libp2p::transport {
           boost::asio::socket_base::reuse_address option(true);
           socket_.set_option(option, reec);
           if (reec) {
-              std::cerr << "Error setting reuse address: " << reec.message() << std::endl;
+              log().error("Error setting reuse address: {}", reec.message());
               socket_.close();
               cb(reec, Tcp::endpoint{});
               return;
@@ -445,7 +444,7 @@ namespace libp2p::transport {
 
           socket_.bind(local_endpoint, reec);
           if (reec) {
-              std::cerr << "Error binding socket to " << ip_address << ":" << port << " - " << reec.message() << std::endl;
+              log().error("Error binding socket to {}:{} - {}", ip_address, port, reec.message());
               socket_.close();
               cb(boost::system::error_code{boost::system::errc::address_not_available,
               boost::system::generic_category()}, 

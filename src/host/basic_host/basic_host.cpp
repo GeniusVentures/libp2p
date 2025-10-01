@@ -93,7 +93,6 @@ namespace libp2p::host {
         }
       }
       if (!is_good_addr) {
-          std::cout << "bad address ?" << i->getStringAddress() << std::endl;
         i = unique_addresses.erase(i);
       } else {
         ++i;
