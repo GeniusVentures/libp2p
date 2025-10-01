@@ -11,6 +11,7 @@
 #include <libp2p/protocol/kademlia/message.hpp>
 #include <unordered_set>
 #include <string>
+#include <chrono>
 
 namespace libp2p::protocol::kademlia {
 
@@ -121,10 +122,25 @@ namespace libp2p::protocol::kademlia {
         continue;
       }
 
-      // Skip peers that have already failed to connect
-      if (failed_peers_.count(peer_id) > 0) {
-        log_.debug("skipping previously failed peer: {}", peer_id.toBase58());
-        continue;
+      // Skip peers that have recently failed (allow retry after expiration)
+      auto failed_it = failed_peers_.find(peer_id);
+      if (failed_it != failed_peers_.end()) {
+        auto now = std::chrono::steady_clock::now();
+        auto time_since_failure = now - failed_it->second;
+        
+        if (time_since_failure < FindPeerExecutor::FAILED_PEER_RETRY_DELAY) {
+          log_.debug("skipping recently failed peer: {} (failed {:.1f}s ago, retry in {:.1f}s)", 
+                     peer_id.toBase58(),
+                     std::chrono::duration<double>(time_since_failure).count(),
+                     std::chrono::duration<double>(FindPeerExecutor::FAILED_PEER_RETRY_DELAY - time_since_failure).count());
+          continue;
+        } else {
+          // Peer failure has expired, remove from failed list and allow retry
+          log_.debug("retry allowed for previously failed peer: {} (failed {:.1f}s ago)", 
+                     peer_id.toBase58(),
+                     std::chrono::duration<double>(time_since_failure).count());
+          failed_peers_.erase(failed_it);
+        }
       }
 
       // Get peer info
@@ -137,7 +153,7 @@ namespace libp2p::protocol::kademlia {
       auto connectedness = host_->connectedness(peer_info);
       if (connectedness == Message::Connectedness::CAN_NOT_CONNECT) {
         // Mark as failed to avoid retrying
-        failed_peers_.insert(peer_id);
+        failed_peers_.emplace(peer_id, std::chrono::steady_clock::now());
         continue;
       }
 
@@ -202,7 +218,7 @@ namespace libp2p::protocol::kademlia {
       --requests_in_progress_;
 
       // Mark this peer as failed to avoid retrying
-      failed_peers_.insert(attempted_peer_id);
+      failed_peers_.emplace(attempted_peer_id, std::chrono::steady_clock::now());
 
       log_.debug("cannot connect to peer {}: {}; active {}, in queue {}, marked as failed",
                  attempted_peer_id.toBase58(), stream_res.error().message(), 
@@ -373,10 +389,21 @@ namespace libp2p::protocol::kademlia {
           continue;
         }
 
-        // Skip peers that have already failed
-        if (failed_peers_.count(peer.info.id) > 0) {
-          log_.debug("Skipping failed peer {} when adding to queue", peer.info.id.toBase58());
-          continue;
+        // Skip peers that have recently failed
+        auto failed_it = failed_peers_.find(peer.info.id);
+        if (failed_it != failed_peers_.end()) {
+          auto now = std::chrono::steady_clock::now();
+          auto time_since_failure = now - failed_it->second;
+          
+          if (time_since_failure < FindPeerExecutor::FAILED_PEER_RETRY_DELAY) {
+            log_.debug("Skipping recently failed peer {} when adding to queue (failed {:.1f}s ago)", 
+                       peer.info.id.toBase58(),
+                       std::chrono::duration<double>(time_since_failure).count());
+            continue;
+          } else {
+            // Allow retry - remove from failed list
+            failed_peers_.erase(failed_it);
+          }
         }
 
         // New peer add to queue
