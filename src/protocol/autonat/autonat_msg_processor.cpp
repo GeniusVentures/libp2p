@@ -47,11 +47,18 @@ namespace libp2p::protocol {
     }
 
     void AutonatMessageProcessor::sendAutonat(StreamSPtr stream) {
-        if (host_.getObservedAddresses().size() <= 0)
+        // For autonat, we need addresses that are activated (seen by enough peers) 
+        // but potentially unconfirmed (since autonat's job is to confirm them)
+        auto autonat_addresses = host_.getObservedRepository().getAllActivatedAddresses();
+        
+        log_->info("Autonat: found {} activated addresses for testing", autonat_addresses.size());
+        
+        if (autonat_addresses.size() <= 0)
         {
-            log_->info("We have no observed addresses to check for NAT.");
+            log_->info("We have no activated observed addresses to check for NAT.");
             return;
         }
+        
         autonat::pb::Message msg;
 
         //Set to DIAL to ask nodes to dial us
@@ -65,8 +72,13 @@ namespace libp2p::protocol {
         dialpeer->set_id(std::string(host_.getPeerInfo().id.toVector().begin(), host_.getPeerInfo().id.toVector().end()));
 
         //Set our Addresses we think we are available on
-        for (const auto& addr : host_.getObservedAddressesReal(false)) {
-            //std::cout << "Adding address to Autonat PB: " << addr.getStringAddress() << std::endl;
+        for (const auto& addr : autonat_addresses) {
+            auto addr_str = addr.getStringAddress();
+            if (addr_str.empty()) {
+                log_->warn("Skipping empty address in autonat request");
+                continue;
+            }
+            log_->info("Adding activated address to Autonat PB: {}", addr_str);
             dialpeer->add_addrs(fromMultiaddrToString(addr));
         }
         dialmsg->set_allocated_peer(dialpeer);

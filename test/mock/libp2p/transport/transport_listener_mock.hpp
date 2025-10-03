@@ -20,7 +20,7 @@ namespace libp2p::transport {
     MOCK_CONST_METHOD1(canListen, bool(const multi::Multiaddress &address));
 
     MOCK_CONST_METHOD0(getListenMultiaddr,
-                       outcome::result<multi::Multiaddress>());
+                       outcome::result<std::vector<multi::Multiaddress>>());
 
     MOCK_CONST_METHOD0(isClosed, bool());
 

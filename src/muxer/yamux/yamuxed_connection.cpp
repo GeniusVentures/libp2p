@@ -151,7 +151,7 @@ namespace libp2p::connection {
     new_stream_id_ += 2;
     enqueue(newStreamMsg(stream_id));
     pending_outbound_streams_[stream_id] = std::move(cb);
-    inactivity_handle_.cancel();
+    // NOTE: inactivity timer removed - connection lifecycle managed by ConnectionManager
   }
 
   void YamuxedConnection::onStream(NewStreamHandlerFunc cb) {
@@ -239,6 +239,18 @@ namespace libp2p::connection {
   bool YamuxedConnection::isRelay()
   {
       return isRelay_;
+  }
+
+  std::vector<std::shared_ptr<Stream>> YamuxedConnection::getStreams() const {
+    std::vector<std::shared_ptr<Stream>> active_streams;
+    active_streams.reserve(streams_.size());
+    
+    for (const auto& [stream_id, yamux_stream] : streams_) {
+      // Convert YamuxStream to Stream (YamuxStream inherits from Stream)
+      active_streams.push_back(yamux_stream);
+    }
+    
+    return active_streams;
   }
 
   void YamuxedConnection::continueReading() {
@@ -748,39 +760,25 @@ namespace libp2p::connection {
         shared_from_this(), *this, stream_id, config_.maximum_window_size,
         basic::WriteQueue::kDefaultSizeLimit);
     streams_[stream_id] = stream;
-    inactivity_handle_.cancel();
+    // NOTE: inactivity timer removed - connection lifecycle managed by ConnectionManager
     return stream;
   }
 
   void YamuxedConnection::eraseStream(StreamId stream_id) {
     SL_DEBUG(log_(), "erasing stream {}", stream_id);
     streams_.erase(stream_id);
-    adjustExpireTimer();
+    // NOTE: adjustExpireTimer removed - connection lifecycle managed by ConnectionManager
   }
 
   void YamuxedConnection::erasePendingOutboundStream(
       PendingOutboundStreams::iterator it) {
     SL_TRACE(log_(), "erasing pending outbound stream {}", it->first);
     pending_outbound_streams_.erase(it);
-    adjustExpireTimer();
+    // NOTE: adjustExpireTimer removed - connection lifecycle managed by ConnectionManager
   }
 
-  void YamuxedConnection::adjustExpireTimer() {
-    if (config_.no_streams_interval > basic::kZeroTime && streams_.empty()
-        && pending_outbound_streams_.empty()) {
-      SL_DEBUG(log_(), "scheduling expire timer to {} msec",
-               config_.no_streams_interval.count());
-      inactivity_handle_ = scheduler_->scheduleWithHandle(
-          [this] { onExpireTimer(); },
-          scheduler_->now() + config_.no_streams_interval);
-    }
-  }
-
-  void YamuxedConnection::onExpireTimer() {
-    if (streams_.empty() && pending_outbound_streams_.empty()) {
-      SL_DEBUG(log_(), "closing expired connection");
-      close(Error::CONNECTION_NOT_ACTIVE, YamuxFrame::GoAwayError::NORMAL);
-    }
-  }
+  // NOTE: adjustExpireTimer and onExpireTimer methods removed
+  // Connection lifecycle is now managed by ConnectionManager using grace periods
+  // and value-based trimming instead of stream activity timers
 
 }  // namespace libp2p::connection

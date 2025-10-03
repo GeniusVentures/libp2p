@@ -11,6 +11,8 @@
 #include <memory>
 #include <queue>
 #include <unordered_set>
+#include <unordered_map>
+#include <chrono>
 
 #include <libp2p/common/types.hpp>
 #include <libp2p/host/host.hpp>
@@ -60,7 +62,8 @@ namespace libp2p::protocol::kademlia {
 
     /// Handles result of connection
     void onConnected(
-        outcome::result<std::shared_ptr<connection::Stream>> stream_res);
+        outcome::result<std::shared_ptr<connection::Stream>> stream_res,
+        const PeerId& attempted_peer_id);
 
     static std::atomic_size_t instance_number;
 
@@ -83,6 +86,19 @@ namespace libp2p::protocol::kademlia {
     size_t requests_in_progress_ = 0;
     bool started_ = false;
     std::atomic_bool done_ = false;
+
+    // Connection explosion protection (go-libp2p style fixed limits)
+    size_t total_connections_attempted_ = 0;
+    size_t total_peers_processed_ = 0;
+    std::unordered_map<PeerId, std::chrono::steady_clock::time_point> failed_peers_;  // Track peers that failed to connect with timestamp
+    
+    // Fixed protective limits (independent of config_.closerPeerCount)
+    static constexpr size_t MAX_CONNECTIONS_PER_QUERY = 50;  // Hard limit on total connections
+    static constexpr size_t MAX_QUEUE_SIZE = 100;            // Prevent unbounded queue growth  
+    static constexpr size_t MAX_PEERS_PER_RESPONSE = 10;     // Fixed response processing limit
+    static constexpr size_t MAX_PEERS_PER_IP = 3;            // IP diversity protection
+    static constexpr size_t MAX_TOTAL_PEERS_PROCESSED = 200; // Global processing budget
+    static constexpr std::chrono::minutes FAILED_PEER_RETRY_DELAY{10}; // Retry failed peers after 10 minutes
 
     log::SubLogger log_;
   };

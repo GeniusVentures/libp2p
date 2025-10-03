@@ -167,6 +167,18 @@ namespace libp2p::connection {
       return isRelay_;
   }
 
+  std::vector<std::shared_ptr<Stream>> MplexedConnection::getStreams() const {
+    std::vector<std::shared_ptr<Stream>> active_streams;
+    active_streams.reserve(streams_.size());
+    
+    for (const auto& [stream_id, mplex_stream] : streams_) {
+      // Convert MplexStream to Stream (MplexStream inherits from Stream)
+      active_streams.push_back(mplex_stream);
+    }
+    
+    return active_streams;
+  }
+
   void MplexedConnection::write(WriteData data) {
     write_queue_.push(std::move(data));
     if (is_writing_) {

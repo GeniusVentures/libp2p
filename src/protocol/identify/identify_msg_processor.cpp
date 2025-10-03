@@ -309,7 +309,7 @@ namespace libp2p::protocol {
         return log_->error("Observed address lacks consistent transport {}",
             observed_address.getStringAddress());
     }
-    log_->info("Recording an observed address {}", observed_address.getStringAddress());
+    log_->info("Recording an observed address {} with local addr {}", observed_address.getStringAddress(), local_addr_res.value().getStringAddress());
     host_.getObservedRepository().add(std::move(observed_address),
                             std::move(local_addr_res.value()),
                             remote_addr_res.value(), is_initiator_res.value());

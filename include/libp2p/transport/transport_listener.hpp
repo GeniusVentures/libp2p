@@ -49,9 +49,9 @@ namespace libp2p::transport {
 
     /**
      * Get addresses, which this listener listens to
-     * @return collection of those addresses
+     * @return collection of those addresses (multiple for wildcard binds)
      */
-    virtual outcome::result<multi::Multiaddress> getListenMultiaddr() const = 0;
+    virtual outcome::result<std::vector<multi::Multiaddress>> getListenMultiaddr() const = 0;
   };
 }  // namespace libp2p::transport
 

@@ -100,7 +100,19 @@ namespace libp2p::host {
     event::Handle setOnNewConnectionHandler(
         const NewConnectionHandler &h) const override;
 
+    /// Get connection manager configuration for platform-specific adjustments
+    network::ConnectionManager::Config& getConnectionManagerConfig() override;
+    
+    /// Get connection manager configuration (read-only access)
+    const network::ConnectionManager::Config& getConnectionManagerConfig() const override;
+
    private:
+    /**
+     * Choose best source address for outbound connections using route-based selection.
+     * Implements go-libp2p's intelligent interface selection strategy.
+     */
+    multi::Multiaddress chooseBestSourceAddress(const peer::PeerInfo &peer_info) const;
+    
     std::shared_ptr<peer::IdentityManager> idmgr_;
     std::unique_ptr<network::Network> network_;
     std::unique_ptr<peer::PeerRepository> repo_;

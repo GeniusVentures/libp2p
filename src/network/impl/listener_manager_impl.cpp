@@ -51,23 +51,25 @@ namespace libp2p::network {
 
     // we did not find direct multiaddress
     // lets try to search across interface addresses
-    for (auto &&entry : listeners_) {
-      auto r = entry.second->getListenMultiaddr();
+    for (auto it = listeners_.begin(); it != listeners_.end(); ++it) {
+      auto r = it->second->getListenMultiaddr();
       if (!r) {
         // ignore error
         continue;
       }
 
-      auto &&addr = r.value();
-      if (addr == ma) {
-        // found. close listener.
-        auto listener = entry.second;
-        listeners_.erase(it);
-        if (!listener->isClosed()) {
-          return listener->close();
-        }
+      auto &&addresses = r.value();
+      for (const auto& addr : addresses) {
+        if (addr == ma) {
+          // found. close listener.
+          auto listener = it->second;
+          listeners_.erase(it);
+          if (!listener->isClosed()) {
+            return listener->close();
+          }
 
-        return outcome::success();
+          return outcome::success();
+        }
       }
     }
 
@@ -164,13 +166,14 @@ namespace libp2p::network {
   std::vector<multi::Multiaddress>
   ListenerManagerImpl::getListenAddressesInterfaces() const {
     std::vector<multi::Multiaddress> mas;
-    mas.reserve(listeners_.size());
 
     for (auto &&e : listeners_) {
-      auto addr = e.second->getListenMultiaddr();
+      auto addresses = e.second->getListenMultiaddr();
       // ignore failed sockets
-      if (addr) {
-        mas.push_back(std::move(addr.value()));
+      if (addresses) {
+        for (auto& addr : addresses.value()) {
+          mas.push_back(std::move(addr));
+        }
       }
     }
 

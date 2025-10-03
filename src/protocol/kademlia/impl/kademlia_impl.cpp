@@ -644,8 +644,10 @@ namespace libp2p::protocol::kademlia {
       return;
     }
 
-    log_.debug("incoming stream with {}",
-               stream->remotePeerId().value().toBase58());
+    // Note: Session limits removed - ConnectionManager now handles resource management
+    // with grace periods, watermarks, and value-based trimming (go-libp2p style)
+    log_.debug("incoming stream with {} (sessions: {})",
+               stream->remotePeerId().value().toBase58().substr(46), sessions_.size());
 
     auto session = openSession(stream);
 

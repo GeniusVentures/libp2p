@@ -14,6 +14,7 @@
 #include <libp2p/event/bus.hpp>
 #include <libp2p/multi/multiaddress.hpp>
 #include <libp2p/network/network.hpp>
+#include <libp2p/network/connection_manager.hpp>
 #include <libp2p/network/router.hpp>
 #include <libp2p/outcome/outcome.hpp>
 #include <libp2p/peer/peer_id.hpp>
@@ -280,6 +281,16 @@ namespace libp2p {
      * @brief Getter for event bus.
      */
     virtual event::Bus &getBus() = 0;
+
+    /**
+     * @brief Get connection manager configuration for platform-specific adjustments
+     */
+    virtual network::ConnectionManager::Config& getConnectionManagerConfig() = 0;
+    
+    /**
+     * @brief Get connection manager configuration (read-only access)
+     */
+    virtual const network::ConnectionManager::Config& getConnectionManagerConfig() const = 0;
   };
 }  // namespace libp2p
 

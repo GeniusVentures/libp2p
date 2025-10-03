@@ -19,7 +19,13 @@ namespace libp2p::protocol {
 
     auto now = Clock::now();
     for (const auto &addr : addr_entry_it->second) {
-        if (addressIsActivated(addr, now) && (!checkconfirmed || addr.confirmed)) {
+      // When checkconfirmed is false, return ALL addresses (raw)
+      // When checkconfirmed is true, return only activated AND confirmed addresses
+      if (!checkconfirmed) {
+        // Return all addresses regardless of activation or confirmation status
+        result.push_back(addr.address);
+      } else if (addressIsActivated(addr, now) && addr.confirmed) {
+        // Return only activated and confirmed addresses
         result.push_back(addr.address);
       }
     }
@@ -34,6 +40,22 @@ namespace libp2p::protocol {
       auto addresses = getAddressesFor(it.first, checkconfirmed);
       result.insert(result.end(), std::make_move_iterator(addresses.begin()),
                     std::make_move_iterator(addresses.end()));
+    }
+
+    return result;
+  }
+
+  std::vector<multi::Multiaddress> ObservedAddresses::getAllActivatedAddresses() const {
+    std::vector<multi::Multiaddress> result;
+    auto now = Clock::now();
+
+    for (const auto &addr_entry : observed_addresses_) {
+      for (const auto &addr : addr_entry.second) {
+        // Only include activated addresses (regardless of confirmation status)
+        if (addressIsActivated(addr, now)) {
+          result.push_back(addr.address);
+        }
+      }
     }
 
     return result;

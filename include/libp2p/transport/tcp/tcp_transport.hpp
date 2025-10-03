@@ -13,6 +13,7 @@
 #include <libp2p/transport/tcp/tcp_util.hpp>
 #include <libp2p/transport/transport_adaptor.hpp>
 #include <libp2p/transport/upgrader.hpp>
+#include <libp2p/network/route_helper.hpp>
 
 namespace libp2p::transport {
 
@@ -35,6 +36,16 @@ namespace libp2p::transport {
               TransportAdaptor::HandlerFunc handler,
               std::chrono::milliseconds timeout,
               multi::Multiaddress bindaddress, bool holepunch = false, bool holepunchserver = false) override;
+
+    // New overloads for dual source addresses
+    void dial(const peer::PeerId &remoteId, multi::Multiaddress address,
+              TransportAdaptor::HandlerFunc handler,
+              const libp2p::network::RouteHelper::SourceAddresses &source_addresses, bool holepunch = false, bool holepunchserver = false) override;
+
+    void dial(const peer::PeerId &remoteId, multi::Multiaddress address,
+              TransportAdaptor::HandlerFunc handler,
+              std::chrono::milliseconds timeout,
+              const libp2p::network::RouteHelper::SourceAddresses &source_addresses, bool holepunch = false, bool holepunchserver = false) override;
 
     std::shared_ptr<TransportListener> createListener(
         TransportListener::HandlerFunc handler) override;

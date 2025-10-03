@@ -75,6 +75,12 @@ namespace libp2p::connection {
      * @brief Get whether this connection is a relay or not.
      */
     virtual bool isRelay() = 0;
+
+    /**
+     * @brief Get all active streams for idle connection detection
+     * @return Vector of active streams
+     */
+    virtual std::vector<std::shared_ptr<Stream>> getStreams() const = 0;
   };
 
 }  // namespace libp2p::connection

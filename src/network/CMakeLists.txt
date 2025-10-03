@@ -6,6 +6,18 @@
 add_subdirectory(impl)
 add_subdirectory(cares)
 
+libp2p_add_library(p2p_route_helper
+    route_helper.cpp
+    )
+target_link_libraries(p2p_route_helper
+    p2p_multiaddress
+    p2p_logger
+    )
+# Platform-specific libraries for route_helper
+if(WIN32)
+    target_link_libraries(p2p_route_helper iphlpapi ws2_32)
+endif()
+
 libp2p_add_library(p2p_default_network
     default_network.cpp
     )

@@ -8,6 +8,7 @@
 #include <boost/assert.hpp>
 #include <libp2p/common/hexutil.hpp>
 #include <libp2p/crypto/key_marshaller/key_marshaller_impl.hpp>
+#include <libp2p/network/route_helper.hpp>
 
 namespace libp2p::host {
 
@@ -92,7 +93,6 @@ namespace libp2p::host {
         }
       }
       if (!is_good_addr) {
-          std::cout << "bad address ?" << i->getStringAddress() << std::endl;
         i = unique_addresses.erase(i);
       } else {
         ++i;
@@ -179,14 +179,45 @@ namespace libp2p::host {
                             const Host::StreamResultHandler &handler,
                             std::chrono::milliseconds timeout) {
       network_->getConnectionManager().collectGarbage();
-    network_->getDialer().newStream(p, protocol, handler, timeout, network_->getListener().getListenAddresses().at(0));
+    
+    // Get source addresses from available listeners
+    auto available_listeners = network_->getListener().getListenAddresses();
+    auto source_addresses = libp2p::network::RouteHelper::getBestSourceAddresses(available_listeners);
+    
+    network_->getDialer().newStream(p, protocol, handler, timeout, source_addresses);
   }
 
   void BasicHost::newStream(const peer::PeerId &peer_id,
                             const peer::Protocol &protocol,
                             const StreamResultHandler &handler) {
       network_->getConnectionManager().collectGarbage();
-    network_->getDialer().newStream(peer_id, protocol, handler, network_->getListener().getListenAddresses().at(0));
+    // For peer ID only, we need to construct PeerInfo from repository
+    auto peer_info = repo_->getPeerInfo(peer_id);
+    if (!peer_info.addresses.empty()) {
+      // Get source addresses from available listeners
+      auto available_listeners = network_->getListener().getListenAddresses();
+      auto source_addresses = libp2p::network::RouteHelper::getBestSourceAddresses(available_listeners);
+      network_->getDialer().newStream(peer_id, protocol, handler, source_addresses);
+    } else {
+      // Fallback: create SourceAddresses from first listener address
+      auto listen_addr = network_->getListener().getListenAddresses().at(0);
+      auto default_ipv4 = multi::Multiaddress::create("/ip4/0.0.0.0").value();
+      auto default_ipv6 = multi::Multiaddress::create("/ip6/::").value();
+      libp2p::network::RouteHelper::SourceAddresses fallback_addresses{default_ipv4, default_ipv6, false, false};
+      
+      std::string ip = libp2p::network::RouteHelper::extractIPFromMultiaddress(listen_addr).value();
+      if (ip.find(':') == std::string::npos) {
+        // IPv4
+        fallback_addresses.has_ipv4 = true;
+        fallback_addresses.ipv4_source = listen_addr;
+      } else {
+        // IPv6
+        fallback_addresses.has_ipv6 = true;
+        fallback_addresses.ipv6_source = listen_addr;
+        fallback_addresses.has_ipv4 = false;
+      }
+      network_->getDialer().newStream(peer_id, protocol, handler, fallback_addresses);
+    }
   }
 
   outcome::result<void> BasicHost::listen(const multi::Multiaddress &ma) {
@@ -261,11 +292,79 @@ namespace libp2p::host {
                           const ConnectionResultHandler &handler,
                           std::chrono::milliseconds timeout, bool holepunch, bool holepunchserver) {
       network_->getConnectionManager().collectGarbage();
-    network_->getDialer().dial(peer_info, handler, timeout, network_->getListener().getListenAddresses().at(0), holepunch, holepunchserver);
+    
+    // Get source addresses from available listeners
+    auto available_listeners = network_->getListener().getListenAddresses();
+    auto source_addresses = libp2p::network::RouteHelper::getBestSourceAddresses(available_listeners);
+    
+    network_->getDialer().dial(peer_info, handler, timeout, source_addresses, holepunch, holepunchserver);
   }
 
   void BasicHost::disconnect(const peer::PeerId &peer_id) {
     network_->closeConnections(peer_id);
+  }
+
+  network::ConnectionManager::Config& BasicHost::getConnectionManagerConfig() {
+    return network_->getConnectionManager().getConfig();
+  }
+
+  const network::ConnectionManager::Config& BasicHost::getConnectionManagerConfig() const {
+    return network_->getConnectionManager().getConfig();
+  }
+
+  multi::Multiaddress BasicHost::chooseBestSourceAddress(const peer::PeerInfo &peer_info) const {
+    // Get all addresses we're currently listening on
+    auto available_listeners = network_->getListener().getListenAddresses();
+    
+    if (available_listeners.empty()) {
+      // No listeners available - should not happen but handle gracefully
+      static auto log = log::createLogger("basic-host");
+      log->warn("No listen addresses available for source selection");
+      return multi::Multiaddress::create("/ip4/0.0.0.0/tcp/0").value();
+    }
+
+    // Get both IPv4 and IPv6 source addresses
+    auto source_addresses = libp2p::network::RouteHelper::getBestSourceAddresses(available_listeners);
+    
+    // Try to find a compatible destination in peer_info
+    for (const auto &dest_addr : peer_info.addresses) {
+      auto dest_ip_result = libp2p::network::RouteHelper::extractIPFromMultiaddress(dest_addr);
+      if (!dest_ip_result) continue;
+      
+      const auto &dest_ip = dest_ip_result.value();
+      bool dest_is_ipv6 = dest_ip.find(':') != std::string::npos;
+      
+      if (dest_is_ipv6 && source_addresses.has_ipv6) {
+        static auto log = log::createLogger("basic-host");
+        log->debug("Using IPv6 source {} for IPv6 destination {}", 
+                  source_addresses.ipv6_source.getStringAddress(), dest_addr.getStringAddress());
+        return source_addresses.ipv6_source;
+      } else if (!dest_is_ipv6 && source_addresses.has_ipv4) {
+        static auto log = log::createLogger("basic-host");
+        log->debug("Using IPv4 source {} for IPv4 destination {}", 
+                  source_addresses.ipv4_source.getStringAddress(), dest_addr.getStringAddress());
+        return source_addresses.ipv4_source;
+      }
+    }
+    
+    // Fallback: prefer IPv4 if available, otherwise IPv6
+    if (source_addresses.has_ipv4) {
+      static auto log = log::createLogger("basic-host");
+      log->debug("No compatible destination found, using IPv4 fallback: {}", 
+                source_addresses.ipv4_source.getStringAddress());
+      return source_addresses.ipv4_source;
+    } else if (source_addresses.has_ipv6) {
+      static auto log = log::createLogger("basic-host");
+      log->debug("No compatible destination found, using IPv6 fallback: {}", 
+                source_addresses.ipv6_source.getStringAddress());
+      return source_addresses.ipv6_source;
+    }
+
+    // Final fallback to first available listener
+    static auto log = log::createLogger("basic-host");
+    log->debug("No route-based sources available, using first listener: {}", 
+              available_listeners[0].getStringAddress());
+    return available_listeners[0];
   }
 
 }  // namespace libp2p::host

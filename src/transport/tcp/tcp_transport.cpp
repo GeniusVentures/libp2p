@@ -148,7 +148,7 @@ namespace libp2p::transport {
   {
 #ifndef _WIN32
       struct rlimit limit;
-      const rlim_t max_descriptors = 8192;  // Define a cap for file descriptors
+      const rlim_t max_descriptors = 16384;  // Define a cap for file descriptors
 
       // Get current limits
       if (getrlimit(RLIMIT_NOFILE, &limit) == 0) {
@@ -169,5 +169,81 @@ namespace libp2p::transport {
 #else
       std::cout << "File descriptor limit increase not needed on Windows." << std::endl;
 #endif
+  }
+
+  void TcpTransport::dial(const peer::PeerId &remoteId,
+                          multi::Multiaddress address,
+                          TransportAdaptor::HandlerFunc handler,
+                          const libp2p::network::RouteHelper::SourceAddresses &source_addresses, bool holepunch, bool holepunchserver) {
+    dial(remoteId, std::move(address), std::move(handler),
+         std::chrono::milliseconds::zero(), source_addresses, holepunch, holepunchserver);
+  }
+
+  void TcpTransport::dial(const peer::PeerId &remoteId,
+                          multi::Multiaddress address,
+                          TransportAdaptor::HandlerFunc handler,
+                          std::chrono::milliseconds timeout,
+                          const libp2p::network::RouteHelper::SourceAddresses &source_addresses, bool holepunch, bool holepunchserver) {
+    if (!canDial(address)) {
+      //TODO(107): Reentrancy
+      return handler(std::errc::address_family_not_supported);
+    }
+
+    //Check for localhost, we shouldn't have to worry about any errors on getFirstValueForProtocol because canDial already handles that
+    if (address.hasProtocol(libp2p::multi::Protocol::Code::IP4))
+    {
+        if (isLocalHost(address.getFirstValueForProtocol(libp2p::multi::Protocol::Code::IP4).value()))
+        {
+            return handler(std::errc::bad_address);
+        }
+    }
+    if (address.hasProtocol(libp2p::multi::Protocol::Code::IP6))
+    {
+        if (isLocalHost(address.getFirstValueForProtocol(libp2p::multi::Protocol::Code::IP6).value()))
+        {
+            return handler(std::errc::bad_address);
+        }
+    }
+    auto conn = std::make_shared<TcpConnection>(*context_);
+
+    auto [host, port] = detail::getHostAndTcpPort(address);
+
+    auto connect = [self{shared_from_this()}, conn, handler{std::move(handler)},
+                    remoteId, timeout, source_addresses, holepunch, holepunchserver](auto ec, auto r) mutable {
+      if (ec) {
+        return handler(ec);
+      }
+
+      conn->connect(
+          r,
+          [self, conn, handler{std::move(handler)}, remoteId, holepunch, holepunchserver](auto ec,
+                                                              auto &e) mutable {
+            if (ec) {
+              return handler(ec);
+            }
+
+            auto session = std::make_shared<UpgraderSession>(
+                self->upgrader_, std::move(conn), handler);
+            if (!holepunch || (holepunch && holepunchserver))
+            {
+                session->secureOutbound(remoteId);
+            }
+            else {
+                session->secureInbound();
+            }
+          },
+          timeout, source_addresses, holepunch, holepunchserver);
+    };
+
+    using P = multi::Protocol::Code;
+    switch (detail::getFirstProtocol(address)) {
+      case P::DNS4:
+        return conn->resolve(boost::asio::ip::tcp::v4(), host, port, connect);
+      case P::DNS6:
+        return conn->resolve(boost::asio::ip::tcp::v6(), host, port, connect);
+      default:  // Could be only DNS, IP6 or IP4 as canDial already checked for
+                // that in the beginning of the method
+        return conn->resolve(host, port, connect);
+    }
   }
 }  // namespace libp2p::transport
