@@ -100,8 +100,37 @@ namespace libp2p::protocol {
         //Make sure connection is OK
         if (msg.status() != relay::pb::OK)
         {
-            log_->error("Relay got status that indicates connections are unavailable from: {}, {}  : {}", peer_id_str,
-                peer_addr_str, relay::pb::Status_Name(msg.status()));
+            // Provide detailed diagnostic information for different status codes
+            switch (msg.status()) {
+                case relay::pb::MALFORMED_MESSAGE:
+                    log_->error("Relay server rejected our CONNECT message as malformed from: {}, {} - Check peer field, addresses, and protobuf serialization", 
+                        peer_id_str, peer_addr_str);
+                    break;
+                case relay::pb::UNEXPECTED_MESSAGE:
+                    log_->error("Relay server received unexpected CONNECT message from: {}, {} - Wrong protocol state or sequence", 
+                        peer_id_str, peer_addr_str);
+                    break;
+                case relay::pb::CONNECTION_FAILED:
+                    log_->error("Relay connection to target peer failed from: {}, {} - Target peer unreachable or refused connection", 
+                        peer_id_str, peer_addr_str);
+                    break;
+                case relay::pb::NO_RESERVATION:
+                    log_->error("No relay reservation found for connection from: {}, {} - Reservation expired or never established", 
+                        peer_id_str, peer_addr_str);
+                    break;
+                case relay::pb::RESOURCE_LIMIT_EXCEEDED:
+                    log_->warn("Relay resource limit exceeded for connection from: {}, {} - Server overloaded", 
+                        peer_id_str, peer_addr_str);
+                    break;
+                case relay::pb::PERMISSION_DENIED:
+                    log_->warn("Relay connection permission denied from: {}, {} - Authorization failed", 
+                        peer_id_str, peer_addr_str);
+                    break;
+                default:
+                    log_->error("Relay connection failed with unknown status {} from: {}, {}", 
+                        static_cast<int>(msg.status()), peer_id_str, peer_addr_str);
+                    break;
+            }
             return cb(false);
         }
         //Run Callback
