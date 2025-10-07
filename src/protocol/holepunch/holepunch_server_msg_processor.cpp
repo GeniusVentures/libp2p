@@ -158,57 +158,47 @@ namespace libp2p::protocol {
         rw->write<holepunch::pb::HolePunch>(
             outmsg,
             [self{ shared_from_this() },
-            stream, connaddrs, rtt, peer_info](auto&& res) mutable {
+            stream, connaddrs, rtt, peer_info, retry_count](auto&& res) mutable {
                 self->log_->info("Waiting for sync response from {}",peer_info.id.toBase58());
                 auto rw = std::make_shared<basic::ProtobufMessageReadWriter>(stream);
                 rw->read<holepunch::pb::HolePunch>(
-                    [self, stream, rtt, peer_info](auto&& res) {
+                    [self, stream, rtt, peer_info, retry_count](auto&& res) {
                         // Calculate the delay time (RTT / 2)
                         auto delay_duration = std::chrono::milliseconds(rtt / 2);
-                        // Wait for RTT / 2
-                        std::this_thread::sleep_for(delay_duration);
-                        self->log_->info("Initiating a connect with {} after waiting", peer_info.id.toBase58());
-                        // Now attempt to connect to the peer
-                        self->host_.connect(peer_info, [self, stream, peer_info](auto&& result) {
-                            if (result)
-                            {
-                                self->log_->info("Successfully opened a hole punch to peer {}", peer_info.id.toBase58());
-                                //TODO Save connection, destroy existing connection
-                                self->host_.getNetwork().getListener().removeRelayedConnections(peer_info.id);
+                        
+                        // Create an asynchronous timer with its own io_context
+                        auto io_context = std::make_shared<boost::asio::io_context>();
+                        auto timer = std::make_shared<boost::asio::steady_timer>(*io_context, delay_duration);
+                        
+                        // Set the timer to wait for RTT / 2 asynchronously
+                        timer->async_wait([self, timer, peer_info, stream, retry_count, io_context](const boost::system::error_code& ec) {
+                            if (!ec) {
+                                self->log_->info("Initiating a connect with {} after waiting", peer_info.id.toBase58());
+                                // Now attempt to connect to the peer
+                                self->host_.connect(peer_info, [self, stream, peer_info, retry_count](auto&& result) {
+                                    if (result)
+                                    {
+                                        self->log_->info("Successfully opened a hole punch to peer {}", peer_info.id.toBase58());
+                                        //TODO Save connection, destroy existing connection
+                                        self->host_.getNetwork().getListener().removeRelayedConnections(peer_info.id);
+                                    }
+                                    else {
+                                        self->log_->error("Failed to connect to peer {}: {}", peer_info.id.toBase58(), result.error().message());
+                                        self->sendHolepunchConnect(stream, peer_info.id, retry_count + 1);
+                                    }
+                                    }, true, true);
                             }
                             else {
-                                self->log_->error("Failed to connect to peer {}: {}", peer_info.id.toBase58(), result.error().message());
-                                self->sendHolepunchConnect(stream, peer_info.id);
+                                self->log_->error("Error during RTT wait: {}", ec.message());
                             }
-                            }, true, true);
+                        });
+                        
+                        // Run the io_context in a separate thread
+                        std::thread([io_context]() {
+                            io_context->run();
+                        }).detach();
                     });
             });
-
-
-        //rw->read<holepunch::pb::HolePunch>(
-        //    [self{ shared_from_this() }, stream, rtt, peer_info](auto&& res) {
-        //        if (!res) {
-        //            self->log_->error("Failed to read HolePunch message: {}", res.error().message());
-        //            return;
-        //        }
-
-        //        // Calculate the delay time (RTT / 2)
-        //        auto delay_duration = std::chrono::milliseconds(rtt / 2);
-
-        //        // Create an asynchronous timer
-        //        auto timer = std::make_shared<boost::asio::steady_timer>(self->io_context_, delay_duration);
-
-        //        // Set the timer to wait for RTT / 2 asynchronously
-        //        timer->async_wait([self, timer, peer_info](const boost::system::error_code& ec) {
-        //            if (!ec) {
-        //                // Now attempt to connect to the peer
-        //                self->host_.connect(peer_info);
-        //            }
-        //            else {
-        //                self->log_->error("Error during RTT wait: {}", ec.message());
-        //            }
-        //            });
-        //    });
 
     }
 
