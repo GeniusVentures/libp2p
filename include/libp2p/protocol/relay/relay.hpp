@@ -26,11 +26,13 @@ namespace libp2p::protocol {
      * connection events and react to them
      * @param msg_processor to work with Relay messages
      * @param event_bus - bus, over which the events arrive
+     * @param holepunch - optional holepunch server instance, will create one if nullptr and config enables it
      */
     Relay(Host &host,
              std::shared_ptr<RelayMessageProcessor> msg_processor,
              event::Bus &event_bus,
-             CompletionCallback callback);
+             CompletionCallback callback,
+             std::shared_ptr<libp2p::protocol::HolepunchServer> holepunch = nullptr);
 
     ~Relay() override = default;
 

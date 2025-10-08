@@ -17,16 +17,27 @@ namespace libp2p::protocol {
         std::shared_ptr<AutonatMessageProcessor> msg_processor,
         event::Bus& event_bus, 
         std::shared_ptr<libp2p::transport::Upgrader> upgrader,
-        CompletionCallback callback)
-        : host_{ host }, msg_processor_{ std::move(msg_processor) }, bus_{ event_bus }, upgrader_ { upgrader }, callback_(callback)
+        CompletionCallback callback,
+        std::shared_ptr<libp2p::protocol::Relay> relay)
+        : host_{ host }, msg_processor_{ std::move(msg_processor) }, bus_{ event_bus }, upgrader_{ upgrader }, callback_(callback), relay_(relay)
   {
-      relay_msg_processor_ = std::make_shared<libp2p::protocol::RelayMessageProcessor>(host, host.getNetwork().getConnectionManager(), upgrader_);
-      relay_ = std::make_shared<libp2p::protocol::Relay>(host, relay_msg_processor_, host.getBus(), callback);
+      // Only create Relay if none provided AND config enables it
+      if (!relay_) {
+          // TODO: Get protocol config from DI container
+          // For now, use default behavior for backward compatibility
+          bool enable_relay = true; // Should come from config
+          
+          if (enable_relay) {
+              relay_msg_processor_ = std::make_shared<libp2p::protocol::RelayMessageProcessor>(host, host.getNetwork().getConnectionManager(), upgrader_);
+              relay_ = std::make_shared<libp2p::protocol::Relay>(host, relay_msg_processor_, host.getBus(), callback);
+          }
+      }
+      
       BOOST_ASSERT(msg_processor_);
     
       msg_processor_->onAutonatReceived([this](const bool& status) {
         natstatus_ = status;
-        if (!status)
+        if (!status && relay_)
         {
             log_->info("Starting relay after deciding we are behind a nat");
             //relay_->start();

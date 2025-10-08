@@ -34,12 +34,14 @@ namespace libp2p::protocol {
      * connection events and react to them
      * @param msg_processor to work with Identify messages
      * @param event_bus - bus, over which the events arrive
+     * @param autonat - optional autonat instance, will create one if nullptr and config enables it
      */
     Identify(Host &host,
              std::shared_ptr<IdentifyMessageProcessor> msg_processor,
              event::Bus &event_bus,
              std::shared_ptr<libp2p::transport::Upgrader> upgrader,
-             CompletionCallback callback);
+             CompletionCallback callback,
+             std::shared_ptr<libp2p::protocol::Autonat> autonat = nullptr);
 
     ~Identify() override = default;
 

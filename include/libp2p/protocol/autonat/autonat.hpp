@@ -26,12 +26,14 @@ namespace libp2p::protocol {
      * connection events and react to them
      * @param msg_processor to work with Autonat messages
      * @param event_bus - bus, over which the events arrive
+     * @param relay - optional relay instance, will create one if nullptr and config enables it
      */
     Autonat(Host &host,
              std::shared_ptr<AutonatMessageProcessor> msg_processor,
              event::Bus &event_bus,
              std::shared_ptr<libp2p::transport::Upgrader> upgrader,
-             CompletionCallback callback);
+             CompletionCallback callback,
+             std::shared_ptr<libp2p::protocol::Relay> relay = nullptr);
 
     ~Autonat() override = default;
 

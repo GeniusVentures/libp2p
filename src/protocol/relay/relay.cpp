@@ -15,11 +15,22 @@ namespace {
 namespace libp2p::protocol {
   Relay::Relay(Host &host,
                      std::shared_ptr<RelayMessageProcessor> msg_processor,
-                     event::Bus &event_bus, CompletionCallback callback)
-      : host_{host}, msg_processor_{std::move(msg_processor)}, bus_{event_bus}, callback_(callback)
+                     event::Bus &event_bus, 
+                     CompletionCallback callback,
+                     std::shared_ptr<libp2p::protocol::HolepunchServer> holepunch)
+      : host_{host}, msg_processor_{std::move(msg_processor)}, bus_{event_bus}, callback_(callback), holepunch_(holepunch)
   {
-      holepunch_msg_proc_ = std::make_shared<libp2p::protocol::HolepunchServerMsgProc>(host, host.getNetwork().getConnectionManager());
-      holepunch_ = std::make_shared<libp2p::protocol::HolepunchServer>(host, holepunch_msg_proc_, host.getBus());
+      // Only create HolepunchServer if none provided AND config enables it
+      if (!holepunch_) {
+          // TODO: Get protocol config from DI container
+          // For now, use default behavior for backward compatibility
+          bool enable_holepunch_server = true; // Should come from config
+          
+          if (enable_holepunch_server) {
+              holepunch_msg_proc_ = std::make_shared<libp2p::protocol::HolepunchServerMsgProc>(host, host.getNetwork().getConnectionManager());
+              holepunch_ = std::make_shared<libp2p::protocol::HolepunchServer>(host, holepunch_msg_proc_, host.getBus());
+          }
+      }
     
       BOOST_ASSERT(msg_processor_);
     
@@ -69,13 +80,13 @@ namespace libp2p::protocol {
       }
       msg_processor_->receiveStopRelay(std::move(stream_res.value()), [self{ shared_from_this() }](outcome::result<peer::PeerId> peerid)
           {
-              if (peerid)
+              if (peerid && self->holepunch_)
               {
                   self->log_->info("Since a relay connection was established we will holepunch now to {} ", peerid.value().toBase58());
                   self->holepunch_->start(peerid.value());
               }
               else {
-                  self->log_->info("Since a relay connection was not established we won't try to holepunch");
+                  self->log_->info("Since a relay connection was not established or holepunch disabled, we won't try to holepunch");
               }
 
           });
