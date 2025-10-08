@@ -27,7 +27,7 @@ namespace libp2p::protocol {
             relayconnections--;
         }
         else {
-            log_->info("Starting holepunch since we have an established relay now");
+            log_->info("Relay connection established successfully");
             callback_();
             // if(holepunch_)
             // {
@@ -76,7 +76,14 @@ namespace libp2p::protocol {
           {
               if (peerid && self->holepunch_)
               {
-                  self->log_->info("Since a relay connection was established we will holepunch now to {} ", peerid.value().toBase58());
+                  // Check if we have observed addresses before starting holepunch
+                  auto observed_addresses = self->msg_processor_->getHost().getObservedAddresses(); // Get observed addresses
+                  if (observed_addresses.empty()) {
+                      self->log_->warn("No observed addresses available for holepunch to {}. Holepunch cannot function without observed addresses.", peerid.value().toBase58());
+                      return;
+                  }
+                  
+                  self->log_->info("Since a relay connection was established and we have observed addresses, we will holepunch now to {} ", peerid.value().toBase58());
                   self->holepunch_->start(peerid.value());
               }
               else {

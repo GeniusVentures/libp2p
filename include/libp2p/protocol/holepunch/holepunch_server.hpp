@@ -68,6 +68,13 @@ namespace libp2p::protocol {
     void initiateHolepunchServer(StreamSPtr stream, peer::PeerId peer_id);
 
    private:
+    /**
+     * Check if we have any valid observed addresses for holepunch
+     * @return true if we have observed addresses, false otherwise
+     */
+    bool hasValidObservedAddresses() const;
+
+   private:
 
     Host &host_;
     std::shared_ptr<HolepunchServerMsgProc> msg_processor_;

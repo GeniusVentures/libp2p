@@ -27,10 +27,10 @@ namespace libp2p::protocol {
         if (!status && relay_)
         {
             log_->info("Starting relay after deciding we are behind a nat");
-            // if(relay_)
-            // {
-            //     relay_->start();
-            // }
+            if(relay_)
+            {
+                relay_->start();
+            }
         }
         else {
             callback_();
@@ -44,6 +44,17 @@ namespace libp2p::protocol {
         // Create a detached thread that resets requestautonat_ to true after 3 minutes
         std::thread([this]() {
             std::this_thread::sleep_for(std::chrono::minutes(3));
+            
+            // Check if we still have valid observed addresses
+            if (!hasValidObservedAddresses()) {
+                log_->warn("All observed addresses have expired. AutoNAT cannot function without observed addresses. Stopping AutoNAT operations.");
+                // Reset NAT status to unknown state
+                natstatus_ = false;
+                // Don't restart requests until we get new observed addresses
+                requestautonat_ = false;
+                return;
+            }
+            
             requestautonat_ = true;
             msg_processor_->clearAutoNatTrackers();
             }).detach();
@@ -62,6 +73,12 @@ namespace libp2p::protocol {
   std::vector<multi::Multiaddress> Autonat::getObservedAddressesFor(
       const multi::Multiaddress &address) const {
     return msg_processor_->getObservedAddresses().getAddressesFor(address);
+  }
+
+  bool Autonat::hasValidObservedAddresses() const {
+    // Use the host's observed addresses method to get the most reliable addresses
+    auto addresses = host_.getObservedAddresses(); // Get observed addresses
+    return !addresses.empty();
   }
 
   void Autonat::setRelay(std::shared_ptr<libp2p::protocol::Relay> relay) {
@@ -85,6 +102,9 @@ namespace libp2p::protocol {
     //BOOST_ASSERT(!started_);
     started_ = true;
 
+    // Start periodic observed address monitoring
+    startObservedAddressMonitoring();
+
     //host_.setProtocolHandler(
     //    kAutonatProto,
     //    [wp = weak_from_this()](protocol::BaseProtocol::StreamResult rstream) {
@@ -101,8 +121,35 @@ namespace libp2p::protocol {
         });
   }
 
+  void Autonat::startObservedAddressMonitoring() {
+    // Start a thread that periodically checks observed addresses
+    std::thread([this]() {
+        while (started_) {
+            std::this_thread::sleep_for(std::chrono::minutes(1)); // Check every minute
+            
+            if (!started_) break; // Exit if stopped
+            
+            // Note: We rely on the host's getObservedAddressesReal() method to handle garbage collection
+            // since the message processor's getObservedAddresses() returns a const reference
+            
+            // Check if we have any valid observed addresses left
+            if (!hasValidObservedAddresses() && requestautonat_) {
+                log_->warn("No valid observed addresses available. Stopping AutoNAT requests until addresses are restored.");
+                requestautonat_ = false;
+                natstatus_ = false;
+            }
+        }
+    }).detach();
+  }
+
   void Autonat::onNewConnection(
       const std::weak_ptr<connection::CapableConnection> &conn) {
+      // Check if we have any observed addresses to verify before proceeding
+      if (!hasValidObservedAddresses()) {
+          log_->warn("No observed addresses available to verify. AutoNAT cannot function without observed addresses.");
+          return;
+      }
+
       if (!requestautonat_)
       {
           log_->info("Not asking for autonat for now");

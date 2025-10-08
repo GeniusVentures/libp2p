@@ -55,6 +55,12 @@ namespace libp2p::protocol {
         const multi::Multiaddress &address) const;
 
     /**
+     * Check if we have any valid observed addresses
+     * @return true if we have observed addresses, false if they've all expired
+     */
+    bool hasValidObservedAddresses() const;
+
+    /**
      * Assign a Relay protocol instance for NAT traversal
      * @param relay - relay instance to use
      */
@@ -80,6 +86,11 @@ namespace libp2p::protocol {
      */
     void onNewConnection(
         const std::weak_ptr<connection::CapableConnection> &conn);
+
+    /**
+     * Start monitoring observed addresses for expiration
+     */
+    void startObservedAddressMonitoring();
 
     Host &host_;
     std::shared_ptr<AutonatMessageProcessor> msg_processor_;
