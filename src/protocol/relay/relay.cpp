@@ -16,22 +16,9 @@ namespace libp2p::protocol {
   Relay::Relay(Host &host,
                      std::shared_ptr<RelayMessageProcessor> msg_processor,
                      event::Bus &event_bus, 
-                     CompletionCallback callback,
-                     std::shared_ptr<libp2p::protocol::HolepunchServer> holepunch)
-      : host_{host}, msg_processor_{std::move(msg_processor)}, bus_{event_bus}, callback_(callback), holepunch_(holepunch)
+                     CompletionCallback callback)
+      : host_{host}, msg_processor_{std::move(msg_processor)}, bus_{event_bus}, callback_(callback)
   {
-      // Only create HolepunchServer if none provided AND config enables it
-      if (!holepunch_) {
-          // TODO: Get protocol config from DI container
-          // For now, use default behavior for backward compatibility
-          bool enable_holepunch_server = true; // Should come from config
-          
-          if (enable_holepunch_server) {
-              holepunch_msg_proc_ = std::make_shared<libp2p::protocol::HolepunchServerMsgProc>(host, host.getNetwork().getConnectionManager());
-              holepunch_ = std::make_shared<libp2p::protocol::HolepunchServer>(host, holepunch_msg_proc_, host.getBus());
-          }
-      }
-    
       BOOST_ASSERT(msg_processor_);
     
       msg_processor_->onRelayReceived([this](const bool& status) {
@@ -42,7 +29,10 @@ namespace libp2p::protocol {
         else {
             log_->info("Starting holepunch since we have an established relay now");
             callback_();
-            //holepunch_->start();
+            // if(holepunch_)
+            // {
+            //     holepunch_->start();
+            // }
         }
         });
     
@@ -62,6 +52,10 @@ namespace libp2p::protocol {
   //    const multi::Multiaddress &address) const {
   //  return msg_processor_->getObservedAddresses().getAddressesFor(address);
   //}
+
+  void Relay::setHolepunchServer(std::shared_ptr<libp2p::protocol::HolepunchServer> holepunch) {
+    holepunch_ = std::move(holepunch);
+  }
 
   peer::Protocol Relay::getProtocolId() const {
     return kRelayProto;

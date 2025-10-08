@@ -31,8 +31,7 @@ namespace libp2p::protocol {
     Relay(Host &host,
              std::shared_ptr<RelayMessageProcessor> msg_processor,
              event::Bus &event_bus,
-             CompletionCallback callback,
-             std::shared_ptr<libp2p::protocol::HolepunchServer> holepunch = nullptr);
+             CompletionCallback callback);
 
     ~Relay() override = default;
 
@@ -53,6 +52,12 @@ namespace libp2p::protocol {
      */
     std::vector<multi::Multiaddress> getObservedAddressesFor(
         const multi::Multiaddress &address) const;
+
+    /**
+     * Assign a HolepunchServer protocol instance for direct connections
+     * @param holepunch - holepunch server instance to use
+     */
+    void setHolepunchServer(std::shared_ptr<libp2p::protocol::HolepunchServer> holepunch);
 
     peer::Protocol getProtocolId() const override;
 
@@ -85,8 +90,7 @@ namespace libp2p::protocol {
     std::shared_ptr<RelayMessageProcessor> msg_processor_;
     event::Bus &bus_;
     event::Handle sub_;  // will unsubscribe during destruction by itself
-    std::shared_ptr<libp2p::protocol::HolepunchServer> holepunch_;
-    std::shared_ptr<libp2p::protocol::HolepunchServerMsgProc> holepunch_msg_proc_;
+    std::shared_ptr<libp2p::protocol::HolepunchServer> holepunch_ = nullptr;
     log::Logger log_ = log::createLogger("Relay");
     int maxrelays = 3;
     int relayconnections = 0;

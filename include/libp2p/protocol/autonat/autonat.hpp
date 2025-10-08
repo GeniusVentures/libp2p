@@ -32,8 +32,7 @@ namespace libp2p::protocol {
              std::shared_ptr<AutonatMessageProcessor> msg_processor,
              event::Bus &event_bus,
              std::shared_ptr<libp2p::transport::Upgrader> upgrader,
-             CompletionCallback callback,
-             std::shared_ptr<libp2p::protocol::Relay> relay = nullptr);
+             CompletionCallback callback);
 
     ~Autonat() override = default;
 
@@ -55,6 +54,11 @@ namespace libp2p::protocol {
     std::vector<multi::Multiaddress> getObservedAddressesFor(
         const multi::Multiaddress &address) const;
 
+    /**
+     * Assign a Relay protocol instance for NAT traversal
+     * @param relay - relay instance to use
+     */
+    void setRelay(std::shared_ptr<libp2p::protocol::Relay> relay);
 
     peer::Protocol getProtocolId() const override;
 
@@ -81,8 +85,7 @@ namespace libp2p::protocol {
     std::shared_ptr<AutonatMessageProcessor> msg_processor_;
     event::Bus &bus_;
     event::Handle sub_;  // will unsubscribe during destruction by itself
-    std::shared_ptr<libp2p::protocol::RelayMessageProcessor> relay_msg_processor_;
-    std::shared_ptr<libp2p::protocol::Relay> relay_;
+    std::shared_ptr<libp2p::protocol::Relay> relay_ = nullptr;
     bool natstatus_ = false; //False if we are behind a NAT, true if not.
     log::Logger log_ = log::createLogger("Autonat");
     std::shared_ptr<libp2p::transport::Upgrader> upgrader_;
