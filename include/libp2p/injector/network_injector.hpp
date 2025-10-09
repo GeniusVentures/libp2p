@@ -188,88 +188,6 @@ namespace libp2p::injector {
   }
 
   /**
-   * @brief Configuration for protocol enablement
-   * 
-   * Protocol Dependencies:
-   * - AutoNAT requires Identify (uses peer identification info)
-   * - Relay requires AutoNAT (uses NAT detection capabilities)  
-   * - Holepunch Server requires Relay (uses relay for direct connections)
-   * - Holepunch Client can work independently
-   * 
-   * Invalid configurations will throw InvalidProtocolConfigException.
-   */
-  struct ProtocolConfig {
-    bool enable_identify = true;          // Base protocol for peer identification
-    bool enable_autonat = true;           // Requires: identify
-    bool enable_relay = true;             // Requires: autonat (and transitively identify)
-    bool enable_holepunch_server = true;  // Requires: relay (and transitively autonat, identify)
-    bool enable_holepunch_client = false; // Independent - usually only enabled for clients
-
-    /**
-     * @brief Auto-enable required dependencies to create a valid configuration
-     * @return ProtocolConfig with dependencies automatically enabled
-     * 
-     * This ensures that if you want a specific protocol, all its dependencies
-     * are automatically enabled to create a valid configuration.
-     */
-    ProtocolConfig withDependencies() const {
-      ProtocolConfig result = *this;
-      
-      // Enable dependencies for enabled protocols
-      if (result.enable_autonat) {
-        result.enable_identify = true;
-      }
-      if (result.enable_relay) {
-        result.enable_autonat = true;
-        result.enable_identify = true;
-      }
-      if (result.enable_holepunch_server) {
-        result.enable_relay = true;
-        result.enable_autonat = true;
-        result.enable_identify = true;
-      }
-      
-      return result;
-    }
-  };
-
-  /**
-   * @brief Instruct injector to use specific protocol configuration
-   * @param config protocol configuration instance
-   * @return injector binding
-   *
-   * @code
-   * // Option 1: Explicit configuration (will validate dependencies)
-   * ProtocolConfig config{
-   *   .enable_identify = true,
-   *   .enable_autonat = true,    // Valid because identify is enabled
-   *   .enable_relay = false,
-   *   .enable_holepunch_server = false,
-   *   .enable_holepunch_client = true   // Independent, can be enabled alone
-   * };
-   * auto injector = makeNetworkInjector(
-   *   useProtocolConfig(config)
-   * );
-   *
-   * // Option 2: Auto-enable dependencies (safer approach)
-   * ProtocolConfig minimal_config{
-   *   .enable_identify = false,
-   *   .enable_autonat = false,
-   *   .enable_relay = true,      // Will auto-enable identify and autonat
-   *   .enable_holepunch_server = false,
-   *   .enable_holepunch_client = false
-   * };
-   * auto injector2 = makeNetworkInjector(
-   *   useProtocolConfig(minimal_config.withDependencies())
-   * );
-   * @endcode
-   */
-  inline auto useProtocolConfig(const ProtocolConfig &config) {
-    return boost::di::bind<ProtocolConfig>().TEMPLATE_TO(
-        config)[boost::di::override];
-  }
-
-  /**
    * @brief Bind security adaptors by type. Can be used once. Technically many
    * types can be specified, even the same type, but in the end only 1 instance
    * for each type is created.
@@ -384,9 +302,6 @@ namespace libp2p::injector {
         //di::bind<security::SecurityAdaptor* []>().TEMPLATE_TO<security::Noise>(),  // NOLINT
         di::bind<muxer::MuxerAdaptor *[]>().TEMPLATE_TO<muxer::Yamux>(),  // NOLINT
         di::bind<transport::TransportAdaptor *[]>().TEMPLATE_TO<transport::TcpTransport>(),  // NOLINT
-
-        // default protocol configuration
-        di::bind<ProtocolConfig>.TEMPLATE_TO(ProtocolConfig{}),
 
         // user-defined overrides...
         std::forward<decltype(args)>(args)...

@@ -8,7 +8,6 @@
 #include <libp2p/protocol/relay/relay.hpp>
 #include <libp2p/protocol/holepunch/holepunch_server.hpp>
 #include <libp2p/protocol/holepunch/holepunch_client.hpp>
-#include <libp2p/injector/network_injector.hpp>
 #include <libp2p/protocol/identify/identify_msg_processor.hpp>
 #include <libp2p/protocol/autonat/autonat_msg_processor.hpp>
 #include <libp2p/protocol/relay/relay_msg_processor.hpp>
@@ -32,6 +31,52 @@ class InvalidProtocolConfigException : public std::invalid_argument {
 class ProtocolFactory {
  public:
   /**
+   * @brief Configuration for protocol enablement
+   * 
+   * Protocol Dependencies:
+   * - AutoNAT requires Identify (uses peer identification info)
+   * - Relay requires AutoNAT (uses NAT detection capabilities)  
+   * - Holepunch Server requires Relay (uses relay for direct connections)
+   * - Holepunch Client can work independently
+   * 
+   * Invalid configurations will throw InvalidProtocolConfigException.
+   */
+  struct ProtocolConfig {
+    bool enable_identify = true;          // Base protocol for peer identification
+    bool enable_autonat = true;           // Requires: identify
+    bool enable_relay = true;             // Requires: autonat (and transitively identify)
+    bool enable_holepunch_server = true;  // Requires: relay (and transitively autonat, identify)
+    bool enable_holepunch_client = false; // Independent - usually only enabled for clients
+
+    /**
+     * @brief Auto-enable required dependencies to create a valid configuration
+     * @return ProtocolConfig with dependencies automatically enabled
+     * 
+     * This ensures that if you want a specific protocol, all its dependencies
+     * are automatically enabled to create a valid configuration.
+     */
+    ProtocolConfig withDependencies() const {
+      ProtocolConfig result = *this;
+      
+      // Enable dependencies for enabled protocols
+      if (result.enable_autonat) {
+        result.enable_identify = true;
+      }
+      if (result.enable_relay) {
+        result.enable_autonat = true;
+        result.enable_identify = true;
+      }
+      if (result.enable_holepunch_server) {
+        result.enable_relay = true;
+        result.enable_autonat = true;
+        result.enable_identify = true;
+      }
+      
+      return result;
+    }
+  };
+
+  /**
    * Structure containing all created protocols
    */
   struct ProtocolSet {
@@ -53,7 +98,7 @@ class ProtocolFactory {
   template<typename Injector>
   static ProtocolSet createProtocols(
       std::shared_ptr<Host> host,
-      const libp2p::injector::ProtocolConfig& config,
+      const ProtocolConfig& config,
       const Injector& injector);
 
  private:
@@ -62,7 +107,7 @@ class ProtocolFactory {
    * @param config - configuration to validate
    * @throws InvalidProtocolConfigException if dependencies are invalid
    */
-  static void validateConfig(const libp2p::injector::ProtocolConfig& config);
+  static void validateConfig(const ProtocolConfig& config);
 
   template<typename Injector>
   static std::shared_ptr<Identify> createIdentify(
@@ -94,7 +139,7 @@ class ProtocolFactory {
 
 namespace libp2p::protocol::factory {
 
-inline void ProtocolFactory::validateConfig(const libp2p::injector::ProtocolConfig& config) {
+inline void ProtocolFactory::validateConfig(const ProtocolConfig& config) {
   // Check AutoNAT dependencies
   if (config.enable_autonat && !config.enable_identify) {
     throw InvalidProtocolConfigException(
@@ -123,7 +168,7 @@ inline void ProtocolFactory::validateConfig(const libp2p::injector::ProtocolConf
 template<typename Injector>
 ProtocolFactory::ProtocolSet ProtocolFactory::createProtocols(
     std::shared_ptr<Host> host,
-    const libp2p::injector::ProtocolConfig& config,
+    const ProtocolConfig& config,
     const Injector& injector) {
   
   // Validate configuration before creating protocols
