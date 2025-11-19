@@ -111,7 +111,7 @@ namespace libp2p::protocol::gossip {
       return multi::Multiaddress::Error::INVALID_INPUT;
     }
     OUTCOME_TRY((auto &&, peer_id), peer::PeerId::fromBase58(*peer_id_str));
-    addBootstrapPeer(peer_id, {std::move(ma)});
+    addBootstrapPeer(peer_id, boost::optional<multi::Multiaddress>{std::move(ma)});
     return outcome::success();
   }
 
