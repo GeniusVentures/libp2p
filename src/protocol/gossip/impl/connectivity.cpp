@@ -109,6 +109,26 @@ namespace libp2p::protocol::gossip {
     }
   }
 
+  void Connectivity::addBootstrapPeer(
+      const peer::PeerId &id,
+      const std::vector<multi::Multiaddress> &addresses) {
+    if (id == host_->getId()) {
+      return;
+    }
+
+    if (!addresses.empty()) {
+      std::ignore =
+          host_->getPeerRepository().getAddressRepository().upsertAddresses(
+              id, addresses, config_.address_expiration_msec);
+    }
+
+    if (!all_peers_.contains(id)) {
+      auto ctx = std::make_shared<PeerContext>(id);
+      all_peers_.insert(ctx);
+      connectable_peers_.insert(ctx);
+    }
+  }
+
   void Connectivity::flush(const PeerContextPtr &ctx) const {
     assert(ctx);
     assert(ctx->message_builder);

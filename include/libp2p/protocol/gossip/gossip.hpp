@@ -115,6 +115,11 @@ namespace libp2p::protocol::gossip {
         const peer::PeerId &id,
         boost::optional<multi::Multiaddress> address) = 0;
 
+    /// Adds bootstrap peer with multiple addresses to the set of connectable peers
+    virtual void addBootstrapPeer(
+        const peer::PeerId &id,
+        const std::vector<multi::Multiaddress> &addresses) = 0;
+
     /// Adds bootstrap peer address in string form
     virtual outcome::result<void> addBootstrapPeer(
         const std::string &address) = 0;
