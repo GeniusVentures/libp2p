@@ -47,6 +47,13 @@ class ProtocolFactory {
     bool enable_relay = true;             // Requires: autonat (and transitively identify)
     bool enable_holepunch_server = true;  // Requires: relay (and transitively autonat, identify)
     bool enable_holepunch_client = false; // Independent - usually only enabled for clients
+    
+    // Optional callbacks for protocol completion events
+    std::function<void()> identify_callback;      // Called when Identify completes
+    std::function<void()> autonat_callback;       // Called when AutoNAT completes
+    std::function<void()> relay_callback;         // Called when Relay completes
+    std::function<void()> holepunch_server_callback;  // Called when Holepunch Server completes
+    std::function<void()> holepunch_client_callback;  // Called when Holepunch Client completes
 
     /**
      * @brief Auto-enable required dependencies to create a valid configuration
@@ -112,17 +119,20 @@ class ProtocolFactory {
   template<typename Injector>
   static std::shared_ptr<Identify> createIdentify(
       std::shared_ptr<Host> host,
-      const Injector& injector);
+      const Injector& injector,
+      std::function<void()> callback);
 
   template<typename Injector>
   static std::shared_ptr<Autonat> createAutonat(
       std::shared_ptr<Host> host,
-      const Injector& injector);
+      const Injector& injector,
+      std::function<void()> callback);
 
   template<typename Injector>
   static std::shared_ptr<Relay> createRelay(
       std::shared_ptr<Host> host,
-      const Injector& injector);
+      const Injector& injector,
+      std::function<void()> callback);
 
   template<typename Injector>
   static std::shared_ptr<HolepunchServer> createHolepunchServer(
@@ -178,15 +188,15 @@ ProtocolFactory::ProtocolSet ProtocolFactory::createProtocols(
 
   // Create protocols based on configuration
   if (config.enable_identify) {
-    protocols.identify = createIdentify(host, injector);
+    protocols.identify = createIdentify(host, injector, config.identify_callback);
   }
 
   if (config.enable_autonat) {
-    protocols.autonat = createAutonat(host, injector);
+    protocols.autonat = createAutonat(host, injector, config.autonat_callback);
   }
 
   if (config.enable_relay) {
-    protocols.relay = createRelay(host, injector);
+    protocols.relay = createRelay(host, injector, config.relay_callback);
   }
 
   if (config.enable_holepunch_server) {
@@ -216,7 +226,8 @@ ProtocolFactory::ProtocolSet ProtocolFactory::createProtocols(
 template<typename Injector>
 std::shared_ptr<Identify> ProtocolFactory::createIdentify(
     std::shared_ptr<Host> host,
-    const Injector& injector) {
+    const Injector& injector,
+    std::function<void()> callback = nullptr) {
   
   auto msg_processor = std::make_shared<IdentifyMessageProcessor>(
       *host,
@@ -229,13 +240,14 @@ std::shared_ptr<Identify> ProtocolFactory::createIdentify(
       msg_processor,
       host->getBus(),
       injector.template create<std::shared_ptr<transport::Upgrader>>(),
-      []() { /* Empty completion callback for factory-created instances */ });
+      callback ? callback : []() { /* Empty completion callback for factory-created instances */ });
 }
 
 template<typename Injector>
 std::shared_ptr<Autonat> ProtocolFactory::createAutonat(
     std::shared_ptr<Host> host,
-    const Injector& injector) {
+    const Injector& injector,
+    std::function<void()> callback = nullptr) {
   
   auto msg_processor = std::make_shared<AutonatMessageProcessor>(
       *host,
@@ -246,13 +258,14 @@ std::shared_ptr<Autonat> ProtocolFactory::createAutonat(
       msg_processor,
       host->getBus(),
       injector.template create<std::shared_ptr<transport::Upgrader>>(),
-      []() { /* Empty completion callback for factory-created instances */ });
+      callback ? callback : []() { /* Empty completion callback for factory-created instances */ });
 }
 
 template<typename Injector>
 std::shared_ptr<Relay> ProtocolFactory::createRelay(
     std::shared_ptr<Host> host,
-    const Injector& injector) {
+    const Injector& injector,
+    std::function<void()> callback = nullptr) {
   
   auto msg_processor = std::make_shared<RelayMessageProcessor>(
       *host,
@@ -263,7 +276,7 @@ std::shared_ptr<Relay> ProtocolFactory::createRelay(
       *host,
       msg_processor,
       host->getBus(),
-      []() { /* Empty completion callback for factory-created instances */ });
+      callback ? callback : []() { /* Empty completion callback for factory-created instances */ });
 }
 
 template<typename Injector>

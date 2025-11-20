@@ -281,7 +281,7 @@ namespace libp2p::security::noise {
 
   void Handshake::hscb(outcome::result<bool> secured) {
     if (secured.has_error()) {
-      log_->error("handshake failed, {} with {}", secured.error().message());
+      log_->error("handshake failed, {} with {}", secured.error().message(), remote_peer_id_ ? remote_peer_id_->toBase58() : "<unknown peer>");
       return connection_cb_(secured.error());
     }
     if (!secured.value()) {
