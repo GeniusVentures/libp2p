@@ -120,19 +120,19 @@ class ProtocolFactory {
   static std::shared_ptr<Identify> createIdentify(
       std::shared_ptr<Host> host,
       const Injector& injector,
-      std::function<void()> callback);
+      std::function<void()> callback = nullptr);
 
   template<typename Injector>
   static std::shared_ptr<Autonat> createAutonat(
       std::shared_ptr<Host> host,
       const Injector& injector,
-      std::function<void()> callback);
+      std::function<void()> callback = nullptr);
 
   template<typename Injector>
   static std::shared_ptr<Relay> createRelay(
       std::shared_ptr<Host> host,
       const Injector& injector,
-      std::function<void()> callback);
+      std::function<void()> callback = nullptr);
 
   template<typename Injector>
   static std::shared_ptr<HolepunchServer> createHolepunchServer(
@@ -227,7 +227,7 @@ template<typename Injector>
 std::shared_ptr<Identify> ProtocolFactory::createIdentify(
     std::shared_ptr<Host> host,
     const Injector& injector,
-    std::function<void()> callback = nullptr) {
+    std::function<void()> callback) {
   
   auto msg_processor = std::make_shared<IdentifyMessageProcessor>(
       *host,
@@ -247,7 +247,7 @@ template<typename Injector>
 std::shared_ptr<Autonat> ProtocolFactory::createAutonat(
     std::shared_ptr<Host> host,
     const Injector& injector,
-    std::function<void()> callback = nullptr) {
+    std::function<void()> callback) {
   
   auto msg_processor = std::make_shared<AutonatMessageProcessor>(
       *host,
@@ -265,7 +265,7 @@ template<typename Injector>
 std::shared_ptr<Relay> ProtocolFactory::createRelay(
     std::shared_ptr<Host> host,
     const Injector& injector,
-    std::function<void()> callback = nullptr) {
+    std::function<void()> callback) {
   
   auto msg_processor = std::make_shared<RelayMessageProcessor>(
       *host,
