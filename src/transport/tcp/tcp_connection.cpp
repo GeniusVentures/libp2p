@@ -256,6 +256,12 @@ namespace libp2p::transport {
                       return;
                   }
 
+                  bool expected = false;
+                  if (!self->connection_phase_done_.compare_exchange_strong(expected, true)) {
+                      // Connection already finished (timeout or earlier callback)
+                      return;
+                  }
+
                   if (!ec) {
                       // Connection successful
                       if (self->connecting_with_timeout_) {
@@ -456,6 +462,12 @@ namespace libp2p::transport {
           socket_.async_connect(*iter, [wptr{ weak_from_this() }, cb, iter, local_endpoint, holepunch, holepunchserver](const boost::system::error_code& ec) mutable {
               auto self = wptr.lock();
               if (!self || self->closed_by_host_) {
+                  return;
+              }
+
+              bool expected = false;
+              if (!self->connection_phase_done_.compare_exchange_strong(expected, true)) {
+                  // Connection already finished (timeout or earlier callback)
                   return;
               }
 
