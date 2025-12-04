@@ -34,7 +34,7 @@ namespace libp2p::protocol {
              std::shared_ptr<libp2p::transport::Upgrader> upgrader,
              CompletionCallback callback);
 
-    ~Autonat() override = default;
+    ~Autonat() override;
 
     boost::signals2::connection onAutonatReceived(
         const std::function<AutonatMessageProcessor::AutonatCallback> &cb);
@@ -103,6 +103,7 @@ namespace libp2p::protocol {
 
     bool started_ = false;
     bool requestautonat_ = true;
+    std::atomic<bool> should_stop_{false};
     CompletionCallback callback_;
   };
 }
