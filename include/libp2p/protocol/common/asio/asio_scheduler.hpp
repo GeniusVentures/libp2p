@@ -6,6 +6,7 @@
 #ifndef LIBP2P_PROTOCOL_ASIO_SCHEDULER_IMPL_HPP
 #define LIBP2P_PROTOCOL_ASIO_SCHEDULER_IMPL_HPP
 
+#include <atomic>
 #include <boost/asio/deadline_timer.hpp>
 #include <boost/asio/io_context.hpp>
 #include <libp2p/protocol/common/scheduler.hpp>
@@ -41,8 +42,11 @@ namespace libp2p::protocol {
      * can no longer be cancelled, and therefore are passed an error code that
      * indicates the successful completion of the wait operation. Cancel is used
      * to indicate that handler should not be executed.
+     * 
+     * Changed from std::shared_ptr<bool> to std::atomic<bool> to avoid
+     * excessive reference counting overhead in the hot path.
      */
-    std::shared_ptr<bool> canceled_;
+    std::atomic<bool> canceled_;
     std::function<void(const boost::system::error_code &)> timer_cb_;
     std::function<void()> immediate_cb_;
     bool immediate_cb_scheduled_ = false;
