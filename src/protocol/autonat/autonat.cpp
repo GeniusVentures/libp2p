@@ -70,7 +70,7 @@ namespace libp2p::protocol {
     should_stop_ = true;
     started_ = false;
     // Give threads a moment to exit gracefully
-    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    std::this_thread::sleep_for(std::chrono::seconds(1));
   }
 
   boost::signals2::connection Autonat::onAutonatReceived(
