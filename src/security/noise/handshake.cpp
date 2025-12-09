@@ -213,7 +213,9 @@ namespace libp2p::security::noise {
       //
       // Outgoing connection. Stage 0
       //
-      SL_TRACE(log_, "outgoing connection. stage 0 - sending initial message");
+      auto addr = std::visit([](auto&& conn) { return conn->remoteMultiaddr(); }, connection_);
+      SL_TRACE(log_, "outgoing connection. stage 0 - sending initial message to {}", 
+               addr ? addr.value().getStringAddress() : "<unknown>");
       sendHandshakeMessage(
           {},
           [self{shared_from_this()}, payload{std::move(payload)}](auto result) {
@@ -225,7 +227,9 @@ namespace libp2p::security::noise {
             //
             // Outgoing connection. Stage 1
             //
-            SL_TRACE(self->log_, "outgoing connection. stage 1 - waiting for remote response");
+            auto addr1 = std::visit([](auto&& conn) { return conn->remoteMultiaddr(); }, self->connection_);
+            SL_TRACE(self->log_, "outgoing connection. stage 1 - waiting for remote response from {}",
+                     addr1 ? addr1.value().getStringAddress() : "<unknown>");
             self->readHandshakeMessage([self, payload](auto result) {
               IO_OUTCOME_TRY(bytes_read, result, self->hscb);
               SL_TRACE(self->log_, "outgoing connection. stage 1 - received {} bytes, verifying payload", bytes_read->size());
@@ -238,7 +242,9 @@ namespace libp2p::security::noise {
               //
               // Outgoing connection. Stage 2
               //
-              SL_TRACE(self->log_, "outgoing connection. stage 2 - sending final message");
+              auto addr2 = std::visit([](auto&& conn) { return conn->remoteMultiaddr(); }, self->connection_);
+              SL_TRACE(self->log_, "outgoing connection. stage 2 - sending final message to {}",
+                       addr2 ? addr2.value().getStringAddress() : "<unknown>");
               self->sendHandshakeMessage(
                   payload, [self, to_write(payload.size())](auto result) {
                     IO_OUTCOME_TRY(bytes_written, result, self->hscb);
@@ -251,7 +257,9 @@ namespace libp2p::security::noise {
       //
       // Incoming connection. Stage 0
       //
-      SL_TRACE(log_, "incoming connection. stage 0 - waiting for initial message");
+      auto addr = std::visit([](auto&& conn) { return conn->remoteMultiaddr(); }, connection_);
+      SL_TRACE(log_, "incoming connection. stage 0 - waiting for initial message from {}",
+               addr ? addr.value().getStringAddress() : "<unknown>");
       readHandshakeMessage(
           [self{shared_from_this()}, payload{std::move(payload)}](auto result) {
             IO_OUTCOME_TRY(plaintext, result, self->hscb);
@@ -264,7 +272,9 @@ namespace libp2p::security::noise {
             //
             // Incoming connection. Stage 1
             //
-            SL_TRACE(self->log_, "incoming connection. stage 1 - sending response");
+            auto addr1 = std::visit([](auto&& conn) { return conn->remoteMultiaddr(); }, self->connection_);
+            SL_TRACE(self->log_, "incoming connection. stage 1 - sending response to {}",
+                     addr1 ? addr1.value().getStringAddress() : "<unknown>");
             //
             self->sendHandshakeMessage(
                 payload, [self, to_write(payload.size())](auto result) {
@@ -273,7 +283,9 @@ namespace libp2p::security::noise {
                   //
                   // Incoming connection. Stage 2
                   //
-                  SL_TRACE(self->log_, "incoming connection. stage 2 - waiting for final message");
+                  auto addr2 = std::visit([](auto&& conn) { return conn->remoteMultiaddr(); }, self->connection_);
+                  SL_TRACE(self->log_, "incoming connection. stage 2 - waiting for final message from {}",
+                           addr2 ? addr2.value().getStringAddress() : "<unknown>");
                   self->readHandshakeMessage([self](auto result) {
                     IO_OUTCOME_TRY(plaintext, result, self->hscb);
                     SL_TRACE(self->log_, "incoming connection. stage 2 - received {} bytes, verifying payload", plaintext->size());
