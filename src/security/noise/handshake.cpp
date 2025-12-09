@@ -135,6 +135,9 @@ namespace libp2p::security::noise {
                    cb);
     auto write_cb = [self{shared_from_this()}, cb{std::move(cb)},
                      wr{write_result}](outcome::result<size_t> result) {
+      if (result.has_error()) {
+        SL_DEBUG(self->log_, "Failed to write handshake message: {}", result.error().message());
+      }
       IO_OUTCOME_TRY(bytes_written, result, cb);
       if (wr.cs1 && wr.cs2) {
         self->setCipherStates(wr.cs1, wr.cs2);
@@ -147,6 +150,9 @@ namespace libp2p::security::noise {
   void Handshake::readHandshakeMessage(
       basic::MessageReadWriter::ReadCallbackFunc cb) {
     auto read_cb = [self{shared_from_this()}, cb{std::move(cb)}](auto result) {
+      if (result.has_error()) {
+        SL_DEBUG(self->log_, "Failed to read handshake message: {}", result.error().message());
+      }
       IO_OUTCOME_TRY(buffer, result, cb);
       IO_OUTCOME_TRY(rr, self->handshake_state_->readMessage({}, *buffer), cb);
       if (rr.cs1 && rr.cs2) {
@@ -207,29 +213,32 @@ namespace libp2p::security::noise {
       //
       // Outgoing connection. Stage 0
       //
-      SL_TRACE(log_, "outgoing connection. stage 0");
+      SL_TRACE(log_, "outgoing connection. stage 0 - sending initial message");
       sendHandshakeMessage(
           {},
           [self{shared_from_this()}, payload{std::move(payload)}](auto result) {
             IO_OUTCOME_TRY(bytes_written, result, self->hscb);
             if (0 == bytes_written) {
+              SL_DEBUG(self->log_, "outgoing connection. stage 0 failed - zero bytes written");
               return self->hscb(std::errc::bad_message);
             }
             //
             // Outgoing connection. Stage 1
             //
-            SL_TRACE(self->log_, "outgoing connection. stage 1");
+            SL_TRACE(self->log_, "outgoing connection. stage 1 - waiting for remote response");
             self->readHandshakeMessage([self, payload](auto result) {
               IO_OUTCOME_TRY(bytes_read, result, self->hscb);
+              SL_TRACE(self->log_, "outgoing connection. stage 1 - received {} bytes, verifying payload", bytes_read->size());
               auto handle_result =
                   self->handleRemoteHandshakePayload(*bytes_read);
               if (handle_result.has_error()) {
+                SL_DEBUG(self->log_, "outgoing connection. stage 1 - payload verification failed");
                 return self->hscb(handle_result.error());
               }
               //
               // Outgoing connection. Stage 2
               //
-              SL_TRACE(self->log_, "outgoing connection. stage 2");
+              SL_TRACE(self->log_, "outgoing connection. stage 2 - sending final message");
               self->sendHandshakeMessage(
                   payload, [self, to_write(payload.size())](auto result) {
                     IO_OUTCOME_TRY(bytes_written, result, self->hscb);
@@ -242,10 +251,11 @@ namespace libp2p::security::noise {
       //
       // Incoming connection. Stage 0
       //
-      SL_TRACE(log_, "incoming connection. stage 0");
+      SL_TRACE(log_, "incoming connection. stage 0 - waiting for initial message");
       readHandshakeMessage(
           [self{shared_from_this()}, payload{std::move(payload)}](auto result) {
             IO_OUTCOME_TRY(plaintext, result, self->hscb);
+            SL_TRACE(self->log_, "incoming connection. stage 0 - received {} bytes", plaintext->size());
             unused(plaintext);
             /*
              * Seems that plaintext has to be ignored here. Probably we have to
@@ -254,7 +264,8 @@ namespace libp2p::security::noise {
             //
             // Incoming connection. Stage 1
             //
-            SL_TRACE(self->log_, "incoming connection. stage 1");
+            SL_TRACE(self->log_, "incoming connection. stage 1 - sending response");
+            //
             self->sendHandshakeMessage(
                 payload, [self, to_write(payload.size())](auto result) {
                   IO_OUTCOME_TRY(bytes_written, result, self->hscb);
@@ -262,13 +273,15 @@ namespace libp2p::security::noise {
                   //
                   // Incoming connection. Stage 2
                   //
-                  SL_TRACE(self->log_, "incoming connection. stage 2");
+                  SL_TRACE(self->log_, "incoming connection. stage 2 - waiting for final message");
                   self->readHandshakeMessage([self](auto result) {
                     IO_OUTCOME_TRY(plaintext, result, self->hscb);
+                    SL_TRACE(self->log_, "incoming connection. stage 2 - received {} bytes, verifying payload", plaintext->size());
                     // may be need to check that plaintext is non empty
                     auto handle_result =
                         self->handleRemoteHandshakePayload(*plaintext);
                     if (handle_result.has_error()) {
+                      SL_DEBUG(self->log_, "incoming connection. stage 2 - payload verification failed");
                       self->hscb(handle_result.error());
                     }
                     self->hscb(true);
@@ -284,7 +297,28 @@ namespace libp2p::security::noise {
       auto addr = std::visit([](auto&& conn) -> outcome::result<multi::Multiaddress> {
         return conn->remoteMultiaddr();
       }, connection_);
-      log_->error("handshake failed, {} with {} on address {}", secured.error().message(), remote_peer_id_ ? remote_peer_id_->toBase58() : "<unknown peer>", addr ? addr.value().getStringAddress() : "<unknown address>");
+      
+      // Enhanced error logging with error code details
+      std::string error_details;
+      if (secured.error() == std::errc::broken_pipe) {
+        error_details = " (broken_pipe - peer closed connection during handshake)";
+      } else if (secured.error() == std::errc::connection_aborted) {
+        error_details = " (connection_aborted - local or network issue)";
+      } else if (secured.error() == std::errc::bad_message) {
+        error_details = " (bad_message - invalid handshake data)";
+      } else if (secured.error() == std::errc::bad_address) {
+        error_details = " (bad_address - peer ID mismatch)";
+      } else if (secured.error() == std::errc::owner_dead) {
+        error_details = " (owner_dead - signature verification failed)";
+      } else {
+        error_details = std::string(" (error_code: ") + std::to_string(secured.error().value()) + ")";
+      }
+      
+      log_->error("Noise handshake failed{}, {} with {} on address {}", 
+                 error_details,
+                 secured.error().message(), 
+                 remote_peer_id_ ? remote_peer_id_->toBase58() : "<unknown peer>", 
+                 addr ? addr.value().getStringAddress() : "<unknown address>");
       return connection_cb_(secured.error());
     }
     if (!secured.value()) {
