@@ -310,24 +310,8 @@ namespace libp2p::security::noise {
         return conn->remoteMultiaddr();
       }, connection_);
       
-      // Enhanced error logging with error code details
-      std::string error_details;
-      if (secured.error() == std::errc::broken_pipe) {
-        error_details = " (broken_pipe - peer closed connection during handshake)";
-      } else if (secured.error() == std::errc::connection_aborted) {
-        error_details = " (connection_aborted - local or network issue)";
-      } else if (secured.error() == std::errc::bad_message) {
-        error_details = " (bad_message - invalid handshake data)";
-      } else if (secured.error() == std::errc::bad_address) {
-        error_details = " (bad_address - peer ID mismatch)";
-      } else if (secured.error() == std::errc::owner_dead) {
-        error_details = " (owner_dead - signature verification failed)";
-      } else {
-        error_details = std::string(" (error_code: ") + std::to_string(secured.error().value()) + ")";
-      }
       
-      log_->error("Noise handshake failed{}, {} with {} on address {}", 
-                 error_details,
+      log_->error("Noise handshake failed, {} with {} on address {}", 
                  secured.error().message(), 
                  remote_peer_id_ ? remote_peer_id_->toBase58() : "<unknown peer>", 
                  addr ? addr.value().getStringAddress() : "<unknown address>");
