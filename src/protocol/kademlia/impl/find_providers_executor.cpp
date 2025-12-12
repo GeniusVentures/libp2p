@@ -43,7 +43,8 @@ namespace libp2p::protocol::kademlia {
     std::for_each(nearest_peer_ids_.begin(), nearest_peer_ids_.end(),
                   [this](auto &peer_id) { queue_.emplace(peer_id, target_); });
 
-    log_.debug("created");
+    log_.info("created with {} initial peers in queue (closerPeerCount*2={})", 
+              queue_.size(), config_.closerPeerCount * 2);
   }
 
   FindProvidersExecutor::~FindProvidersExecutor() {
@@ -93,6 +94,9 @@ namespace libp2p::protocol::kademlia {
     if (!done_.compare_exchange_strong(x, true)) {
       return;
     }
+
+    log_.info("done: {} providers found, {} total peers queried", 
+              providers_.size(), nearest_peer_ids_.size());
 
     std::vector<PeerInfo> result;
     for (auto &&peer_id : std::move(providers_)) {
