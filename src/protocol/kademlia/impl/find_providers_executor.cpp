@@ -201,6 +201,7 @@ namespace libp2p::protocol::kademlia {
     log_.debug("outgoing stream with {}",
                stream->remotePeerId().value().toBase58());
 
+    log_.debug("OUTGOING FindProviders query to peer");
     auto session = session_host_->openSession(stream);
 
     if (!session->write(serialized_request_, shared_from_this())) {

@@ -283,6 +283,18 @@ namespace libp2p::protocol::kademlia {
 
   void KademliaImpl::onMessage(const std::shared_ptr<Session> &session,
                                Message &&msg) {
+    // Log message type for incoming request analysis
+    const char* msg_type_str = "UNKNOWN";
+    switch (msg.type) {
+      case Message::Type::kPutValue: msg_type_str = "PutValue"; break;
+      case Message::Type::kGetValue: msg_type_str = "GetValue"; break;
+      case Message::Type::kAddProvider: msg_type_str = "AddProvider"; break;
+      case Message::Type::kGetProviders: msg_type_str = "GetProviders"; break;
+      case Message::Type::kFindNode: msg_type_str = "FindNode"; break;
+      case Message::Type::kPing: msg_type_str = "Ping"; break;
+    }
+    log_.info("INCOMING MSG: {}", msg_type_str);
+    
     switch (msg.type) {
       case Message::Type::kPutValue:
         onPutValue(session, std::move(msg));
@@ -646,7 +658,7 @@ namespace libp2p::protocol::kademlia {
 
     // Note: Session limits removed - ConnectionManager now handles resource management
     // with grace periods, watermarks, and value-based trimming (go-libp2p style)
-    log_.debug("incoming stream with {} (sessions: {})",
+    log_.info("INCOMING DHT request from {} (sessions: {})",
                stream->remotePeerId().value().toBase58().substr(46), sessions_.size());
 
     auto session = openSession(stream);
