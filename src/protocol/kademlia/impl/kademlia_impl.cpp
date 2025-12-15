@@ -67,13 +67,13 @@ namespace libp2p::protocol::kademlia {
     addPeer(host_->getPeerInfo(), true);
 
     // handle streams for observed protocol
-    host_->setProtocolHandler(
-        protocol_,
-        [wp = weak_from_this()](protocol::BaseProtocol::StreamResult rstream) {
-          if (auto self = wp.lock()) {
-            self->handleProtocol(std::move(rstream));
-          }
-        });
+    // host_->setProtocolHandler(
+    //     protocol_,
+    //     [wp = weak_from_this()](protocol::BaseProtocol::StreamResult rstream) {
+    //       if (auto self = wp.lock()) {
+    //         self->handleProtocol(std::move(rstream));
+    //       }
+    //     });
 
     // subscribe to new connection
     new_connection_subscription_ =
