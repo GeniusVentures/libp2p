@@ -263,6 +263,9 @@ namespace libp2p::protocol::kademlia {
       for (auto &peer : msg.provider_peers.value()) {
         // Skip non connectable peers
         if (peer.conn_status == Message::Connectedness::CAN_NOT_CONNECT) {
+          log_.debug(
+              "{} provider skipped because not connectable 2",
+              peer.info.id.toBase58());
           continue;
         }
 
@@ -294,6 +297,9 @@ namespace libp2p::protocol::kademlia {
       for (auto &peer : msg.closer_peers.value()) {
         // Skip non connectable peers
         if (peer.conn_status == Message::Connectedness::CAN_NOT_CONNECT) {
+          log_.debug(
+              "{} closer peer skipped because not connectable 2",
+              peer.info.id.toBase58());
           continue;
         }
 

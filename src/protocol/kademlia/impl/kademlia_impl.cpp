@@ -184,12 +184,18 @@ namespace libp2p::protocol::kademlia {
           // Get peer info
           auto peer_info = host_->getPeerRepository().getPeerInfo(provider);
           if (peer_info.addresses.empty()) {
+            log_.debug(
+                "{} provider skipped because has no addresses",
+                provider.toBase58());
             continue;
           }
 
           // Check if connectable
           auto connectedness = host_->connectedness(peer_info);
           if (connectedness == Message::Connectedness::CAN_NOT_CONNECT) {
+            log_.debug(
+                "{} provider skipped because not connectable",
+                provider.toBase58());
             continue;
           }
           result.emplace_back(std::move(peer_info));
