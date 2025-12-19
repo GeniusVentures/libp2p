@@ -183,6 +183,13 @@ namespace libp2p::protocol::gossip {
                stream->remoteMultiaddr().value().getStringAddress(),
                peer_id.toBase58());
 
+    stream->adjustWindowSize(64 * 1024 * 1024, [this, peer_id](outcome::result<void> res) {
+      if (!res) {
+        log_.warn("cannot adjustWindowSize for inbound stream, peer={}, error={}",
+                  peer_id.toBase58(), res.error().message());
+      }
+    });
+
     PeerContextPtr ctx;
 
     auto ctx_found = all_peers_.find(peer_id);
@@ -321,6 +328,13 @@ namespace libp2p::protocol::gossip {
     log_.debug("new outbound stream, address={}, peer_id={}",
                stream->remoteMultiaddr().value().getStringAddress(),
                peer_id.toBase58());
+
+    stream->adjustWindowSize(64 * 1024 * 1024, [this, peer_id](outcome::result<void> res) {
+      if (!res) {
+        log_.warn("cannot adjustWindowSize for outbound stream, peer={}, error={}",
+                  peer_id.toBase58(), res.error().message());
+      }
+    });
 
     size_t stream_id = 0;
     bool is_new_connection = ctx->inbound_streams.empty();
