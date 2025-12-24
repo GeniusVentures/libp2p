@@ -282,7 +282,7 @@ namespace libp2p::connection {
     auto n = res.value();
     gsl::span<uint8_t> bytes_read(*raw_read_buffer_);
 
-    SL_TRACE(log_(), "read {} bytes", n);
+    SL_TRACE(log_(), "read {} bytes from {}", n, remotePeer().value().toBase58());
 
     assert(n <= raw_read_buffer_->size());
 
@@ -680,7 +680,17 @@ namespace libp2p::connection {
     if (is_writing_) {
       write_queue_.push_back(
           WriteQueueItem{std::move(packet), stream_id, some});
+      
+      // Calculate total queued bytes for diagnostics
+      size_t total_queued = 0;
+      for (const auto& item : write_queue_) {
+        total_queued += item.packet.size();
+      }
+      SL_TRACE(log_(), "yamux write queued: stream={}, size={}, queue_depth={}, total_queued={}",
+               stream_id, packet.size(), write_queue_.size(), total_queued);
     } else {
+      SL_TRACE(log_(), "yamux writing immediately: stream={}, size={}",
+               stream_id, packet.size());
       doWrite(WriteQueueItem{std::move(packet), stream_id, some});
     }
   }
@@ -751,6 +761,15 @@ namespace libp2p::connection {
     if (started_ && !write_queue_.empty()) {
       auto next_packet = std::move(write_queue_.front());
       write_queue_.pop_front();
+      
+      // Calculate remaining queued bytes for diagnostics
+      size_t total_queued = 0;
+      for (const auto& item : write_queue_) {
+        total_queued += item.packet.size();
+      }
+      SL_TRACE(log_(), "yamux dequeuing next write: stream={}, size={}, remaining_queue_depth={}, remaining_bytes={}",
+               next_packet.stream_id, next_packet.packet.size(), write_queue_.size(), total_queued);
+      
       doWrite(std::move(next_packet));
     }
   }
