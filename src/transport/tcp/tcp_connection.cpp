@@ -7,7 +7,7 @@
 
 #include <libp2p/transport/tcp/tcp_util.hpp>
 
-#define TRACE_ENABLED 0
+#define TRACE_ENABLED 1
 #include <libp2p/common/trace.hpp>
 
 namespace libp2p::transport {
@@ -226,6 +226,13 @@ namespace libp2p::transport {
       boost::asio::detail::socket_option::boolean<SOL_SOCKET, SO_REUSEPORT> reuse_port_option(true);
       socket_.set_option(reuse_port_option, reec);
 #endif
+      socket_.set_option(boost::asio::ip::tcp::no_delay(true), reec);
+      if (reec) {
+          log().error("Error setting no_delay: {}", reec.message());
+          socket_.close();
+          cb(reec, Tcp::endpoint{});
+          return;
+      }
 
       socket_.bind(local_endpoint, reec);
       if (reec) {
