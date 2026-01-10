@@ -72,6 +72,12 @@ namespace libp2p::protocol {
         const std::weak_ptr<connection::CapableConnection> &conn,
         std::vector<libp2p::multi::Multiaddress> obsaddr);
 
+    /**
+     * Check if we have any valid observed addresses for holepunch
+     * @return true if we have observed addresses, false otherwise
+     */
+    bool hasValidObservedAddresses() const;
+
     Host &host_;
     std::shared_ptr<HolepunchClientMsgProc> msg_processor_;
     event::Bus &bus_;

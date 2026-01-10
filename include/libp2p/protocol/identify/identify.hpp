@@ -34,6 +34,7 @@ namespace libp2p::protocol {
      * connection events and react to them
      * @param msg_processor to work with Identify messages
      * @param event_bus - bus, over which the events arrive
+     * @param autonat - optional autonat instance, will create one if nullptr and config enables it
      */
     Identify(Host &host,
              std::shared_ptr<IdentifyMessageProcessor> msg_processor,
@@ -61,6 +62,11 @@ namespace libp2p::protocol {
     std::vector<multi::Multiaddress> getObservedAddressesFor(
         const multi::Multiaddress &address) const;
 
+    /**
+     * Assign an AutoNAT protocol instance for NAT detection
+     * @param autonat - autonat instance to use
+     */
+    void setAutonat(std::shared_ptr<libp2p::protocol::Autonat> autonat);
 
     peer::Protocol getProtocolId() const override;
 
@@ -87,8 +93,7 @@ namespace libp2p::protocol {
     std::shared_ptr<IdentifyMessageProcessor> msg_processor_;
     event::Bus &bus_;
     event::Handle sub_;  // will unsubscribe during destruction by itself
-    std::shared_ptr<libp2p::protocol::AutonatMessageProcessor> autonat_msg_processor_;
-    std::shared_ptr<libp2p::protocol::Autonat> autonat_;
+    std::shared_ptr<libp2p::protocol::Autonat> autonat_ = nullptr;
     log::Logger log_ = log::createLogger("Identify");
     bool started_ = false;
     CompletionCallback callback_;

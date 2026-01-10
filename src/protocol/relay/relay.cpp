@@ -15,12 +15,10 @@ namespace {
 namespace libp2p::protocol {
   Relay::Relay(Host &host,
                      std::shared_ptr<RelayMessageProcessor> msg_processor,
-                     event::Bus &event_bus, CompletionCallback callback)
+                     event::Bus &event_bus, 
+                     CompletionCallback callback)
       : host_{host}, msg_processor_{std::move(msg_processor)}, bus_{event_bus}, callback_(callback)
   {
-      holepunch_msg_proc_ = std::make_shared<libp2p::protocol::HolepunchServerMsgProc>(host, host.getNetwork().getConnectionManager());
-      holepunch_ = std::make_shared<libp2p::protocol::HolepunchServer>(host, holepunch_msg_proc_, host.getBus());
-    
       BOOST_ASSERT(msg_processor_);
     
       msg_processor_->onRelayReceived([this](const bool& status) {
@@ -29,9 +27,12 @@ namespace libp2p::protocol {
             relayconnections--;
         }
         else {
-            log_->info("Starting holepunch since we have an established relay now");
+            log_->info("Relay connection established successfully");
             callback_();
-            //holepunch_->start();
+            // if(holepunch_)
+            // {
+            //     holepunch_->start();
+            // }
         }
         });
     
@@ -52,6 +53,10 @@ namespace libp2p::protocol {
   //  return msg_processor_->getObservedAddresses().getAddressesFor(address);
   //}
 
+  void Relay::setHolepunchServer(std::shared_ptr<libp2p::protocol::HolepunchServer> holepunch) {
+    holepunch_ = std::move(holepunch);
+  }
+
   peer::Protocol Relay::getProtocolId() const {
     return kRelayProto;
   }
@@ -69,13 +74,20 @@ namespace libp2p::protocol {
       }
       msg_processor_->receiveStopRelay(std::move(stream_res.value()), [self{ shared_from_this() }](outcome::result<peer::PeerId> peerid)
           {
-              if (peerid)
+              if (peerid && self->holepunch_)
               {
-                  self->log_->info("Since a relay connection was established we will holepunch now to {} ", peerid.value().toBase58());
+                  // Check if we have observed addresses before starting holepunch
+                  auto observed_addresses = self->msg_processor_->getHost().getObservedAddresses(); // Get observed addresses
+                  if (observed_addresses.empty()) {
+                      self->log_->warn("No observed addresses available for holepunch to {}. Holepunch cannot function without observed addresses.", peerid.value().toBase58());
+                      return;
+                  }
+                  
+                  self->log_->info("Since a relay connection was established and we have observed addresses, we will holepunch now to {} ", peerid.value().toBase58());
                   self->holepunch_->start(peerid.value());
               }
               else {
-                  self->log_->info("Since a relay connection was not established we won't try to holepunch");
+                  self->log_->info("Since a relay connection was not established or holepunch disabled, we won't try to holepunch");
               }
 
           });

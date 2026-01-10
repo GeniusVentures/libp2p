@@ -25,7 +25,7 @@ OUTCOME_CPP_DEFINE_CATEGORY_3(libp2p::protocol::gossip, Error, e) {
     case E::READER_TIMEOUT:
       return "stream reader timeout";
     case E::WRITER_TIMEOUT:
-      return "stream writer disconnected";
+      return "stream writer timeout";
     case E::CANNOT_CONNECT:
       return "cannot connect to peer";
     case E::VALIDATION_FAILED:

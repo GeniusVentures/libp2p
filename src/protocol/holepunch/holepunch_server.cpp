@@ -50,6 +50,13 @@ namespace libp2p::protocol {
     //// no double starts
     ////BOOST_ASSERT(!started_);
     //started_ = true;
+      
+      // Check if we have observed addresses before attempting holepunch
+      if (!hasValidObservedAddresses()) {
+          log_->warn("No observed addresses available for holepunch to {}. Holepunch cannot function without observed addresses.", peerid.toBase58());
+          return;
+      }
+      
       log_->info("Initiate a holepunch with: {}", peerid.toBase58());
         msg_processor_->getHost().newStream(
         peerid, kHolepunchServerProto,
@@ -67,6 +74,12 @@ namespace libp2p::protocol {
   void HolepunchServer::initiateHolepunchServer(StreamSPtr stream, peer::PeerId peer_id) {
         //Send out connect message
       msg_processor_->sendHolepunchConnect(stream, peer_id);
+  }
+
+  bool HolepunchServer::hasValidObservedAddresses() const {
+    // Use the host's observed addresses method to get the most reliable addresses
+    auto addresses = host_.getObservedAddresses(); // Get observed addresses
+    return !addresses.empty();
   }
 
 }

@@ -7,7 +7,7 @@
 
 #include <libp2p/transport/tcp/tcp_util.hpp>
 
-#define TRACE_ENABLED 0
+#define TRACE_ENABLED 1
 #include <libp2p/common/trace.hpp>
 
 namespace libp2p::transport {
@@ -226,6 +226,13 @@ namespace libp2p::transport {
       boost::asio::detail::socket_option::boolean<SOL_SOCKET, SO_REUSEPORT> reuse_port_option(true);
       socket_.set_option(reuse_port_option, reec);
 #endif
+      socket_.set_option(boost::asio::ip::tcp::no_delay(true), reec);
+      if (reec) {
+          log().error("Error setting no_delay: {}", reec.message());
+          socket_.close();
+          cb(reec, Tcp::endpoint{});
+          return;
+      }
 
       socket_.bind(local_endpoint, reec);
       if (reec) {
@@ -249,10 +256,16 @@ namespace libp2p::transport {
           //    if (!self || self->closed_by_host_) {
           //        return;
           //    }
-
+          log().info("Attempting to connect to {}", iter->endpoint().address().to_string());
               socket_.async_connect(*iter, [wptr{ weak_from_this() }, cb, iter, end, local_endpoint, holepunch, holepunchserver](const boost::system::error_code& ec) mutable {
                   auto self = wptr.lock();
                   if (!self || self->closed_by_host_) {
+                      return;
+                  }
+
+                  bool expected = false;
+                  if (!self->connection_phase_done_.compare_exchange_strong(expected, true)) {
+                      // Connection already finished (timeout or earlier callback)
                       return;
                   }
 
@@ -456,6 +469,12 @@ namespace libp2p::transport {
           socket_.async_connect(*iter, [wptr{ weak_from_this() }, cb, iter, local_endpoint, holepunch, holepunchserver](const boost::system::error_code& ec) mutable {
               auto self = wptr.lock();
               if (!self || self->closed_by_host_) {
+                  return;
+              }
+
+              bool expected = false;
+              if (!self->connection_phase_done_.compare_exchange_strong(expected, true)) {
+                  // Connection already finished (timeout or earlier callback)
                   return;
               }
 

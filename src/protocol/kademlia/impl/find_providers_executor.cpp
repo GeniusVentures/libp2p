@@ -43,7 +43,8 @@ namespace libp2p::protocol::kademlia {
     std::for_each(nearest_peer_ids_.begin(), nearest_peer_ids_.end(),
                   [this](auto &peer_id) { queue_.emplace(peer_id, target_); });
 
-    log_.debug("created");
+    log_.info("created with {} initial peers in queue (closerPeerCount*2={})", 
+              queue_.size(), config_.closerPeerCount * 2);
   }
 
   FindProvidersExecutor::~FindProvidersExecutor() {
@@ -93,6 +94,9 @@ namespace libp2p::protocol::kademlia {
     if (!done_.compare_exchange_strong(x, true)) {
       return;
     }
+
+    log_.info("done: {} providers found, {} total peers queried", 
+              providers_.size(), nearest_peer_ids_.size());
 
     std::vector<PeerInfo> result;
     for (auto &&peer_id : std::move(providers_)) {
@@ -197,6 +201,7 @@ namespace libp2p::protocol::kademlia {
     log_.debug("outgoing stream with {}",
                stream->remotePeerId().value().toBase58());
 
+    log_.debug("OUTGOING FindProviders query to peer");
     auto session = session_host_->openSession(stream);
 
     if (!session->write(serialized_request_, shared_from_this())) {
@@ -258,6 +263,9 @@ namespace libp2p::protocol::kademlia {
       for (auto &peer : msg.provider_peers.value()) {
         // Skip non connectable peers
         if (peer.conn_status == Message::Connectedness::CAN_NOT_CONNECT) {
+          log_.debug(
+              "{} provider skipped because not connectable 2",
+              peer.info.id.toBase58());
           continue;
         }
 
@@ -289,6 +297,9 @@ namespace libp2p::protocol::kademlia {
       for (auto &peer : msg.closer_peers.value()) {
         // Skip non connectable peers
         if (peer.conn_status == Message::Connectedness::CAN_NOT_CONNECT) {
+          log_.debug(
+              "{} closer peer skipped because not connectable 2",
+              peer.info.id.toBase58());
           continue;
         }
 

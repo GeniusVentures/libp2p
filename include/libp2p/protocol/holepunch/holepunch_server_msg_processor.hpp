@@ -6,6 +6,8 @@
 #include <string>
 #include <unordered_map>
 
+#include <boost/asio/io_context.hpp>
+#include <boost/asio/steady_timer.hpp>
 #include <gsl/span>
 #include <libp2p/connection/stream.hpp>
 #include <libp2p/crypto/key_marshaller.hpp>

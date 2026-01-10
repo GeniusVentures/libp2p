@@ -103,14 +103,17 @@ namespace libp2p::network {
       auto&& ctx = ctx_found->second;
 
       if (ctx.addresses.empty() && !ctx.dialled) {
+          SL_TRACE(log_, "Dial Failed, no addresses left, but we tried some {}", peer_id.toBase58());
           completeDial(peer_id, std::errc::address_family_not_supported);
           return;
       }
       if (ctx.addresses.empty() && ctx.result.has_value()) {
+          SL_TRACE(log_, "Dial failed, have value but no addresses {}", peer_id.toBase58());
           completeDial(peer_id, ctx.result.value());
           return;
       }
       if (ctx.addresses.empty()) {
+          SL_TRACE(log_, "Dial failed, no addresses left {}", peer_id.toBase58());
           completeDial(peer_id, std::errc::host_unreachable);
           return;
       }
@@ -205,7 +208,7 @@ namespace libp2p::network {
           if (auto tr = tmgr_->findBest(addr); nullptr != tr) {
 
               ctx.dialled = true;
-              SL_TRACE(log_, "Dial to non-relay {} using dual source addresses", peer_id.toBase58());
+              SL_TRACE(log_, "Dial to non-relay {} using dual source addresses to outgoing address {}", peer_id.toBase58(), addr.getStringAddress());
 
               // Use the new TCP transport method with dual addresses
               tr->dial(peer_id, addr, dial_handler, ctx.timeout, ctx.source_addresses);

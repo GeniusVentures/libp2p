@@ -26,6 +26,7 @@ namespace libp2p::protocol {
      * connection events and react to them
      * @param msg_processor to work with Autonat messages
      * @param event_bus - bus, over which the events arrive
+     * @param relay - optional relay instance, will create one if nullptr and config enables it
      */
     Autonat(Host &host,
              std::shared_ptr<AutonatMessageProcessor> msg_processor,
@@ -33,7 +34,7 @@ namespace libp2p::protocol {
              std::shared_ptr<libp2p::transport::Upgrader> upgrader,
              CompletionCallback callback);
 
-    ~Autonat() override = default;
+    ~Autonat() override;
 
     boost::signals2::connection onAutonatReceived(
         const std::function<AutonatMessageProcessor::AutonatCallback> &cb);
@@ -53,6 +54,17 @@ namespace libp2p::protocol {
     std::vector<multi::Multiaddress> getObservedAddressesFor(
         const multi::Multiaddress &address) const;
 
+    /**
+     * Check if we have any valid observed addresses
+     * @return true if we have observed addresses, false if they've all expired
+     */
+    bool hasValidObservedAddresses() const;
+
+    /**
+     * Assign a Relay protocol instance for NAT traversal
+     * @param relay - relay instance to use
+     */
+    void setRelay(std::shared_ptr<libp2p::protocol::Relay> relay);
 
     peer::Protocol getProtocolId() const override;
 
@@ -75,18 +87,23 @@ namespace libp2p::protocol {
     void onNewConnection(
         const std::weak_ptr<connection::CapableConnection> &conn);
 
+    /**
+     * Start monitoring observed addresses for expiration
+     */
+    void startObservedAddressMonitoring();
+
     Host &host_;
     std::shared_ptr<AutonatMessageProcessor> msg_processor_;
     event::Bus &bus_;
     event::Handle sub_;  // will unsubscribe during destruction by itself
-    std::shared_ptr<libp2p::protocol::RelayMessageProcessor> relay_msg_processor_;
-    std::shared_ptr<libp2p::protocol::Relay> relay_;
+    std::shared_ptr<libp2p::protocol::Relay> relay_ = nullptr;
     bool natstatus_ = false; //False if we are behind a NAT, true if not.
     log::Logger log_ = log::createLogger("Autonat");
     std::shared_ptr<libp2p::transport::Upgrader> upgrader_;
 
     bool started_ = false;
     bool requestautonat_ = true;
+    std::atomic<bool> should_stop_{false};
     CompletionCallback callback_;
   };
 }

@@ -54,6 +54,9 @@ namespace libp2p::protocol::gossip {
     void addBootstrapPeer(
         const peer::PeerId &id,
         boost::optional<multi::Multiaddress> address) override;
+    void addBootstrapPeer(
+        const peer::PeerId &id,
+        const std::vector<multi::Multiaddress> &addresses) override;
     outcome::result<void> addBootstrapPeer(const std::string &address) override;
     void start() override;
     void stop() override;

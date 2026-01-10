@@ -67,13 +67,13 @@ namespace libp2p::protocol::kademlia {
     addPeer(host_->getPeerInfo(), true);
 
     // handle streams for observed protocol
-    host_->setProtocolHandler(
-        protocol_,
-        [wp = weak_from_this()](protocol::BaseProtocol::StreamResult rstream) {
-          if (auto self = wp.lock()) {
-            self->handleProtocol(std::move(rstream));
-          }
-        });
+    // host_->setProtocolHandler(
+    //     protocol_,
+    //     [wp = weak_from_this()](protocol::BaseProtocol::StreamResult rstream) {
+    //       if (auto self = wp.lock()) {
+    //         self->handleProtocol(std::move(rstream));
+    //       }
+    //     });
 
     // subscribe to new connection
     new_connection_subscription_ =
@@ -184,12 +184,18 @@ namespace libp2p::protocol::kademlia {
           // Get peer info
           auto peer_info = host_->getPeerRepository().getPeerInfo(provider);
           if (peer_info.addresses.empty()) {
+            log_.debug(
+                "{} provider skipped because has no addresses",
+                provider.toBase58());
             continue;
           }
 
           // Check if connectable
           auto connectedness = host_->connectedness(peer_info);
           if (connectedness == Message::Connectedness::CAN_NOT_CONNECT) {
+            log_.debug(
+                "{} provider skipped because not connectable",
+                provider.toBase58());
             continue;
           }
           result.emplace_back(std::move(peer_info));
@@ -283,6 +289,18 @@ namespace libp2p::protocol::kademlia {
 
   void KademliaImpl::onMessage(const std::shared_ptr<Session> &session,
                                Message &&msg) {
+    // Log message type for incoming request analysis
+    const char* msg_type_str = "UNKNOWN";
+    switch (msg.type) {
+      case Message::Type::kPutValue: msg_type_str = "PutValue"; break;
+      case Message::Type::kGetValue: msg_type_str = "GetValue"; break;
+      case Message::Type::kAddProvider: msg_type_str = "AddProvider"; break;
+      case Message::Type::kGetProviders: msg_type_str = "GetProviders"; break;
+      case Message::Type::kFindNode: msg_type_str = "FindNode"; break;
+      case Message::Type::kPing: msg_type_str = "Ping"; break;
+    }
+    log_.info("INCOMING MSG: {}", msg_type_str);
+    
     switch (msg.type) {
       case Message::Type::kPutValue:
         onPutValue(session, std::move(msg));
@@ -646,7 +664,7 @@ namespace libp2p::protocol::kademlia {
 
     // Note: Session limits removed - ConnectionManager now handles resource management
     // with grace periods, watermarks, and value-based trimming (go-libp2p style)
-    log_.debug("incoming stream with {} (sessions: {})",
+    log_.info("INCOMING DHT request from {} (sessions: {})",
                stream->remotePeerId().value().toBase58().substr(46), sessions_.size());
 
     auto session = openSession(stream);

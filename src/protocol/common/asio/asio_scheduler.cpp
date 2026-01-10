@@ -15,10 +15,9 @@ namespace libp2p::protocol {
         interval_(config.period_msec),
         timer_(*io, boost::posix_time::milliseconds(interval_)),
         started_(boost::posix_time::microsec_clock::local_time()),
-        canceled_(std::make_shared<bool>(false)),
-        timer_cb_([this, canceled{canceled_}](
-                      const boost::system::error_code &error) {
-          if (!error && !*canceled)
+        canceled_(false),
+        timer_cb_([this](const boost::system::error_code &error) {
+          if (!error && !canceled_.load(std::memory_order_acquire))
             onTimer();
         }),
         immediate_cb_([this] { onImmediate(); }) {
@@ -27,7 +26,7 @@ namespace libp2p::protocol {
   }
 
   AsioScheduler::~AsioScheduler() {
-    *canceled_ = true;
+    canceled_.store(true, std::memory_order_release);
     try {
       timer_.cancel();
     } catch (...) {

@@ -20,20 +20,17 @@ namespace libp2p::protocol {
         event::Bus& event_bus, 
         std::shared_ptr<libp2p::transport::Upgrader> upgrader, 
         CompletionCallback callback)
-        : host_{ host }, msg_processor_{ std::move(msg_processor) }, bus_{ event_bus }, callback_(callback), upgrader_ { upgrader } 
-    {
-        autonat_msg_processor_ = std::make_shared<libp2p::protocol::AutonatMessageProcessor>(host, host.getNetwork().getConnectionManager());
-        autonat_ = std::make_shared<libp2p::protocol::Autonat>(host, autonat_msg_processor_, host.getBus(), upgrader_, callback);
-    
+        : host_{ host }, msg_processor_{ std::move(msg_processor) }, bus_{ event_bus }, callback_(callback), upgrader_{ upgrader }
+    {    
         BOOST_ASSERT(msg_processor_);
     
         msg_processor_->onIdentifyReceived([this](const peer::PeerId& peer_id) {
-        if (getAllObservedAddresses().size() > 0)
-        {
-            //log_->info("Starting autonat after getting observed addresses");
-            autonat_->start();
-        }
+            if (getAllObservedAddresses().size() > 0 && autonat_) {
+                //log_->info("Starting autonat after getting observed addresses");
+                autonat_->start();
+            }
         });
+
   }
 
   boost::signals2::connection Identify::onIdentifyReceived(
@@ -48,6 +45,10 @@ namespace libp2p::protocol {
   std::vector<multi::Multiaddress> Identify::getObservedAddressesFor(
       const multi::Multiaddress &address) const {
     return msg_processor_->getObservedAddresses().getAddressesFor(address);
+  }
+
+  void Identify::setAutonat(std::shared_ptr<libp2p::protocol::Autonat> autonat) {
+    autonat_ = autonat;
   }
 
   peer::Protocol Identify::getProtocolId() const {

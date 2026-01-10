@@ -109,6 +109,26 @@ namespace libp2p::protocol::gossip {
     }
   }
 
+  void Connectivity::addBootstrapPeer(
+      const peer::PeerId &id,
+      const std::vector<multi::Multiaddress> &addresses) {
+    if (id == host_->getId()) {
+      return;
+    }
+
+    if (!addresses.empty()) {
+      std::ignore =
+          host_->getPeerRepository().getAddressRepository().upsertAddresses(
+              id, addresses, config_.address_expiration_msec);
+    }
+
+    if (!all_peers_.contains(id)) {
+      auto ctx = std::make_shared<PeerContext>(id);
+      all_peers_.insert(ctx);
+      connectable_peers_.insert(ctx);
+    }
+  }
+
   void Connectivity::flush(const PeerContextPtr &ctx) const {
     assert(ctx);
     assert(ctx->message_builder);
@@ -162,6 +182,13 @@ namespace libp2p::protocol::gossip {
     log_.debug("new inbound stream, address={}, peer_id={}",
                stream->remoteMultiaddr().value().getStringAddress(),
                peer_id.toBase58());
+
+    stream->adjustWindowSize(64 * 1024 * 1024, [this, peer_id](outcome::result<void> res) {
+      if (!res) {
+        log_.warn("cannot adjustWindowSize for inbound stream, peer={}, error={}",
+                  peer_id.toBase58(), res.error().message());
+      }
+    });
 
     PeerContextPtr ctx;
 
@@ -301,6 +328,13 @@ namespace libp2p::protocol::gossip {
     log_.debug("new outbound stream, address={}, peer_id={}",
                stream->remoteMultiaddr().value().getStringAddress(),
                peer_id.toBase58());
+
+    stream->adjustWindowSize(64 * 1024 * 1024, [this, peer_id](outcome::result<void> res) {
+      if (!res) {
+        log_.warn("cannot adjustWindowSize for outbound stream, peer={}, error={}",
+                  peer_id.toBase58(), res.error().message());
+      }
+    });
 
     size_t stream_id = 0;
     bool is_new_connection = ctx->inbound_streams.empty();

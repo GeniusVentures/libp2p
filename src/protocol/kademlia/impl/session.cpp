@@ -24,7 +24,14 @@ namespace libp2p::protocol::kademlia {
         stream_(std::move(stream)),
         operations_timeout_(operations_timeout),
         log_("KademliaSession", "kademlia", "Session", ++instance_number) {
-    log_.debug("created");
+    
+    // Log which peer this session is with
+    auto remote_peer_res = stream_->remotePeerId();
+    if (remote_peer_res.has_value()) {
+      log_.info("created for peer: {}", remote_peer_res.value().toBase58().substr(46));
+    } else {
+      log_.info("created (remote peer unknown)");
+    }
   }
 
   Session::~Session() {

@@ -53,6 +53,7 @@ namespace libp2p::transport {
       boost::asio::detail::socket_option::boolean<SOL_SOCKET, SO_REUSEPORT> reuse_port_option(true);
       acceptor_.set_option(reuse_port_option);
 #endif
+      acceptor_.set_option(boost::asio::ip::tcp::no_delay(true));
       acceptor_.bind(endpoint);
       acceptor_.listen();
 
@@ -140,6 +141,13 @@ namespace libp2p::transport {
                                          ip::tcp::socket sock) {
           if (ec) {
             return self->handle_(ec);
+          }
+
+          // Set TCP_NODELAY on the accepted connection socket
+          boost::system::error_code nodelay_ec;
+          sock.set_option(boost::asio::ip::tcp::no_delay(true), nodelay_ec);
+          if (nodelay_ec) {
+            log::createLogger("TcpListener")->warn("Failed to set TCP_NODELAY: {}", nodelay_ec.message());
           }
 
           auto conn =

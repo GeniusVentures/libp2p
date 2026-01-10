@@ -48,6 +48,10 @@ namespace libp2p::protocol::gossip {
     void addBootstrapPeer(const peer::PeerId &id,
                           const boost::optional<multi::Multiaddress> &address);
 
+    /// Adds bootstrap peer with multiple addresses to the set of connectable peers
+    void addBootstrapPeer(const peer::PeerId &id,
+                          const std::vector<multi::Multiaddress> &addresses);
+
     /// Add peer to writable set, actual writes occur on flush() (piggybacking)
     /// The idea behind writable set and flush() is a compromise between
     /// latency and message rate

@@ -87,6 +87,17 @@ namespace libp2p::protocol::gossip {
     bootstrap_peers_[id] = std::move(address);
   }
 
+  void GossipCore::addBootstrapPeer(
+      const peer::PeerId &id, const std::vector<multi::Multiaddress> &addresses) {
+    if (started_) {
+      connectivity_->addBootstrapPeer(id, addresses);
+    }
+    // Store the first address in bootstrap_peers_ for backward compatibility
+    if (!addresses.empty()) {
+      bootstrap_peers_[id] = addresses[0];
+    }
+  }
+
   outcome::result<void> GossipCore::addBootstrapPeer(
       const std::string &address) {
     OUTCOME_TRY((auto &&, ma), libp2p::multi::Multiaddress::create(address));
@@ -100,7 +111,7 @@ namespace libp2p::protocol::gossip {
       return multi::Multiaddress::Error::INVALID_INPUT;
     }
     OUTCOME_TRY((auto &&, peer_id), peer::PeerId::fromBase58(*peer_id_str));
-    addBootstrapPeer(peer_id, {std::move(ma)});
+    addBootstrapPeer(peer_id, boost::optional<multi::Multiaddress>{std::move(ma)});
     return outcome::success();
   }
 

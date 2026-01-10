@@ -147,8 +147,38 @@ namespace libp2p::protocol {
         if (msg.status() != relay::pb::OK)
         {
             signal_relay_received_(false);
-            log_->info("Relay got status that indicates reservations are unavailable from: {}, {}", peer_id_str,
-                peer_addr_str);
+            
+            // Provide detailed diagnostic information for different status codes
+            switch (msg.status()) {
+                case relay::pb::MALFORMED_MESSAGE:
+                    log_->error("Relay server rejected our RESERVE message as malformed from: {}, {} - Check message structure, required fields, and protobuf serialization", 
+                        peer_id_str, peer_addr_str);
+                    break;
+                case relay::pb::UNEXPECTED_MESSAGE:
+                    log_->error("Relay server received unexpected message type from: {}, {} - Protocol state mismatch", 
+                        peer_id_str, peer_addr_str);
+                    break;
+                case relay::pb::RESERVATION_REFUSED:
+                    log_->warn("Relay reservation refused by: {}, {} - Server policy rejection", 
+                        peer_id_str, peer_addr_str);
+                    break;
+                case relay::pb::RESOURCE_LIMIT_EXCEEDED:
+                    log_->warn("Relay resource limit exceeded at: {}, {} - Server at capacity", 
+                        peer_id_str, peer_addr_str);
+                    break;
+                case relay::pb::PERMISSION_DENIED:
+                    log_->warn("Relay permission denied by: {}, {} - Authentication or authorization issue", 
+                        peer_id_str, peer_addr_str);
+                    break;
+                case relay::pb::NO_RESERVATION:
+                    log_->warn("No relay reservation available at: {}, {} - Need to establish reservation first", 
+                        peer_id_str, peer_addr_str);
+                    break;
+                default:
+                    log_->error("Relay reservation failed with unknown status {} from: {}, {}", 
+                        static_cast<int>(msg.status()), peer_id_str, peer_addr_str);
+                    break;
+            }
             return stream->reset();
         }
         // if our local address is not one of our "official" listen addresses, we don't know how to map this.

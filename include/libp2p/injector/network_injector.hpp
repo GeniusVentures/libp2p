@@ -134,6 +134,11 @@
 
 // clang-format on
 
+// Forward declarations
+namespace libp2p::protocol::factory {
+  class ProtocolFactory;
+}
+
 namespace libp2p::injector {
 
   /**

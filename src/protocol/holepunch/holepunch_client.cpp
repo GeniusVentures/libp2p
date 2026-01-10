@@ -36,6 +36,12 @@ namespace libp2p::protocol {
   //  return msg_processor_->getObservedAddresses().getAddressesFor(address);
   //}
 
+  bool HolepunchClient::hasValidObservedAddresses() const {
+    // Use the host's observed addresses method to get the most reliable addresses
+    auto addresses = host_.getObservedAddresses(); // Get observed addresses
+    return !addresses.empty();
+  }
+
   peer::Protocol HolepunchClient::getProtocolId() const {
     return kHolepunchClientProto;
   }
@@ -51,6 +57,13 @@ namespace libp2p::protocol {
       if (started_) return;
     // no double starts
     //BOOST_ASSERT(!started_);
+    
+    // Check if we have observed addresses before starting
+    if (!hasValidObservedAddresses()) {
+        log_->warn("No observed addresses available. Holepunch client cannot function without observed addresses.");
+        return;
+    }
+    
     started_ = true;
 
     host_.setProtocolHandler(
@@ -68,4 +81,4 @@ namespace libp2p::protocol {
     //      }
     //    });
   }
-}
+}  // namespace libp2p::protocol
