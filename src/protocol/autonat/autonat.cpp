@@ -12,12 +12,12 @@ namespace {
 }  // namespace
 
 namespace libp2p::protocol {
-  Autonat::Autonat(Host &host,
+  Autonat::Autonat(std::shared_ptr<Host> host,
                    std::shared_ptr<AutonatMessageProcessor> msg_processor,
                    event::Bus &event_bus,
                    std::shared_ptr<libp2p::transport::Upgrader> upgrader,
                    CompletionCallback callback)
-      : host_{host},
+      : host_{std::move(host)},
         msg_processor_{std::move(msg_processor)},
         bus_{event_bus},
         upgrader_{upgrader},
@@ -94,7 +94,7 @@ namespace libp2p::protocol {
   bool Autonat::hasValidObservedAddresses() const {
     // Use the host's observed addresses method to get the most reliable
     // addresses
-    auto addresses = host_.getObservedAddresses();  // Get observed addresses
+    auto addresses = host_->getObservedAddresses();  // Get observed addresses
     return !addresses.empty();
   }
 
@@ -123,7 +123,7 @@ namespace libp2p::protocol {
     // Start periodic observed address monitoring
     startObservedAddressMonitoring();
 
-    // host_.setProtocolHandler(
+    // host_->setProtocolHandler(
     //     kAutonatProto,
     //     [wp = weak_from_this()](protocol::BaseProtocol::StreamResult rstream)
     //     {

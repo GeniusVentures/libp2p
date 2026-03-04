@@ -29,8 +29,8 @@ namespace {
 
 namespace libp2p::protocol {
   AutonatMessageProcessor::AutonatMessageProcessor(
-      Host &host, network::ConnectionManager &conn_manager)
-      : host_{host},
+      std::shared_ptr<Host> host, network::ConnectionManager &conn_manager)
+      : host_{std::move(host)},
         conn_manager_{conn_manager},
         successful_addresses_(),
         unsuccessful_addresses_() {}
@@ -49,7 +49,7 @@ namespace libp2p::protocol {
     // For autonat, we need addresses that are activated (seen by enough peers)
     // but potentially unconfirmed (since autonat's job is to confirm them)
     auto autonat_addresses =
-        host_.getObservedRepository().getAllActivatedAddresses();
+        host_->getObservedRepository().getAllActivatedAddresses();
 
     log_->info("Autonat: found {} activated addresses for testing",
                autonat_addresses.size());
@@ -69,8 +69,8 @@ namespace libp2p::protocol {
     // Create a Peer ID
     auto dialpeer = new autonat::pb::Message_PeerInfo;
     // Set our Peer ID
-    dialpeer->set_id(std::string(host_.getPeerInfo().id.toVector().begin(),
-                                 host_.getPeerInfo().id.toVector().end()));
+    dialpeer->set_id(std::string(host_->getPeerInfo().id.toVector().begin(),
+                                 host_->getPeerInfo().id.toVector().end()));
 
     // Set our Addresses we think we are available on
     for (const auto &addr : autonat_addresses) {
@@ -123,7 +123,7 @@ namespace libp2p::protocol {
   }
 
   Host &AutonatMessageProcessor::getHost() const noexcept {
-    return host_;
+    return *host_;
   }
 
   network::ConnectionManager &AutonatMessageProcessor::getConnectionManager()
@@ -133,7 +133,7 @@ namespace libp2p::protocol {
 
   const ObservedAddresses &AutonatMessageProcessor::getObservedAddresses()
       const noexcept {
-    return host_.getObservedRepository();
+    return host_->getObservedRepository();
   }
 
   void AutonatMessageProcessor::autonatReceived(
@@ -210,7 +210,7 @@ namespace libp2p::protocol {
       auto temphost = injector.create<std::shared_ptr<libp2p::Host>>();
       // Assumes a listen address exists ip4, but should probably do this some
       // other way?
-      auto origaddr = host_.getNetwork().getListener().getListenAddresses()[0];
+      auto origaddr = host_->getNetwork().getListener().getListenAddresses()[0];
       std::string tempaddr = "/ip4/"
           + origaddr
                 .getFirstValueForProtocol(libp2p::multi::Protocol::Code::IP4)
@@ -346,7 +346,7 @@ namespace libp2p::protocol {
         >= 4) {
       log_->info("Autonat confirming address: {}",
                  response_ma.value().getStringAddress());
-      host_.getObservedRepository().confirm(local_addr_res.value(),
+      host_->getObservedRepository().confirm(local_addr_res.value(),
                                             response_ma.value());
       signal_autonat_received_(true);
     }
@@ -356,7 +356,7 @@ namespace libp2p::protocol {
         >= 4) {
       log_->info("Autonat unconfirming address: {}",
                  response_ma.value().getStringAddress());
-      host_.getObservedRepository().unconfirm(local_addr_res.value(),
+      host_->getObservedRepository().unconfirm(local_addr_res.value(),
                                               response_ma.value());
       signal_autonat_received_(false);
     }

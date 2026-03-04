@@ -33,7 +33,7 @@ namespace libp2p::protocol {
    public:
     using AutonatCallback = void(const bool &);
 
-    AutonatMessageProcessor(Host &host,
+    AutonatMessageProcessor(std::shared_ptr<Host> host,
                             network::ConnectionManager &conn_manager);
 
     boost::signals2::connection onAutonatReceived(
@@ -117,7 +117,7 @@ namespace libp2p::protocol {
                                  std::string &peer_id_str,
                                  std::string &peer_addr_str);
 
-    Host &host_;
+    std::shared_ptr<Host> host_;
     network::ConnectionManager &conn_manager_;
     // ObservedAddresses observed_addresses_;
     boost::signals2::signal<AutonatCallback> signal_autonat_received_;

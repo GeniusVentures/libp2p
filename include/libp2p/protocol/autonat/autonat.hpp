@@ -29,7 +29,8 @@ namespace libp2p::protocol {
      * @param relay - optional relay instance, will create one if nullptr and
      * config enables it
      */
-    Autonat(Host &host, std::shared_ptr<AutonatMessageProcessor> msg_processor,
+    Autonat(std::shared_ptr<Host> host,
+            std::shared_ptr<AutonatMessageProcessor> msg_processor,
             event::Bus &event_bus,
             std::shared_ptr<libp2p::transport::Upgrader> upgrader,
             CompletionCallback callback);
@@ -93,7 +94,7 @@ namespace libp2p::protocol {
      */
     void startObservedAddressMonitoring();
 
-    Host &host_;
+    std::shared_ptr<Host> host_;
     std::shared_ptr<AutonatMessageProcessor> msg_processor_;
     event::Bus &bus_;
     event::Handle sub_;  // will unsubscribe during destruction by itself

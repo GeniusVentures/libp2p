@@ -250,10 +250,10 @@ namespace libp2p::protocol::factory {
       std::shared_ptr<Host> host, const Injector &injector,
       std::function<void()> callback) {
     auto msg_processor = std::make_shared<AutonatMessageProcessor>(
-        *host, host->getNetwork().getConnectionManager());
+        host, host->getNetwork().getConnectionManager());
 
     return std::make_shared<Autonat>(
-        *host, msg_processor, host->getBus(),
+        host, msg_processor, host->getBus(),
         injector.template create<std::shared_ptr<transport::Upgrader>>(),
         callback ? callback : []() {
           /* Empty completion callback for factory-created instances */
