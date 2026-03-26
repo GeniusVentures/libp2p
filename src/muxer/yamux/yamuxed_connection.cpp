@@ -493,9 +493,10 @@ namespace libp2p::connection {
         SL_DEBUG(log_(), "received ACK on unknown stream id {}",
                  frame.stream_id);
         ok = false;
+      } else {
+        stream_handler = std::move(it->second);
+        erasePendingOutboundStream(it);
       }
-      stream_handler = std::move(it->second);
-      erasePendingOutboundStream(it);
     }
 
     if (!ok) {
