@@ -3,12 +3,10 @@ cmake_minimum_required(VERSION 3.12)
 find_program(CCACHE_FOUND ccache)
 
 if (CCACHE_FOUND)
- set_property(GLOBAL PROPERTY RULE_LAUNCH_COMPILE ccache)
- set_property(GLOBAL PROPERTY RULE_LAUNCH_LINK ccache)
+  set_property(GLOBAL PROPERTY RULE_LAUNCH_COMPILE ccache)
+  set_property(GLOBAL PROPERTY RULE_LAUNCH_LINK ccache)
 endif (CCACHE_FOUND)
 
-set (Boost_NO_SYSTEM_PATHS ON)
-message("---${CMAKE_TOOLCHAIN_FILE}--")
 set(CMAKE_TOOLCHAIN_FILE
     "${CMAKE_SOURCE_DIR}/cmake/toolchain/cxx17.cmake"
     CACHE
@@ -18,7 +16,6 @@ set(CMAKE_TOOLCHAIN_FILE
 
 include("cmake/Hunter/init.cmake")
 
-cmake_policy(SET CMP0048 NEW)
 project(libp2p VERSION 0.0.1 LANGUAGES C CXX)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
@@ -39,24 +36,22 @@ option(METRICS_ENABLED "Enable libp2p metrics" OFF)
 option(LOCAL_BUILD "Build in local folder" OFF)
 
 include(cmake/print.cmake)
-
+if(LOCAL_BUILD)
+	include(cmake/localbuild.cmake)
+endif()
+print("C flags: ${CMAKE_C_FLAGS}")
+print("CXX flags: ${CMAKE_CXX_FLAGS}")
+print("Using CMAKE_TOOLCHAIN_FILE=${CMAKE_TOOLCHAIN_FILE}")
 
 # the property is out of "if TESTING" scope due to addtest func is out too
 set_property(GLOBAL PROPERTY TEST_TARGETS)
 
 include(CheckCXXCompilerFlag)
-if(LOCAL_BUILD)
-	include(cmake/localbuild.cmake)
-endif()
-message("C flags: ${CMAKE_C_FLAGS}")
-message("CXX flags: ${CMAKE_CXX_FLAGS}")
-message("Using CMAKE_TOOLCHAIN_FILE=${CMAKE_TOOLCHAIN_FILE}")
 include(cmake/install.cmake)
 include(cmake/libp2p_add_library.cmake)
 include(cmake/dependencies.cmake)
 include(cmake/functions.cmake)
 include(cmake/san.cmake)
-
 
 if (METRICS_ENABLED)
   add_compile_definitions("LIBP2P_METRICS_ENABLED")
@@ -89,7 +84,7 @@ if ("${CMAKE_CXX_COMPILER_ID}" MATCHES "^(AppleClang|Clang|GNU)$")
   # promote to errors
   add_flag(-Werror-unused-lambda-capture)  # error if lambda capture is unused
   add_flag(-Werror-return-type)      # warning: control reaches end of non-void function [-Wreturn-type]
-#  add_flag(-Werror-non-virtual-dtor) # warn the user if a class with virtual functions has a non-virtual destructor. This helps catch hard to track down memory errors
+  add_flag(-Werror-non-virtual-dtor) # warn the user if a class with virtual functions has a non-virtual destructor. This helps catch hard to track down memory errors
   add_flag(-Werror-sign-compare)     # warn the user if they compare a signed and unsigned numbers
   add_flag(-Werror-reorder)          # field '$1' will be initialized after field '$2'
 elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")

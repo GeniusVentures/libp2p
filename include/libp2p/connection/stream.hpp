@@ -119,7 +119,7 @@ namespace libp2p::connection {
      */
     virtual outcome::result<multi::Multiaddress> remoteMultiaddr() const = 0;
     /**
-     * Set whether stream is an incoming relay 
+     * Set whether stream is an incoming relay
      * @param whether this is a relay
      */
     virtual void setIncomingRelay(bool isincrelay) = 0;
@@ -128,6 +128,6 @@ namespace libp2p::connection {
   };
 }  // namespace libp2p::connection
 
-OUTCOME_HPP_DECLARE_ERROR_2(libp2p::connection, Stream::Error)
+OUTCOME_HPP_DECLARE_ERROR(libp2p::connection, Stream::Error)
 
 #endif  // LIBP2P_CONNECTION_STREAM_HPP
