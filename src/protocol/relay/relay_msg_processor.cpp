@@ -13,12 +13,6 @@
 #include <iostream>
 
 namespace {
-  inline std::string fromMultiaddrToString(
-      const libp2p::multi::Multiaddress &ma) {
-    auto const &addr = ma.getBytesAddress();
-    return std::string(addr.begin(), addr.end());
-  }
-
   inline libp2p::outcome::result<libp2p::multi::Multiaddress>
   fromStringToMultiaddr(const std::string &addr) {
     return libp2p::multi::Multiaddress::create(gsl::span<const uint8_t>(
@@ -147,35 +141,35 @@ namespace libp2p::protocol {
         if (msg.status() != relay::pb::OK)
         {
             signal_relay_received_(false);
-            
+
             // Provide detailed diagnostic information for different status codes
             switch (msg.status()) {
                 case relay::pb::MALFORMED_MESSAGE:
-                    log_->error("Relay server rejected our RESERVE message as malformed from: {}, {} - Check message structure, required fields, and protobuf serialization", 
+                    log_->error("Relay server rejected our RESERVE message as malformed from: {}, {} - Check message structure, required fields, and protobuf serialization",
                         peer_id_str, peer_addr_str);
                     break;
                 case relay::pb::UNEXPECTED_MESSAGE:
-                    log_->error("Relay server received unexpected message type from: {}, {} - Protocol state mismatch", 
+                    log_->error("Relay server received unexpected message type from: {}, {} - Protocol state mismatch",
                         peer_id_str, peer_addr_str);
                     break;
                 case relay::pb::RESERVATION_REFUSED:
-                    log_->warn("Relay reservation refused by: {}, {} - Server policy rejection", 
+                    log_->warn("Relay reservation refused by: {}, {} - Server policy rejection",
                         peer_id_str, peer_addr_str);
                     break;
                 case relay::pb::RESOURCE_LIMIT_EXCEEDED:
-                    log_->warn("Relay resource limit exceeded at: {}, {} - Server at capacity", 
+                    log_->warn("Relay resource limit exceeded at: {}, {} - Server at capacity",
                         peer_id_str, peer_addr_str);
                     break;
                 case relay::pb::PERMISSION_DENIED:
-                    log_->warn("Relay permission denied by: {}, {} - Authentication or authorization issue", 
+                    log_->warn("Relay permission denied by: {}, {} - Authentication or authorization issue",
                         peer_id_str, peer_addr_str);
                     break;
                 case relay::pb::NO_RESERVATION:
-                    log_->warn("No relay reservation available at: {}, {} - Need to establish reservation first", 
+                    log_->warn("No relay reservation available at: {}, {} - Need to establish reservation first",
                         peer_id_str, peer_addr_str);
                     break;
                 default:
-                    log_->error("Relay reservation failed with unknown status {} from: {}, {}", 
+                    log_->error("Relay reservation failed with unknown status {} from: {}, {}",
                         static_cast<int>(msg.status()), peer_id_str, peer_addr_str);
                     break;
             }
@@ -251,7 +245,7 @@ namespace libp2p::protocol {
         {
             log_->error("Relay Connnect got a type other than CONNECT when expecting status from: {}, {}", peer_id_str,
                 peer_addr_str);
-            
+
             return stream->reset();
         }
         auto remotepeer = msg.peer().id();
@@ -262,7 +256,7 @@ namespace libp2p::protocol {
             log_->error("Remote relay connection peer id is bad {} ", remotepeer_res.error().message());
             return stream->reset();
         }
-        
+
         //Make sure reservation is OK
         //if (msg.status() != relay::pb::OK)
         //{
@@ -307,7 +301,7 @@ namespace libp2p::protocol {
                     self->log_->info("Remote relay connection failed {} because {}", peer_id.toBase58(), result.error().message());
                     cb(result.error());
                 }
-                
+
             });
         stream->setIncomingRelay(true);
         session->secureInboundRelay();

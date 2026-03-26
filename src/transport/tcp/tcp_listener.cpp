@@ -44,7 +44,7 @@ namespace libp2p::transport {
     // TODO(@warchant): replace with parser PRE-129
     using namespace boost::asio;  // NOLINT
     try {
-      OUTCOME_TRY((auto &&, endpoint), detail::makeEndpoint(address));
+      OUTCOME_TRY(endpoint, detail::makeEndpoint(address));
 
       // setup acceptor, throws
       acceptor_.open(endpoint.protocol());
@@ -79,9 +79,9 @@ namespace libp2p::transport {
     if (ec) {
       return ec;
     }
-    
+
     std::vector<multi::Multiaddress> addresses;
-    
+
     // Check if this is a wildcard address (0.0.0.0 or ::)
     auto address = endpoint.address();
     if (address.is_v4() && address.to_v4() == boost::asio::ip::address_v4::any()) {
@@ -103,7 +103,7 @@ namespace libp2p::transport {
       }
       // Fallback to wildcard if enumeration failed
     }
-    
+
     // For non-wildcard addresses or fallback case, return the single address
     auto addr_result = detail::makeAddress(endpoint);
     if (addr_result) {
@@ -111,7 +111,7 @@ namespace libp2p::transport {
     } else {
       return addr_result.error();
     }
-    
+
     return addresses;
   }
 
@@ -165,25 +165,25 @@ namespace libp2p::transport {
   std::vector<multi::Multiaddress> TcpListener::enumerateNetworkInterfaces(uint16_t port, bool ipv6) const {
     std::vector<multi::Multiaddress> addresses;
     auto logger = log::createLogger("TcpListener");
-    
+
     try {
 #ifdef _WIN32
       // Windows implementation using GetAdaptersAddresses
       DWORD bufferSize = 0;
       GetAdaptersAddresses(ipv6 ? AF_INET6 : AF_INET, 0, nullptr, nullptr, &bufferSize);
-      
+
       IP_ADAPTER_ADDRESSES *adapterAddresses = (IP_ADAPTER_ADDRESSES *)malloc(bufferSize);
       if (!adapterAddresses) {
         logger->error("Failed to allocate memory for adapter addresses");
         return addresses;
       }
-      
+
       if (GetAdaptersAddresses(ipv6 ? AF_INET6 : AF_INET, 0, nullptr, adapterAddresses, &bufferSize) == NO_ERROR) {
         for (IP_ADAPTER_ADDRESSES *adapter = adapterAddresses; adapter; adapter = adapter->Next) {
           if (adapter->OperStatus == IfOperStatusUp && adapter->IfType != IF_TYPE_SOFTWARE_LOOPBACK) {
             for (IP_ADAPTER_UNICAST_ADDRESS *unicast = adapter->FirstUnicastAddress; unicast; unicast = unicast->Next) {
               SOCKADDR *addrStruct = unicast->Address.lpSockaddr;
-              
+
               if ((!ipv6 && addrStruct->sa_family == AF_INET) || (ipv6 && addrStruct->sa_family == AF_INET6)) {
                 char buffer[INET6_ADDRSTRLEN];
                 if (ipv6) {
@@ -216,21 +216,21 @@ namespace libp2p::transport {
 #else
       // Unix-like implementation using getifaddrs
       struct ifaddrs *ifaddr, *ifa;
-      
+
       if (getifaddrs(&ifaddr) == -1) {
         logger->error("getifaddrs failed: {}", strerror(errno));
         return addresses;
       }
-      
+
       for (ifa = ifaddr; ifa != nullptr; ifa = ifa->ifa_next) {
         if (ifa->ifa_addr == nullptr || (ifa->ifa_flags & IFF_LOOPBACK)) continue;
-        
+
         int family = ifa->ifa_addr->sa_family;
         if ((!ipv6 && family == AF_INET) || (ipv6 && family == AF_INET6)) {
           char host[INET6_ADDRSTRLEN];
           size_t addr_size = ipv6 ? sizeof(struct sockaddr_in6) : sizeof(struct sockaddr_in);
-          
-          int s = getnameinfo(ifa->ifa_addr, addr_size, 
+
+          int s = getnameinfo(ifa->ifa_addr, addr_size,
                             host, INET6_ADDRSTRLEN, nullptr, 0, NI_NUMERICHOST);
           if (s == 0) {
             // Skip loopback addresses
@@ -250,7 +250,7 @@ namespace libp2p::transport {
     } catch (const std::exception& e) {
       logger->error("Exception in enumerateNetworkInterfaces: {}", e.what());
     }
-    
+
     logger->debug("Enumerated {} network interfaces for {}v{}", addresses.size(), ipv6 ? "IP" : "IP", ipv6 ? 6 : 4);
     return addresses;
   }

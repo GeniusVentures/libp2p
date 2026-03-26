@@ -195,7 +195,7 @@ namespace libp2p::transport {
       if (!ip_address_opt) {
           log().error("IP address not found in Multiaddress");
           cb(boost::system::error_code{boost::system::errc::invalid_argument,
-          boost::system::generic_category()}, 
+          boost::system::generic_category()},
           Tcp::endpoint{});
           return;
       }
@@ -205,7 +205,7 @@ namespace libp2p::transport {
       if (!port_opt) {
           log().error("Port not found in Multiaddress");
           cb(boost::system::error_code{boost::system::errc::invalid_argument,
-          boost::system::generic_category()}, 
+          boost::system::generic_category()},
           Tcp::endpoint{});
           return;
       }
@@ -239,7 +239,7 @@ namespace libp2p::transport {
           log().error("Error binding socket: {}", reec.message());
           socket_.close();
           cb(boost::system::error_code{boost::system::errc::address_not_available,
-          boost::system::generic_category()}, 
+          boost::system::generic_category()},
           Tcp::endpoint{});
           return;
       }
@@ -284,8 +284,8 @@ namespace libp2p::transport {
                       }
                       auto save_result = self->saveMultiaddresses();
                       if (!save_result) {
-                          cb(boost::system::error_code{save_result.error().value(), 
-                            boost::system::generic_category()}, 
+                          cb(boost::system::error_code{save_result.error().value(),
+                            boost::system::generic_category()},
                             Tcp::endpoint{});
                           return;
                       }
@@ -302,9 +302,9 @@ namespace libp2p::transport {
                       } catch (const boost::system::system_error& e) {
                           endpoint_ec = e.code();
                       }
-                      cb(endpoint_ec ? endpoint_ec : 
-                      boost::system::error_code{boost::system::errc::not_connected, 
-                      boost::system::generic_category()}, 
+                      cb(endpoint_ec ? endpoint_ec :
+                      boost::system::error_code{boost::system::errc::not_connected,
+                      boost::system::generic_category()},
                       Tcp::endpoint{});
                       return;
                   }
@@ -339,7 +339,7 @@ namespace libp2p::transport {
       else {
           // No endpoints available, handle the error - must call callback!
           socket_.close();
-          cb(boost::system::error_code{boost::system::errc::address_not_available, 
+          cb(boost::system::error_code{boost::system::errc::address_not_available,
              boost::system::generic_category()}, Tcp::endpoint{});
       }
   }
@@ -382,15 +382,15 @@ namespace libp2p::transport {
 
       if (iterator.begin() != iterator.end()) {
           auto iter = iterator.begin();
-          
+
           // Choose appropriate source address based on first resolved destination address
           multi::Multiaddress chosen_source = multi::Multiaddress::create("/ip4/0.0.0.0").value();
           bool found_compatible_source = false;
-          
+
           // Check if the first resolved address is IPv4 or IPv6
           auto first_endpoint = *iter;
           bool dest_is_ipv4 = first_endpoint.endpoint().address().is_v4();
-          
+
           if (dest_is_ipv4 && source_addresses.has_ipv4) {
               chosen_source = source_addresses.ipv4_source;
               found_compatible_source = true;
@@ -406,7 +406,7 @@ namespace libp2p::transport {
               chosen_source = source_addresses.ipv6_source;
               found_compatible_source = true;
           }
-          
+
           if (!found_compatible_source) {
               // No compatible source address found
               cb(boost::system::error_code{boost::system::errc::address_family_not_supported,
@@ -422,7 +422,7 @@ namespace libp2p::transport {
           if (!ip_address_opt) {
               log().error("IP address not found in chosen source Multiaddress");
               cb(boost::system::error_code{boost::system::errc::invalid_argument,
-              boost::system::generic_category()}, 
+              boost::system::generic_category()},
               Tcp::endpoint{});
               return;
           }
@@ -432,7 +432,7 @@ namespace libp2p::transport {
           if (!port_opt) {
               log().error("Port not found in chosen source Multiaddress");
               cb(boost::system::error_code{boost::system::errc::invalid_argument,
-              boost::system::generic_category()}, 
+              boost::system::generic_category()},
               Tcp::endpoint{});
               return;
           }
@@ -460,7 +460,7 @@ namespace libp2p::transport {
               log().error("Error binding socket to {}:{} - {}", ip_address, port, reec.message());
               socket_.close();
               cb(boost::system::error_code{boost::system::errc::address_not_available,
-              boost::system::generic_category()}, 
+              boost::system::generic_category()},
               Tcp::endpoint{});
               return;
           }
@@ -493,8 +493,8 @@ namespace libp2p::transport {
                   }
                   auto save_result = self->saveMultiaddresses();
                   if (!save_result) {
-                      cb(boost::system::error_code{save_result.error().value(), 
-                        boost::system::generic_category()}, 
+                      cb(boost::system::error_code{save_result.error().value(),
+                        boost::system::generic_category()},
                         Tcp::endpoint{});
                       return;
                   }
@@ -511,9 +511,9 @@ namespace libp2p::transport {
                   } catch (const boost::system::system_error& e) {
                       endpoint_ec = e.code();
                   }
-                  cb(endpoint_ec ? endpoint_ec : 
-                  boost::system::error_code{boost::system::errc::not_connected, 
-                  boost::system::generic_category()}, 
+                  cb(endpoint_ec ? endpoint_ec :
+                  boost::system::error_code{boost::system::errc::not_connected,
+                  boost::system::generic_category()},
                   Tcp::endpoint{});
                   return;
               }
@@ -527,7 +527,7 @@ namespace libp2p::transport {
       else {
           // No endpoints available, handle the error
           socket_.close();
-          cb(boost::system::error_code{boost::system::errc::address_not_available, 
+          cb(boost::system::error_code{boost::system::errc::address_not_available,
              boost::system::generic_category()}, Tcp::endpoint{});
       }
   }
@@ -598,14 +598,14 @@ namespace libp2p::transport {
       if (!local_multiaddress_) {
         auto endpoint(socket_.local_endpoint(ec));
         if (!ec) {
-          OUTCOME_TRY((auto &&, addr), detail::makeAddress(endpoint));
+          OUTCOME_TRY(addr, detail::makeAddress(endpoint));
           local_multiaddress_ = std::move(addr);
         }
       }
       if (!remote_multiaddress_) {
         auto endpoint(socket_.remote_endpoint(ec));
         if (!ec) {
-          OUTCOME_TRY((auto &&, addr), detail::makeAddress(endpoint));
+          OUTCOME_TRY(addr, detail::makeAddress(endpoint));
           remote_multiaddress_ = std::move(addr);
         }
       }
