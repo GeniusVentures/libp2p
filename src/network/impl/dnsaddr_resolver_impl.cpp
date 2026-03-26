@@ -7,7 +7,7 @@
 
 #include <libp2p/network/impl/dnsaddr_resolver_impl.hpp>
 
-OUTCOME_CPP_DEFINE_CATEGORY_3(libp2p::network, DnsaddrResolverImpl::Error, e) {
+OUTCOME_CPP_DEFINE_CATEGORY(libp2p::network, DnsaddrResolverImpl::Error, e) {
   using E = libp2p::network::DnsaddrResolverImpl::Error;
   switch (e) {
     case E::INVALID_DNSADDR:

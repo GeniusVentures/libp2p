@@ -6,7 +6,7 @@
 #include <libp2p/crypto/hmac_provider/hmac_provider_ctr_impl.hpp>
 #include <libp2p/security/noise/crypto/interfaces.hpp>
 
-OUTCOME_CPP_DEFINE_CATEGORY_3(libp2p::security::noise, HKDFError, e) {
+OUTCOME_CPP_DEFINE_CATEGORY(libp2p::security::noise, HKDFError, e) {
   using E = libp2p::security::noise::HKDFError;
   switch (e) {
     case E::ILLEGAL_OUTPUTS_NUMBER:

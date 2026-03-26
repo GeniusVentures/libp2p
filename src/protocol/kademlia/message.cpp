@@ -10,7 +10,7 @@
 #include <generated/protocol/kademlia/protobuf/kademlia.pb.h>
 #include <libp2p/multi/uvarint.hpp>
 
-OUTCOME_CPP_DEFINE_CATEGORY_3(libp2p::protocol::kademlia, Message::Error, e) {
+OUTCOME_CPP_DEFINE_CATEGORY(libp2p::protocol::kademlia, Message::Error, e) {
   using E = libp2p::protocol::kademlia::Message::Error;
   switch (e) {
     case E::INVALID_CONNECTEDNESS:
@@ -54,7 +54,7 @@ namespace libp2p::protocol::kademlia {
       }
 
       std::vector<multi::Multiaddress> addresses;
-      for (const auto &addr : src.addrs()) {	  
+      for (const auto &addr : src.addrs()) {
         auto res = multi::Multiaddress::create(gsl::span<const uint8_t>(
             // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
             reinterpret_cast<const uint8_t *>(addr.data()), addr.size()));

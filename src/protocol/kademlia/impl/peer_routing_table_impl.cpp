@@ -7,12 +7,12 @@
  #include <libp2p/protocol/kademlia/impl/peer_routing_table_impl.hpp>
 
  #include <numeric>
- 
- OUTCOME_CPP_DEFINE_CATEGORY_3(libp2p::protocol::kademlia,
+
+ OUTCOME_CPP_DEFINE_CATEGORY(libp2p::protocol::kademlia,
                              PeerRoutingTableImpl::Error,
                              e) {
    using E = libp2p::protocol::kademlia::PeerRoutingTableImpl::Error;
- 
+
    switch (e) {
      case E::SUCCESS:
        return "success";
@@ -23,25 +23,25 @@
      default:
        break;
    }
- 
+
    return "unknown error";
  }
- 
+
  namespace libp2p::protocol::kademlia {
- 
+
    size_t Bucket::size() const {
      return peers_.size();
    }
- 
+
    void Bucket::append(const Bucket &bucket) {
      peers_.insert(peers_.end(), bucket.peers_.begin(), bucket.peers_.end());
    }
- 
+
    void Bucket::sort(const NodeId &node_id) {
      XorDistanceComparator cmp{node_id};
      peers_.sort(cmp);
    }
- 
+
 // Replace the findPeer function using std::find_if instead of std::ranges::find_if
 auto findPeer(std::list<BucketPeerInfo>& peers, const peer::PeerId& p) {
   return std::find_if(peers.begin(), peers.end(),
@@ -88,7 +88,7 @@ boost::optional<PeerId> Bucket::removeReplaceableItem() {
 
   return result;
 }
- 
+
    void Bucket::truncate(size_t limit) {
      if (limit == 0) {
        peers_.clear();
@@ -97,7 +97,7 @@ boost::optional<PeerId> Bucket::removeReplaceableItem() {
                     peers_.end());
      }
    }
- 
+
    std::vector<peer::PeerId> Bucket::peerIds() const {
      std::vector<peer::PeerId> peerIds;
      peerIds.reserve(peers_.size());
@@ -107,21 +107,21 @@ boost::optional<PeerId> Bucket::removeReplaceableItem() {
                     [](const auto &bpi) { return bpi.peer_id; });
      return peerIds;
    }
- 
+
    bool Bucket::contains(const peer::PeerId &p) const {
      return find(p) != peers_.end();
    }
- 
+
    bool Bucket::remove(const peer::PeerId &p) {
      auto it = find(p);
      if (it != peers_.end()) {
        peers_.erase(it);
        return true;
      }
- 
+
      return false;
    }
- 
+
    PeerRoutingTableImpl::PeerRoutingTableImpl(
        const Config &config,
        std::shared_ptr<peer::IdentityManager> identity_manager,
@@ -137,7 +137,7 @@ boost::optional<PeerId> Bucket::removeReplaceableItem() {
      BOOST_ASSERT(bus_ != nullptr);
      BOOST_ASSERT(config_.maxBucketSize > 1);
    }
- 
+
    void PeerRoutingTableImpl::remove(const peer::PeerId &peer_id) {
      auto bucket_index = getBucketIndex(NodeId{peer_id});
      if (!bucket_index) {
@@ -148,7 +148,7 @@ boost::optional<PeerId> Bucket::removeReplaceableItem() {
      bus_->getChannel<event::protocol::kademlia::PeerRemovedChannel>().publish(
          peer_id);
    }
- 
+
    // https://github.com/libp2p/rust-libp2p/blob/3837e33cd4c40ae703138e6aed6f6c9d52928a80/protocols/kad/src/kbucket.rs#L400-L461
    std::vector<peer::PeerId> PeerRoutingTableImpl::getNearestPeers(
     const NodeId& node_id, size_t count) {
@@ -184,7 +184,7 @@ boost::optional<PeerId> Bucket::removeReplaceableItem() {
     result.truncate(count);
     return result.peerIds();
   }
- 
+
    namespace {
     outcome::result<bool> replacePeer(Bucket& bucket,
       const peer::PeerId& pid,
@@ -203,7 +203,7 @@ boost::optional<PeerId> Bucket::removeReplaceableItem() {
         return outcome::success(true);
       }
    }  // namespace
- 
+
    outcome::result<bool> PeerRoutingTableImpl::update(const peer::PeerId& pid,
     bool is_permanent,
     bool is_connected) {
@@ -231,7 +231,7 @@ boost::optional<PeerId> Bucket::removeReplaceableItem() {
 
     return replacePeer(bucket, pid, !is_permanent, is_connected, *bus_);
   }
- 
+
    size_t PeerRoutingTableImpl::size() const {
      return std::accumulate(
          buckets_.begin(),
@@ -239,7 +239,7 @@ boost::optional<PeerId> Bucket::removeReplaceableItem() {
          0u,
          [](size_t num, const Bucket &bucket) { return num + bucket.size(); });
    }
- 
+
    std::vector<peer::PeerId> PeerRoutingTableImpl::getAllPeers() const {
      std::vector<peer::PeerId> vec;
      for (const auto &bucket : buckets_) {
@@ -248,7 +248,7 @@ boost::optional<PeerId> Bucket::removeReplaceableItem() {
      }
      return vec;
    }
- 
+
    // https://github.com/libp2p/rust-libp2p/blob/3837e33cd4c40ae703138e6aed6f6c9d52928a80/protocols/kad/src/kbucket.rs#L141-L150
    std::optional<size_t> PeerRoutingTableImpl::getBucketIndex(
        const NodeId &key) const {
@@ -258,4 +258,3 @@ boost::optional<PeerId> Bucket::removeReplaceableItem() {
      return 255 - local_.commonPrefixLen(key);
    }
  }  // namespace libp2p::protocol::kademlia
- 

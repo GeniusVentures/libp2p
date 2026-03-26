@@ -11,7 +11,7 @@
 
 #include <gsl/span>
 
-OUTCOME_CPP_DEFINE_CATEGORY_3(libp2p::security::noise, Error, e) {
+OUTCOME_CPP_DEFINE_CATEGORY(libp2p::security::noise, Error, e) {
   using E = libp2p::security::noise::Error;
   switch (e) {
     case E::INTERNAL_ERROR:

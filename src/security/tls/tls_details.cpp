@@ -507,7 +507,7 @@ namespace libp2p::security::tls_details {
 
 }  // namespace libp2p::security::tls_details
 
-OUTCOME_CPP_DEFINE_CATEGORY_3(libp2p::security, TlsError, e) {
+OUTCOME_CPP_DEFINE_CATEGORY(libp2p::security, TlsError, e) {
   using E = libp2p::security::TlsError;
   switch (e) {
     case E::TLS_CTX_INIT_FAILED:
