@@ -7,8 +7,8 @@
 #define LIBP2P_PROTOCOL_KADEMLIA_NODEID
 
 #include <bitset>
-#include <cstring>
 #include <climits>
+#include <cstring>
 #include <gsl/span>
 #include <memory>
 #include <vector>

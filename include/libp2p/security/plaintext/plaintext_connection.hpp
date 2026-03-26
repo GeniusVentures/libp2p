@@ -10,20 +10,20 @@
 #include <optional>
 
 #include <libp2p/connection/secure_connection.hpp>
-#include <libp2p/crypto/key_marshaller.hpp>
 #include <libp2p/connection/stream.hpp>
+#include <libp2p/crypto/key_marshaller.hpp>
 #include <libp2p/log/logger.hpp>
 #include <variant>
 
 namespace libp2p::connection {
   class PlaintextConnection : public SecureConnection {
    public:
-       explicit PlaintextConnection(
+    PlaintextConnection(
         std::shared_ptr<RawConnection> raw_connection,
         crypto::PublicKey localPubkey, crypto::PublicKey remotePubkey,
         std::shared_ptr<crypto::marshaller::KeyMarshaller> key_marshaller);
 
-       explicit PlaintextConnection(
+    PlaintextConnection(
         std::shared_ptr<connection::Stream> raw_connection,
         crypto::PublicKey localPubkey, crypto::PublicKey remotePubkey,
         std::shared_ptr<crypto::marshaller::KeyMarshaller> key_marshaller);
@@ -63,12 +63,14 @@ namespace libp2p::connection {
 
     outcome::result<void> close() override;
 
-    outcome::result<std::shared_ptr<RawConnection>> getRawConnection() const override;
+    outcome::result<std::shared_ptr<RawConnection>> getRawConnection()
+        const override;
 
    private:
-    //std::shared_ptr<RawConnection> raw_connection_;
-    //std::shared_ptr<connection::Stream> stream_;
-    std::variant<std::shared_ptr<RawConnection>, std::shared_ptr<Stream>> connection_;
+    // std::shared_ptr<RawConnection> raw_connection_;
+    // std::shared_ptr<connection::Stream> stream_;
+    std::variant<std::shared_ptr<RawConnection>, std::shared_ptr<Stream>>
+        connection_;
 
     crypto::PublicKey local_;
     crypto::PublicKey remote_;

@@ -76,18 +76,17 @@ namespace libp2p::peer {
       const PeerId &p, gsl::span<const multi::Multiaddress> ma,
       AddressRepository::Milliseconds ttl) {
     bool added = false;
-    if (!ma.data()->hasCircuitRelay())
-    {
-        auto peer_it = findOrInsert(p);
-        auto& addresses = *peer_it->second;
+    if (!ma.data()->hasCircuitRelay()) {
+      auto peer_it = findOrInsert(p);
+      auto &addresses = *peer_it->second;
 
-        auto expires_at = Clock::now() + ttl;
-        for (const auto& m : ma) {
-            if (addresses.emplace(m, expires_at).second) {
-                signal_added_(p, m);
-                added = true;
-            }
+      auto expires_at = Clock::now() + ttl;
+      for (const auto &m : ma) {
+        if (addresses.emplace(m, expires_at).second) {
+          signal_added_(p, m);
+          added = true;
         }
+      }
     }
     return added;
   }
@@ -101,17 +100,15 @@ namespace libp2p::peer {
 
     auto expires_at = Clock::now() + ttl;
     for (const auto &m : ma) {
-        if (!ma.data()->hasCircuitRelay())
-        {
-            auto [addr_it, emplaced] = addresses.emplace(m, expires_at);
-            if (emplaced) {
-                signal_added_(p, m);
-                added = true;
-            }
-            else {
-                addr_it->second = expires_at;
-            }
+      if (!ma.data()->hasCircuitRelay()) {
+        auto [addr_it, emplaced] = addresses.emplace(m, expires_at);
+        if (emplaced) {
+          signal_added_(p, m);
+          added = true;
+        } else {
+          addr_it->second = expires_at;
         }
+      }
     }
 
     return added;

@@ -14,13 +14,11 @@
 #include <string>
 #include <vector>
 
-//#include <sys/select.h>
+#include <ares.h>
 #include <boost/asio.hpp>
 #include <boost/optional.hpp>
 #include <libp2p/log/logger.hpp>
 #include <libp2p/outcome/outcome.hpp>
-
-#include <ares.h>
 
 namespace libp2p::network::c_ares {
 
