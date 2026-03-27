@@ -14,12 +14,11 @@
 #include <libp2p/peer/impl/peer_repository_impl.hpp>
 #include <libp2p/peer/key_repository/inmem_key_repository.hpp>
 #include <libp2p/peer/protocol_repository/inmem_protocol_repository.hpp>
-#include <libp2p/protocol/common/asio/asio_scheduler.hpp>
 
 namespace libp2p::injector {
 
   template <typename InjectorConfig = BOOST_DI_CFG, typename... Ts>
-  inline auto makeHostInjector(Ts &&... args) {
+  inline auto makeHostInjector(Ts &&...args) {
     using namespace boost;  // NOLINT
 
     // clang-format off
@@ -31,11 +30,7 @@ namespace libp2p::injector {
         di::bind<peer::AddressRepository>.TEMPLATE_TO<peer::InmemAddressRepository>(),
         di::bind<peer::KeyRepository>.TEMPLATE_TO<peer::InmemKeyRepository>(),
         di::bind<peer::ProtocolRepository>.TEMPLATE_TO<peer::InmemProtocolRepository>(),
-
-        di::bind<protocol::SchedulerConfig>.TEMPLATE_TO(protocol::SchedulerConfig {}),
-        di::bind<protocol::Scheduler>.TEMPLATE_TO<protocol::AsioScheduler>(),
-
-        di::bind<Host>.TEMPLATE_TO<host::BasicHost>(),
+        di::bind<Host>.template to<host::BasicHost>(),
 
         // user-defined overrides...
         std::forward<decltype(args)>(args)...

@@ -16,7 +16,6 @@ target_link_libraries(rendezvous_chat
     p2p_inmem_protocol_repository
     p2p_literals
     p2p_kademlia
-    asio_scheduler
     p2p_multiaddress
     Boost::date_time
     Boost::regex
