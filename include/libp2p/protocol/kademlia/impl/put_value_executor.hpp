@@ -28,7 +28,8 @@
 namespace libp2p::protocol::kademlia {
 
   class PutValueExecutor
-      : public std::enable_shared_from_this<PutValueExecutor> {
+      : public ResponseHandler,
+        public std::enable_shared_from_this<PutValueExecutor> {
    public:
     PutValueExecutor(const Config &config, std::shared_ptr<Host> host,
                      std::shared_ptr<basic::Scheduler> scheduler,
@@ -39,13 +40,22 @@ namespace libp2p::protocol::kademlia {
 
     outcome::result<void> start();
 
+    /// @see ResponseHandler::responseTimeout
+    Time responseTimeout() const override;
+
+    /// @see ResponseHandler::match
+    bool match(const Message &msg) const override;
+
+    /// @see ResponseHandler::onResult
+    void onResult(const std::shared_ptr<Session> &session,
+                  outcome::result<Message> msg_res) override;
+
    private:
     /// Spawns new request
     void spawn();
 
     /// Handles result of connection
-    void onConnected(
-        outcome::result<std::shared_ptr<connection::Stream>> stream_res);
+    void onConnected(StreamAndProtocolOrError stream_res);
 
     static std::atomic_size_t instance_number;
 

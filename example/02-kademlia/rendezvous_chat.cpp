@@ -117,14 +117,8 @@ bool Cmp::operator()(const std::shared_ptr<Session> &lhs,
   return *lhs < *rhs;
 }
 
-void handleIncomingStream(
-    libp2p::protocol::BaseProtocol::StreamResult stream_res) {
-  if (!stream_res) {
-    std::cerr << " ! incoming connection failed: "
-              << stream_res.error().message() << std::endl;
-    return;
-  }
-  auto &stream = stream_res.value();
+void handleIncomingStream(libp2p::StreamAndProtocol stream_and_protocol) {
+  auto &stream = stream_and_protocol.stream;
 
   // reject incoming stream with themselves
   if (stream->remotePeerId().value() == self_id) {
@@ -143,14 +137,13 @@ void handleIncomingStream(
   }
 }
 
-void handleOutgoingStream(
-    libp2p::protocol::BaseProtocol::StreamResult stream_res) {
-  if (!stream_res) {
+void handleOutgoingStream(libp2p::StreamAndProtocolOrError stream_res) {
+  if (not stream_res) {
     std::cerr << " ! outgoing connection failed: "
               << stream_res.error().message() << std::endl;
     return;
   }
-  auto &stream = stream_res.value();
+  auto &stream = stream_res.value().stream;
 
   // reject outgoing stream to themselves
   if (stream->remotePeerId().value() == self_id) {
@@ -301,11 +294,11 @@ int main(int argc, char *argv[]) {
     auto m_identify = std::make_shared<libp2p::protocol::Identify>(*host, m_identifymsgproc, host->getBus(), injector.create<std::shared_ptr<libp2p::transport::Upgrader>>(), []() { });
     m_identify->start();
     // Handle streams for observed protocol
-    host->setProtocolHandler("/chat/1.0.0", handleIncomingStream);
-    host->setProtocolHandler("/chat/1.1.0", handleIncomingStream);
+    host->setProtocolHandler({"/chat/1.0.0"}, handleIncomingStream);
+    host->setProtocolHandler({"/chat/1.1.0"}, handleIncomingStream);
 
     // Key for group of chat
-    libp2p::protocol::kademlia::ContentId content_id("meet me here");
+    auto content_id = libp2p::protocol::kademlia::makeKeySha256("meet me here");
 
     auto &scheduler = injector.create<libp2p::basic::Scheduler &>();
 
@@ -325,7 +318,7 @@ int main(int argc, char *argv[]) {
 
             auto &providers = res.value();
             for (auto &provider : providers) {
-              host->newStream(provider, "/chat/1.1.0", handleOutgoingStream);
+              host->newStream(provider, {"/chat/1.1.0"}, handleOutgoingStream);
             }
           });
     };
@@ -352,8 +345,8 @@ int main(int argc, char *argv[]) {
 
       host->start();
 
-      auto cid = libp2p::multi::ContentIdentifierCodec::decode(content_id.data)
-                     .value();
+      auto cid =
+          libp2p::multi::ContentIdentifierCodec::decode(content_id).value();
       auto peer_id =
           libp2p::peer::PeerId::fromHash(cid.content_address).value();
 

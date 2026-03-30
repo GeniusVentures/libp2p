@@ -78,7 +78,7 @@ namespace libp2p::multi {
     /**
      * The total number of known protocols
      */
-    static const std::size_t kProtocolsNum = 30;
+    static const std::size_t kProtocolsNum = 31;
 
     /**
      * Returns a protocol with the corresponding name if it exists, or nullptr

@@ -14,10 +14,10 @@
 #include <unordered_map>
 #include <chrono>
 
+#include <libp2p/basic/scheduler.hpp>
 #include <libp2p/common/types.hpp>
 #include <libp2p/host/host.hpp>
 #include <libp2p/log/sublogger.hpp>
-#include <libp2p/protocol/common/scheduler.hpp>
 #include <libp2p/protocol/kademlia/common.hpp>
 #include <libp2p/protocol/kademlia/config.hpp>
 #include <libp2p/protocol/kademlia/impl/peer_id_with_distance.hpp>
@@ -62,8 +62,11 @@ namespace libp2p::protocol::kademlia {
 
     /// Handles result of connection
     void onConnected(
-        outcome::result<std::shared_ptr<connection::Stream>> stream_res,
+        StreamAndProtocolOrError stream_res,
         const PeerId& attempted_peer_id);
+
+    /// Handles result of connection
+    void onConnected(StreamAndProtocolOrError stream_res);
 
     static std::atomic_size_t instance_number;
 

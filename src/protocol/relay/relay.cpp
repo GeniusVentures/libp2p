@@ -17,7 +17,7 @@ namespace libp2p::protocol {
                      std::shared_ptr<RelayMessageProcessor> msg_processor,
                      event::Bus &event_bus, 
                      CompletionCallback callback)
-      : host_{host}, msg_processor_{std::move(msg_processor)}, bus_{event_bus}, callback_(callback)
+      : host_{host}, msg_processor_{std::move(msg_processor)}, bus_{event_bus}, callback_(std::move(callback))
   {
       BOOST_ASSERT(msg_processor_);
     
@@ -29,10 +29,6 @@ namespace libp2p::protocol {
         else {
             log_->info("Relay connection established successfully");
             callback_();
-            // if(holepunch_)
-            // {
-            //     holepunch_->start();
-            // }
         }
         });
     
@@ -44,15 +40,6 @@ namespace libp2p::protocol {
     return msg_processor_->onRelayReceived(cb);
   }
 
-  //std::vector<multi::Multiaddress> Relay::getAllObservedAddresses() const {
-  //  return msg_processor_->getObservedAddresses().getAllAddresses();
-  //}
-
-  //std::vector<multi::Multiaddress> Relay::getObservedAddressesFor(
-  //    const multi::Multiaddress &address) const {
-  //  return msg_processor_->getObservedAddresses().getAddressesFor(address);
-  //}
-
   void Relay::setHolepunchServer(std::shared_ptr<libp2p::protocol::HolepunchServer> holepunch) {
     holepunch_ = std::move(holepunch);
   }
@@ -61,18 +48,18 @@ namespace libp2p::protocol {
     return kRelayProto;
   }
 
-  void Relay::handle(StreamResult stream_res) {
-    if (!stream_res) {
+  void Relay::handle(StreamAndProtocol stream_res) {
+    if (!stream_res.stream) {
       return;
     }
-    msg_processor_->receiveRelay(std::move(stream_res.value()));
+    msg_processor_->receiveRelay(std::move(stream_res.stream));
   }
 
-  void Relay::handleStopMessage(StreamResult stream_res) {
+  void Relay::handleStopMessage(StreamAndProtocolOrError stream_res) {
       if (!stream_res) {
           return;
       }
-      msg_processor_->receiveStopRelay(std::move(stream_res.value()), [self{ shared_from_this() }](outcome::result<peer::PeerId> peerid)
+      msg_processor_->receiveStopRelay(std::move(stream_res.value().stream), [self{ shared_from_this() }](outcome::result<peer::PeerId> peerid)
           {
               if (peerid && self->holepunch_)
               {
@@ -100,17 +87,16 @@ namespace libp2p::protocol {
     started_ = true;
     log_->info("Started Relay Protocol");
     host_.setProtocolHandler(
-        kRelayProto,
-        [wp = weak_from_this()](protocol::BaseProtocol::StreamResult rstream) {
+        {kRelayProto},
+        [wp = weak_from_this()](StreamAndProtocol rstream) {
           if (auto self = wp.lock()) {
-            //self->handle(std::move(rstream));
               self->log_->info("Handle hop protocol");
           }
         });
 
     host_.setProtocolHandler(
-        kRelayStopProto,
-        [wp = weak_from_this()](protocol::BaseProtocol::StreamResult rstream) {
+        {kRelayStopProto},
+        [wp = weak_from_this()](StreamAndProtocol rstream) {
             if (auto self = wp.lock()) {
                 self->log_->info("Handle stop protocol");
                 self->handleStopMessage(std::move(rstream));
@@ -154,7 +140,7 @@ namespace libp2p::protocol {
                                  std::move(remote_peer_addr_res.value())}};
 
     msg_processor_->getHost().newStream(
-        peer_info, kRelayProto,
+        peer_info, {kRelayProto},
         [self{shared_from_this()}](auto &&stream_res) {
             if (!stream_res) {
                 self->log_->error("Failed to create new stream: {}", stream_res.error().message());
@@ -162,8 +148,7 @@ namespace libp2p::protocol {
             }
             self->log_->info("Sending Autonat request to peer");
             self->relayconnections++;
-            auto stream = stream_res.value();
-            self->msg_processor_->sendHopReservation(stream);
+            self->msg_processor_->sendHopReservation(stream_res.value().stream);
         });
   }
 }

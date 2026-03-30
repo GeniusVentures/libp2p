@@ -64,13 +64,13 @@ namespace libp2p::protocol {
     /**
      * Stub in case we want to enable acting as a relay
      */
-    void handle(StreamResult stream_res) override;
+    void handle(StreamAndProtocol stream_res) override;
 
     /**
      * If we have an incoming stop message, someone is trying to connect to us via circuit relay
      * @param stream contains the stream that negotiated a stop protocol with us.
      */
-    void handleStopMessage(StreamResult stream_res);
+    void handleStopMessage(StreamAndProtocolOrError stream_res);
     
     
     /**

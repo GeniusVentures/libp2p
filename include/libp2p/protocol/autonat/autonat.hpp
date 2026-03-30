@@ -74,7 +74,7 @@ namespace libp2p::protocol {
      * request If it is a request, we are expected to DIAL them from a separate
      * address.
      */
-    void handle(StreamResult stream_res) override;
+    void handle(StreamAndProtocol stream_res) override;
 
     /**
      * Start accepting NewConnectionEvent-s and asking each of them for Autonat

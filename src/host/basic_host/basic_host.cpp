@@ -143,23 +143,16 @@ namespace libp2p::host {
     return Connectedness::CAN_NOT_CONNECT;
   }
 
-  void BasicHost::setProtocolHandler(
-      const peer::Protocol &proto,
-      const std::function<connection::Stream::Handler> &handler) {
-    network_->getListener().getRouter().setProtocolHandler(proto, handler);
+  void BasicHost::setProtocolHandler(StreamProtocols protocols,
+                                     StreamAndProtocolCb cb,
+                                     ProtocolPredicate predicate) {
+    network_->getListener().getRouter().setProtocolHandler(
+        std::move(protocols), std::move(cb), std::move(predicate));
   }
 
-  void BasicHost::setProtocolHandler(
-      const peer::Protocol &proto,
-      const std::function<connection::Stream::Handler> &handler,
-      const std::function<bool(const peer::Protocol &)> &predicate) {
-    network_->getListener().getRouter().setProtocolHandler(proto, handler,
-                                                           predicate);
-  }
-
-  void BasicHost::newStream(const peer::PeerInfo &p,
-                            const peer::Protocol &protocol,
-                            const Host::StreamResultHandler &handler,
+  void BasicHost::newStream(const peer::PeerInfo &peer_info,
+                            StreamProtocols protocols,
+                            StreamAndProtocolOrErrorCb cb,
                             std::chrono::milliseconds timeout) {
     network_->getConnectionManager().collectGarbage();
 
@@ -169,13 +162,14 @@ namespace libp2p::host {
         libp2p::network::RouteHelper::getBestSourceAddresses(
             available_listeners);
 
-    network_->getDialer().newStream(p, protocol, handler, timeout,
+    network_->getDialer().newStream(peer_info, protocols, cb, timeout,
                                     source_addresses);
   }
 
   void BasicHost::newStream(const peer::PeerId &peer_id,
-                            const peer::Protocol &protocol,
-                            const StreamResultHandler &handler) {
+                            StreamProtocols protocols,
+                            StreamAndProtocolOrErrorCb cb) {
+
     network_->getConnectionManager().collectGarbage();
     // For peer ID only, we need to construct PeerInfo from repository
     auto peer_info = repo_->getPeerInfo(peer_id);
@@ -185,7 +179,7 @@ namespace libp2p::host {
       auto source_addresses =
           libp2p::network::RouteHelper::getBestSourceAddresses(
               available_listeners);
-      network_->getDialer().newStream(peer_id, protocol, handler,
+      network_->getDialer().newStream(peer_id, protocols, cb,
                                       source_addresses);
     } else {
       // Fallback: create SourceAddresses from first listener address
@@ -208,7 +202,7 @@ namespace libp2p::host {
         fallback_addresses.ipv6_source = listen_addr;
         fallback_addresses.has_ipv4 = false;
       }
-      network_->getDialer().newStream(peer_id, protocol, handler,
+      network_->getDialer().newStream(peer_id, protocols, cb,
                                       fallback_addresses);
     }
   }

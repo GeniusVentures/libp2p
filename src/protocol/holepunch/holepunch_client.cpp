@@ -27,15 +27,6 @@ namespace libp2p::protocol {
     return msg_processor_->onHolepunchReceived(cb);
   }
 
-  //std::vector<multi::Multiaddress> HolepunchClient::getAllObservedAddresses() const {
-  //  return msg_processor_->getObservedAddresses().getAllAddresses();
-  //}
-
-  //std::vector<multi::Multiaddress> HolepunchClient::getObservedAddressesFor(
-  //    const multi::Multiaddress &address) const {
-  //  return msg_processor_->getObservedAddresses().getAddressesFor(address);
-  //}
-
   bool HolepunchClient::hasValidObservedAddresses() const {
     // Use the host's observed addresses method to get the most reliable addresses
     auto addresses = host_.getObservedAddresses(); // Get observed addresses
@@ -46,18 +37,18 @@ namespace libp2p::protocol {
     return kHolepunchClientProto;
   }
 
-  void HolepunchClient::handle(StreamResult stream_res) {
-    if (!stream_res) {
+  void HolepunchClient::handle(StreamAndProtocol stream_res) {
+    if (!stream_res.stream) {
       return;
     }
-    msg_processor_->receiveIncomingHolepunch(std::move(stream_res.value()));
+    msg_processor_->receiveIncomingHolepunch(std::move(stream_res.stream));
   }
 
   void HolepunchClient::start() {
-      if (started_) return;
-    // no double starts
-    //BOOST_ASSERT(!started_);
-    
+    if (started_) {
+      return;
+    }
+
     // Check if we have observed addresses before starting
     if (!hasValidObservedAddresses()) {
         log_->warn("No observed addresses available. Holepunch client cannot function without observed addresses.");
@@ -67,18 +58,11 @@ namespace libp2p::protocol {
     started_ = true;
 
     host_.setProtocolHandler(
-        kHolepunchClientProto,
-        [wp = weak_from_this()](protocol::BaseProtocol::StreamResult rstream) {
+        {kHolepunchClientProto},
+        [wp = weak_from_this()](StreamAndProtocolOrError rstream) {
           if (auto self = wp.lock()) {
-            self->handle(std::move(rstream));
+            self->handle(std::move(rstream.value()));
           }
         });
-    //msg_processor_->sendHolepunchClientConnect(stream, peer_info);
-    //sub_ = bus_.getChannel<event::network::OnNewConnectionChannel>().subscribe(
-    //    [wp = weak_from_this(), obsaddr](auto &&conn) {
-    //      if (auto self = wp.lock()) {
-    //        return self->onNewConnection(conn, obsaddr);
-    //      }
-    //    });
   }
 }  // namespace libp2p::protocol

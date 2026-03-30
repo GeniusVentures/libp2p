@@ -228,7 +228,7 @@ namespace libp2p::protocol {
         dialaddr.push_back(addr);
         libp2p::peer::PeerInfo target_peer_info{peer_id, dialaddr};
         temphost->newStream(
-            target_peer_info, "/libp2p/autonat/1.0.0",
+            target_peer_info, {"/libp2p/autonat/1.0.0"},
             [self{shared_from_this()}, stream, addr](auto &&stream_res) {
               autonat::pb::Message responsemsg;
               responsemsg.set_type(autonat::pb::Message::DIAL_RESPONSE);
@@ -261,7 +261,7 @@ namespace libp2p::protocol {
                         "Sent a positive DIAL_RESPONSE to autonat request");
                   });
               // Close this stream.
-              newstream->close([self](auto &&res) {
+              newstream.stream->close([self](auto &&res) {
                 if (!res) {
                   self->log_->error("cannot close the stream to peer: {}",
                                     res.error().message());
@@ -347,7 +347,7 @@ namespace libp2p::protocol {
       log_->info("Autonat confirming address: {}",
                  response_ma.value().getStringAddress());
       host_->getObservedRepository().confirm(local_addr_res.value(),
-                                            response_ma.value());
+                                             response_ma.value());
       signal_autonat_received_(true);
     }
     // Take uncertainty as fact
@@ -357,7 +357,7 @@ namespace libp2p::protocol {
       log_->info("Autonat unconfirming address: {}",
                  response_ma.value().getStringAddress());
       host_->getObservedRepository().unconfirm(local_addr_res.value(),
-                                              response_ma.value());
+                                               response_ma.value());
       signal_autonat_received_(false);
     }
   }

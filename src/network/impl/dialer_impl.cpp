@@ -7,6 +7,7 @@
 #include <iostream>
 
 #include <libp2p/connection/stream.hpp>
+#include <libp2p/connection/stream_and_protocol.hpp>
 #include <libp2p/log/logger.hpp>
 #include <libp2p/network/impl/dialer_impl.hpp>
 #include <iostream>
@@ -167,7 +168,6 @@ namespace libp2p::network {
       const auto addr = *first_addr;
       ctx.tried_addresses.insert(addr);
       ctx.addresses.erase(first_addr);
-      //auto localcheck = addr.getFirstValueForProtocol(libp2p::multi::Protocol::Code::IP4);
       if (addr.hasCircuitRelay())
       {
           auto addr_peer_id = addr.getPeerId();
@@ -232,19 +232,6 @@ namespace libp2p::network {
       }
       SL_TRACE(log_, "Holepunch Going to try to dial {}", peer_id.toBase58());
       auto&& ctx = ctx_found->second;
-
-      //if (ctx.addresses.empty() && !ctx.dialled) {
-      //    completeDial(peer_id, std::errc::address_family_not_supported);
-      //    return;
-      //}
-      //if (ctx.addresses.empty() && ctx.result.has_value()) {
-      //    completeDial(peer_id, ctx.result.value());
-      //    return;
-      //}
-      //if (ctx.addresses.empty()) {
-      //    completeDial(peer_id, std::errc::host_unreachable);
-      //    return;
-      //}
 
       auto dial_handler = [wp{ weak_from_this() }, peer_id](outcome::result<std::shared_ptr<connection::CapableConnection>> result) {
           if (auto self = wp.lock()) {
@@ -363,7 +350,7 @@ namespace libp2p::network {
                   addresses.push_back(stream_result.value()->remoteMultiaddr().value());
                   auto tr = self->tmgr_->findBest(stream_result.value()->remoteMultiaddr().value());
                   relayupg->start(
-                      stream_result.value(),
+                      {stream_result.value()},
                       peer::PeerInfo{ peer_id, addresses },
                       [self, peer_id, stream_result, relayupg, tr](const bool& success) mutable {
                           if (!self) return;
@@ -404,55 +391,65 @@ namespace libp2p::network {
           });
   }
 
-  void DialerImpl::newStream(const peer::PeerInfo &p,
-                             const peer::Protocol &protocol,
-                             StreamResultFunc cb,
+  void DialerImpl::newStream(const peer::PeerInfo &p, StreamProtocols protocols,
+                             StreamAndProtocolOrErrorCb cb,
                              std::chrono::milliseconds timeout,
-                             const libp2p::network::RouteHelper::SourceAddresses &source_addresses) {
+                             const libp2p::network::RouteHelper::SourceAddresses
+                                &source_addresses) {
     SL_TRACE(log_, "New stream to {} for {} (peer info)",
-             p.id.toBase58(), protocol);
+             p.id.toBase58().substr(46), fmt::join(protocols, " "));
     dial(
         p,
-        [self{shared_from_this()}, cb{std::move(cb)}, protocol](
+        [self{shared_from_this()}, protocols{std::move(protocols)},
+         cb{std::move(cb)}](
             outcome::result<std::shared_ptr<connection::CapableConnection>>
                 rconn) mutable {
           if (!rconn) {
             return cb(rconn.error());
           }
           auto &&conn = rconn.value();
-
-          auto result = conn->newStream();
-          if (!result) {
-            self->scheduler_->schedule(
-                [cb{std::move(cb)}, result] { cb(result); });
-            return;
-                }
-          self->multiselect_->simpleStreamNegotiate(result.value(), protocol,
-                                                    std::move(cb));
+          self->newStream(std::move(conn), std::move(protocols), std::move(cb));
         },
         timeout, source_addresses);
   }
 
   void DialerImpl::newStream(const peer::PeerId &peer_id,
-                             const peer::Protocol &protocol,
-                             StreamResultFunc cb, const libp2p::network::RouteHelper::SourceAddresses &source_addresses) {
+                             StreamProtocols protocols,
+                             StreamAndProtocolOrErrorCb cb,
+                             const libp2p::network::RouteHelper::SourceAddresses
+                                &source_addresses) {
     SL_TRACE(log_, "New stream to {} for {} (peer id)",
-             peer_id.toBase58(), protocol);
+             peer_id.toBase58().substr(46), fmt::join(protocols, " "));
     auto conn = cmgr_->getBestConnectionForPeer(peer_id);
     if (!conn) {
       scheduler_->schedule(
           [cb{std::move(cb)}] { cb(std::errc::not_connected); });
       return;
     }
+    newStream(std::move(conn), std::move(protocols), std::move(cb));
+  }
 
-    auto result = conn->newStream();
-    if (!result) {
-      scheduler_->schedule([cb{std::move(cb)}, result] { cb(result); });
+  void DialerImpl::newStream(
+      std::shared_ptr<connection::CapableConnection> conn,
+      StreamProtocols protocols, StreamAndProtocolOrErrorCb cb) {
+    auto stream_res = conn->newStream();
+    if (stream_res.has_error()) {
+      scheduler_->schedule(
+          [cb{std::move(cb)}, error{stream_res.error()}] { cb(error); });
       return;
     }
-
-    multiselect_->simpleStreamNegotiate(result.value(), protocol,
-                                        std::move(cb));
+    auto &&stream = stream_res.value();
+    auto stream_copy = stream;
+    multiselect_->selectOneOf(
+        protocols, std::move(stream_copy), true, true,
+        [stream{std::move(stream)}, cb{std::move(cb)}](
+            outcome::result<peer::Protocol> protocol_res) mutable {
+          if (protocol_res.has_error()) {
+            return cb(protocol_res.error());
+          }
+          auto &&protocol = protocol_res.value();
+          cb(StreamAndProtocol{std::move(stream), std::move(protocol)});
+        });
   }
 
   DialerImpl::DialerImpl(
@@ -466,7 +463,7 @@ namespace libp2p::network {
         cmgr_(std::move(cmgr)),
         listener_(std::move(listener)),
         scheduler_(std::move(scheduler)),
-        log_(log::createLogger("DialerImpl", "network")) {
+        log_(log::createLogger("DialerImpl")) {
     BOOST_ASSERT(multiselect_ != nullptr);
     BOOST_ASSERT(tmgr_ != nullptr);
     BOOST_ASSERT(cmgr_ != nullptr);

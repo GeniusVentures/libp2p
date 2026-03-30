@@ -4,7 +4,6 @@
 #include <tuple>
 
 #include <boost/assert.hpp>
-#include <iostream>
 #include <thread>
 
 namespace {
@@ -20,8 +19,8 @@ namespace libp2p::protocol {
       : host_{std::move(host)},
         msg_processor_{std::move(msg_processor)},
         bus_{event_bus},
-        upgrader_{upgrader},
-        callback_(callback) {
+        upgrader_{std::move(upgrader)},
+        callback_(std::move(callback)) {
     BOOST_ASSERT(msg_processor_);
 
     msg_processor_->onAutonatReceived([this](const bool &status) {
@@ -35,8 +34,8 @@ namespace libp2p::protocol {
         callback_();
       }
       log_->error("Autonat result: {}", status);
-      if (requestautonat_ == false)
-        return;
+      if (!requestautonat_){
+        return;}
       log_->info("Starting autonat requests again");
       // Set requestautonat_ to false
       requestautonat_ = false;
@@ -106,11 +105,11 @@ namespace libp2p::protocol {
     return kAutonatProto;
   }
 
-  void Autonat::handle(StreamResult stream_res) {
-    if (!stream_res) {
+  void Autonat::handle(StreamAndProtocol stream_res) {
+    if (!stream_res.stream) {
       return;
     }
-    msg_processor_->receiveAutonat(std::move(stream_res.value()));
+    msg_processor_->receiveAutonat(std::move(stream_res.stream));
   }
 
   void Autonat::start() {
@@ -125,7 +124,9 @@ namespace libp2p::protocol {
 
     // host_->setProtocolHandler(
     //     kAutonatProto,
-    //     [wp = weak_from_this()](protocol::BaseProtocol::StreamResult rstream)
+    //     [wp =
+    //     weak_from_this()](protocol::BaseProtocol::StreamAndProtocolOrError
+    //     rstream)
     //     {
     //       if (auto self = wp.lock()) {
     //         self->handle(std::move(rstream));
@@ -149,9 +150,9 @@ namespace libp2p::protocol {
           std::this_thread::sleep_for(std::chrono::seconds(1));
         }
 
-        if (!started_ || should_stop_)
+        if (!started_ || should_stop_) {
           break;  // Exit if stopped
-
+        }
         // Note: We rely on the host's getObservedAddressesReal() method to
         // handle garbage collection since the message processor's
         // getObservedAddresses() returns a const reference
@@ -205,7 +206,7 @@ namespace libp2p::protocol {
                                  std::move(remote_peer_addr_res.value())}};
 
     msg_processor_->getHost().newStream(
-        peer_info, kAutonatProto,
+        peer_info, {kAutonatProto},
         [self{shared_from_this()}](auto &&stream_res) {
           if (!stream_res) {
             self->log_->error("Failed to create new stream: {}",
@@ -213,8 +214,7 @@ namespace libp2p::protocol {
             return;
           }
           self->log_->info("Sending Autonat request to peer");
-          auto stream = stream_res.value();
-          self->msg_processor_->sendAutonat(stream);
+          self->msg_processor_->sendAutonat(stream_res.value().stream);
         });
   }
 }  // namespace libp2p::protocol

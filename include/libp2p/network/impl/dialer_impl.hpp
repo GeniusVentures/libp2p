@@ -13,10 +13,10 @@
 #include <libp2p/network/connection_manager.hpp>
 #include <libp2p/network/dialer.hpp>
 #include <libp2p/network/listener_manager.hpp>
-#include <libp2p/network/transport_manager.hpp>
-#include <libp2p/protocol_muxer/protocol_muxer.hpp>
-#include <libp2p/protocol/relay/relay_conupgrader.hpp>
 #include <libp2p/network/route_helper.hpp>
+#include <libp2p/network/transport_manager.hpp>
+#include <libp2p/protocol/relay/relay_conupgrader.hpp>
+#include <libp2p/protocol_muxer/protocol_muxer.hpp>
 
 namespace libp2p::network {
 
@@ -32,17 +32,24 @@ namespace libp2p::network {
                std::shared_ptr<basic::Scheduler> scheduler);
 
     // Establishes a connection to a given peer
-    void dial(const peer::PeerInfo &p, DialResultFunc cb,
-              std::chrono::milliseconds timeout, const libp2p::network::RouteHelper::SourceAddresses &source_addresses, bool holepunch = false, bool holepunchserver = false) override;
+    void dial(
+        const peer::PeerInfo &p, DialResultFunc cb,
+        std::chrono::milliseconds timeout,
+        const libp2p::network::RouteHelper::SourceAddresses &source_addresses,
+        bool holepunch = false, bool holepunchserver = false) override;
 
     // NewStream returns a new stream to given peer p.
     // If there is no connection to p, attempts to create one.
-    void newStream(const peer::PeerInfo &p, const peer::Protocol &protocol,
-                   StreamResultFunc cb,
-                   std::chrono::milliseconds timeout, const libp2p::network::RouteHelper::SourceAddresses &source_addresses) override;
+    void newStream(const peer::PeerInfo &peer_info, StreamProtocols protocols,
+                   StreamAndProtocolOrErrorCb cb,
+                   std::chrono::milliseconds timeout,
+                   const libp2p::network::RouteHelper::SourceAddresses
+                       &source_addresses) override;
 
-    void newStream(const peer::PeerId &peer_id, const peer::Protocol &protocol,
-                   StreamResultFunc cb, const libp2p::network::RouteHelper::SourceAddresses &source_addresses) override;
+    void newStream(const peer::PeerId &peer_id, StreamProtocols protocols,
+                   StreamAndProtocolOrErrorCb cb,
+                   const libp2p::network::RouteHelper::SourceAddresses
+                       &source_addresses) override;
 
    private:
     // A context to handle an intermediary state of the peer we are dialing to
@@ -67,31 +74,32 @@ namespace libp2p::network {
       /// Callbacks for all who requested a connection to the peer
       std::vector<Dialer::DialResultFunc> callbacks;
 
-
       /// Result temporary storage to propagate via callbacks
       boost::optional<DialResult> result;
       // ^ used when all connecting attempts failed and no more known peer
       // addresses are left
 
-
-
       // indicates that at least one attempt to dial was happened
       // (at least one supported network transport was found and used)
       bool dialled = false;
-
     };
 
     // Perform a single attempt to dial to the peer via the next known address
     void rotate(const peer::PeerId &peer_id);
-    void rotateHolepunch(const peer::PeerId& peer_id);
+    void rotateHolepunch(const peer::PeerId &peer_id);
     // Finalize dialing to the peer and propagate a given result to all
     // connection requesters
     void completeDial(const peer::PeerId &peer_id, const DialResult &result);
-    //void completeDial(const peer::PeerId &peer_id, const connection::RawConnection &result);
-    void completeDialHolepunch(const peer::PeerId& peer_id, const DialResult& result);
+    void completeDialHolepunch(const peer::PeerId &peer_id,
+                               const DialResult &result);
 
     // Upgrade relay connection using HOP protocol
-    void upgradeDialRelay(const peer::PeerId& peer_id, std::shared_ptr<connection::CapableConnection> result);
+    void upgradeDialRelay(
+        const peer::PeerId &peer_id,
+        std::shared_ptr<connection::CapableConnection> result);
+
+    void newStream(std::shared_ptr<connection::CapableConnection> conn,
+                   StreamProtocols protocols, StreamAndProtocolOrErrorCb cb);
 
     std::shared_ptr<protocol_muxer::ProtocolMuxer> multiselect_;
     std::shared_ptr<TransportManager> tmgr_;
