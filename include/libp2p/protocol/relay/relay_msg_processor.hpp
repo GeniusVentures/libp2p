@@ -74,12 +74,6 @@ namespace libp2p::protocol {
      */
     network::ConnectionManager &getConnectionManager() const noexcept;
 
-    /**
-     * Get an ObservedAddresses of this processor
-     * @return ObservedAddresses
-     */
-    //const RelayAddresses &getObservedAddresses() const noexcept;
-
    private:
     /**
      * Called when a reservation data has been sent to a circuit relay provider
@@ -87,7 +81,7 @@ namespace libp2p::protocol {
      * @param stream with the other side
      */
     void relayReservationSent(outcome::result<size_t> written_bytes,
-                      const StreamSPtr &stream);
+                      StreamSPtr stream);
 
 
     /**
@@ -96,7 +90,7 @@ namespace libp2p::protocol {
      * @param stream, over which it was received
      */
     void relayReservationReceived(outcome::result<relay::pb::HopMessage> msg_res,
-                          const StreamSPtr &stream);
+                          libp2p::connection::Stream &stream);
 
     /**
      * Called when we get a Stop message indicating a connect should occur with a specific node. Stream should now be the one used for that.
@@ -104,19 +98,19 @@ namespace libp2p::protocol {
      * @param stream, over which it was received
      */
     void relayConnectReceived(outcome::result<relay::pb::StopMessage> msg_res,
-        const StreamSPtr& stream, RelayStopCallback cb);
+        StreamSPtr stream, RelayStopCallback cb);
 
     /**
      * Called, when an relay message is received from the other peer
      * @param stream, over which it was received
      */
-    void relayConnectResponse(const StreamSPtr& stream, peer::PeerId peer_id, RelayStopCallback cb);
+    void relayConnectResponse(StreamSPtr stream, peer::PeerId peer_id, RelayStopCallback cb);
 
     /**
      * After a relay is accepted we expect to receive encryption and muxing.
      * @param stream, over which it was received
      */
-    void relayConnectUpgrade(const StreamSPtr& stream, peer::PeerId peer_id, RelayStopCallback cb);
+    void relayConnectUpgrade(StreamSPtr stream, peer::PeerId peer_id, RelayStopCallback cb);
 
     Host &host_;
     network::ConnectionManager &conn_manager_;

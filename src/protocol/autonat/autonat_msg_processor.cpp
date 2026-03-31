@@ -95,8 +95,8 @@ namespace libp2p::protocol {
   }
 
   void AutonatMessageProcessor::autonatSent(
-      outcome::result<size_t> written_bytes, const StreamSPtr &stream) {
-    auto [peer_id, peer_addr] = detail::getPeerIdentity(stream);
+      outcome::result<size_t> written_bytes, StreamSPtr stream) {
+    auto [peer_id, peer_addr] = detail::getPeerIdentity(*stream);
     if (!written_bytes) {
       log_->error("cannot write Autonat message to stream to peer {}, {}: {}",
                   peer_id, peer_addr, written_bytes.error().message());
@@ -137,8 +137,8 @@ namespace libp2p::protocol {
   }
 
   void AutonatMessageProcessor::autonatReceived(
-      outcome::result<autonat::pb::Message> msg_res, const StreamSPtr &stream) {
-    auto [peer_id_str, peer_addr_str] = detail::getPeerIdentity(stream);
+      outcome::result<autonat::pb::Message> msg_res, StreamSPtr stream) {
+    auto [peer_id_str, peer_addr_str] = detail::getPeerIdentity(*stream);
     if (!msg_res) {
       log_->error("cannot read an autonat message from peer {}, {}: {}",
                   peer_id_str, peer_addr_str, msg_res.error());

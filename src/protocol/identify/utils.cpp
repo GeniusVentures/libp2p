@@ -9,13 +9,13 @@
 
 namespace libp2p::protocol::detail {
   std::tuple<std::string, std::string> getPeerIdentity(
-      const std::shared_ptr<libp2p::connection::Stream> &stream) {
+      libp2p::connection::Stream &stream) {
     std::string id = "unknown";
     std::string addr = "unknown";
-    if (auto id_res = stream->remotePeerId()) {
+    if (auto id_res = stream.remotePeerId()) {
       id = id_res.value().toBase58();
     }
-    if (auto addr_res = stream->remoteMultiaddr()) {
+    if (auto addr_res = stream.remoteMultiaddr()) {
       addr = addr_res.value().getStringAddress();
     }
     return {std::move(id), std::move(addr)};

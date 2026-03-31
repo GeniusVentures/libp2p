@@ -65,41 +65,49 @@ namespace __libp2p {
 #define __OUTCOME_DECLARE_MAKE_ERROR_CODE(Enum) \
   std::error_code make_error_code(Enum e);
 
+// MSVC workaround
+#define __OUTCOME_EXPAND(x) x
+// MSVC workaround
+#define __OUTCOME_UNWRAP(...) __VA_ARGS__
+
 /// MUST BE EXECUTED A FILE LEVEL (no namespace) in HPP
 // ns - fully qualified enum namespace. Example: libp2p::common
 // Enum - enum name. Example: EncodeError
+#define OUTCOME_HPP_DECLARE_ERROR_2_(args) OUTCOME_HPP_DECLARE_ERROR_2 args
 #define OUTCOME_HPP_DECLARE_ERROR_2(ns, Enum) \
-  namespace ns {                              \
-    __OUTCOME_DECLARE_MAKE_ERROR_CODE(Enum)   \
-  }                                           \
-                                              \
-  template <>                                 \
+  namespace ns {                               \
+    __OUTCOME_DECLARE_MAKE_ERROR_CODE(Enum)    \
+  }                                            \
+  template <>                                  \
   struct std::is_error_code_enum<ns::Enum> : std::true_type {};
 
 /// MUST BE EXECUTED A FILE LEVEL (global namespace) in HPP
 // Enum - enum name. Example: EncodeError
+#define OUTCOME_HPP_DECLARE_ERROR_1_(args) OUTCOME_HPP_DECLARE_ERROR_1 args
 #define OUTCOME_HPP_DECLARE_ERROR_1(Enum) \
-  __OUTCOME_DECLARE_MAKE_ERROR_CODE(Enum) \
-  template <>                             \
+  __OUTCOME_DECLARE_MAKE_ERROR_CODE(Enum)  \
+  template <>                              \
   struct std::is_error_code_enum<Enum> : std::true_type {};
 
 /// MUST BE EXECUTED AT FILE LEVEL(no namespace) IN CPP
 // ns - fully qualified enum namespace. Example: libp2p::common
 // Enum - enum name. Example: EncodeError
 // Name - variable name. Example: e
+#define OUTCOME_CPP_DEFINE_CATEGORY_3_(args) OUTCOME_CPP_DEFINE_CATEGORY_3 args
 #define OUTCOME_CPP_DEFINE_CATEGORY_3(ns, Enum, Name) \
-  namespace ns {                                      \
-    __OUTCOME_DEFINE_MAKE_ERROR_CODE(Enum)            \
-  };                                                  \
-  template <>                                         \
+  namespace ns {                                       \
+    __OUTCOME_DEFINE_MAKE_ERROR_CODE(Enum)             \
+  };                                                   \
+  template <>                                          \
   std::string __libp2p::Category<ns::Enum>::toString(ns::Enum Name)
 
 /// MUST BE EXECUTED AT FILE LEVEL(global namespace) IN CPP
 // Enum - enum name. Example: EncodeError
 // Name - variable name. Example: e
+#define OUTCOME_CPP_DEFINE_CATEGORY_2_(args) OUTCOME_CPP_DEFINE_CATEGORY_2 args
 #define OUTCOME_CPP_DEFINE_CATEGORY_2(Enum, Name) \
-  __OUTCOME_DEFINE_MAKE_ERROR_CODE(Enum)          \
-  template <>                                     \
+  __OUTCOME_DEFINE_MAKE_ERROR_CODE(Enum)           \
+  template <>                                      \
   std::string __libp2p::Category<Enum>::toString(Enum Name)
 
 // kind of "macro overloading"
@@ -108,16 +116,15 @@ namespace __libp2p {
 
 /// with 3 args: OUTCOME_CPP_DEFINE_CATEGORY_3
 /// with 2 args: OUTCOME_CPP_DEFINE_CATEGORY_2
-#define OUTCOME_CPP_DEFINE_CATEGORY(...)                    \
-  __GET_MACRO_3(__VA_ARGS__, OUTCOME_CPP_DEFINE_CATEGORY_3, \
-                OUTCOME_CPP_DEFINE_CATEGORY_2)              \
-  (__VA_ARGS__)
+#define OUTCOME_HPP_DECLARE_ERROR(...)                                     \
+  __OUTCOME_EXPAND(__GET_MACRO_2(__VA_ARGS__, OUTCOME_HPP_DECLARE_ERROR_2_, \
+                                 OUTCOME_HPP_DECLARE_ERROR_1_))((__VA_ARGS__))
 
 /// with 2 args: OUTCOME_CPP_DEFINE_CATEGORY_2
 /// with 1 arg : OUTCOME_CPP_DEFINE_CATEGORY_1
-#define OUTCOME_HPP_DECLARE_ERROR(...)                    \
-  __GET_MACRO_2(__VA_ARGS__, OUTCOME_HPP_DECLARE_ERROR_2, \
-                OUTCOME_HPP_DECLARE_ERROR_1)              \
-  (__VA_ARGS__)
+#define OUTCOME_CPP_DEFINE_CATEGORY(...)                                     \
+  __OUTCOME_EXPAND(__GET_MACRO_3(__VA_ARGS__, OUTCOME_CPP_DEFINE_CATEGORY_3_, \
+                                 OUTCOME_CPP_DEFINE_CATEGORY_2_))(            \
+      (__VA_ARGS__))
 
 #endif  // LIBP2P_OUTCOME_REGISTER_HPP

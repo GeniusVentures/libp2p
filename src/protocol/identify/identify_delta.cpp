@@ -58,7 +58,7 @@ namespace libp2p::protocol {
   void IdentifyDelta::deltaReceived(
       outcome::result<identify::pb::Identify> msg_res,
       const std::shared_ptr<connection::Stream> &stream) {
-    auto [peer_id_str, peer_addr_str] = detail::getPeerIdentity(stream);
+    auto [peer_id_str, peer_addr_str] = detail::getPeerIdentity(*stream);
     if (!msg_res) {
       log_->error("cannot read identify-delta message from peer {}, {}: {}",
                   peer_id_str, peer_addr_str, msg_res.error().message());

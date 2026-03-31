@@ -349,7 +349,7 @@ namespace libp2p::protocol::kademlia {
 
     // echo request
     auto buffer = std::make_shared<std::vector<uint8_t>>();
-    if (not msg.serialize(*buffer)) {
+    if (!msg.serialize(*buffer)) {
       session->close(Error::MESSAGE_SERIALIZE_ERROR);
       BOOST_UNREACHABLE_RETURN();
     }

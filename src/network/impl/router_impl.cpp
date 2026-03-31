@@ -56,7 +56,7 @@ namespace libp2p::network {
     }
 
     const auto &[predicate, cb] = matched_proto.value();
-    auto matched = matched_proto.key() == p or (predicate and predicate(p));
+    auto matched = matched_proto.key() == p || (predicate && predicate(p));
     if (matched) {
       // perfect or predicate match
       cb(StreamAndProtocol{std::move(stream), matched_proto.key()});
@@ -71,9 +71,9 @@ namespace libp2p::network {
     auto longest_match{matched_protos.second};
     for (auto match = matched_protos.first; match != matched_protos.second;
          ++match) {
-      if (match->predicate and match->predicate(p)
-          and (longest_match == matched_protos.second
-               or match.key().size() > longest_match.key().size())) {
+      if (match->predicate && match->predicate(p)
+          && (longest_match == matched_protos.second
+               || match.key().size() > longest_match.key().size())) {
         longest_match = match;
       }
     }

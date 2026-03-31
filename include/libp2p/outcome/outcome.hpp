@@ -10,6 +10,8 @@
 #include <boost/outcome/success_failure.hpp>
 #include <boost/outcome/try.hpp>
 
+#include <libp2p/outcome/outcome-register.hpp>
+
 // To define OUTCOME_TRY macro, we will need to create OUTCOME_TRY_1 and
 // OUTCOME_TRY_2 depending on number of arguments
 #define OUTCOME_TRY_1(...) BOOST_OUTCOME_TRY(__VA_ARGS__)
@@ -17,10 +19,9 @@
 
 // trick from https://stackoverflow.com/a/11763277 to overload OUTCOME_TRY
 #define GET_MACRO(_1, _2, NAME, ...) NAME
-#define OUTCOME_TRY(...) \
-  GET_MACRO(__VA_ARGS__, OUTCOME_TRY_2, OUTCOME_TRY_1)(__VA_ARGS__)
-
-#include <libp2p/outcome/outcome-register.hpp>
+#define OUTCOME_TRY(...)                                                  \
+  __OUTCOME_EXPAND(GET_MACRO(__VA_ARGS__, OUTCOME_TRY_2, OUTCOME_TRY_1))( \
+      __VA_ARGS__)
 
 /**
  * __cpp_sized_deallocation macro interferes with protobuf generated files

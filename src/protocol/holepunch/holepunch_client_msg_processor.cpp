@@ -68,8 +68,8 @@ namespace libp2p::protocol {
 
     void HolepunchClientMsgProc::holepunchIncomingReceived(
         outcome::result<holepunch::pb::HolePunch> msg_res,
-        const StreamSPtr& stream) {
-        auto [peer_id_str, peer_addr_str] = detail::getPeerIdentity(stream);
+        StreamSPtr stream) {
+        auto [peer_id_str, peer_addr_str] = detail::getPeerIdentity(*stream);
         if (!msg_res) {
             log_->error("cannot read an holepunch message from peer {}, {}: {}",
                 peer_id_str, peer_addr_str, msg_res.error());
@@ -127,9 +127,9 @@ namespace libp2p::protocol {
     }
 
     void HolepunchClientMsgProc::holepunchConResponseSent(
-        outcome::result<size_t> written_bytes, const StreamSPtr& stream,
+        outcome::result<size_t> written_bytes, StreamSPtr stream,
         std::vector<libp2p::multi::Multiaddress> connaddrs) {
-        auto [peer_id, peer_addr] = detail::getPeerIdentity(stream);
+        auto [peer_id, peer_addr] = detail::getPeerIdentity(*stream);
         if (!written_bytes) {
             log_->error("cannot write holepunch connect response message to stream to peer {}, {}: {}",
                 peer_id, peer_addr, written_bytes.error().message());
@@ -148,10 +148,10 @@ namespace libp2p::protocol {
 
     void HolepunchClientMsgProc::holepunchSyncResponseReturn(
         outcome::result<holepunch::pb::HolePunch> msg_res,
-        const StreamSPtr& stream,
+        StreamSPtr stream,
         std::vector<libp2p::multi::Multiaddress> connaddrs)
     {
-        auto [peer_id_str, peer_addr_str] = detail::getPeerIdentity(stream);
+        auto [peer_id_str, peer_addr_str] = detail::getPeerIdentity(*stream);
         if (!msg_res) {
             log_->error("cannot read an holepunch sync message from peer {}, {}: {}",
                 peer_id_str, peer_addr_str, msg_res.error());

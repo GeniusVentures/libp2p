@@ -32,9 +32,9 @@ namespace libp2p::protocol {
 
     RelayUpgraderMessageProcessor::RelayUpgraderMessageProcessor()
     {
-
     }
-	void RelayUpgraderMessageProcessor::initiateRelayCon(StreamSPtr& stream_res, peer::PeerInfo peer_info, CompletionCallback cb)
+
+	void RelayUpgraderMessageProcessor::initiateRelayCon(StreamSPtr stream_res, peer::PeerInfo peer_info, CompletionCallback cb)
 	{
         log_->info("Creating and sending hop connect message to {}", peer_info.id.toBase58());
 		relay::pb::HopMessage msg;
@@ -59,9 +59,10 @@ namespace libp2p::protocol {
 	}
 
     void RelayUpgraderMessageProcessor::relayConnectSent(
-        outcome::result<size_t> written_bytes, const StreamSPtr& stream, CompletionCallback cb) {
+            outcome::result<size_t> written_bytes, StreamSPtr stream,
+            CompletionCallback cb) {
         
-        auto [peer_id, peer_addr] = detail::getPeerIdentity(stream);
+        auto [peer_id, peer_addr] = detail::getPeerIdentity(*stream);
         if (!written_bytes) {
             log_->error("cannot write Relay message to stream to peer {}, {}: {}",
                 peer_id, peer_addr, written_bytes.error().message());
@@ -75,13 +76,13 @@ namespace libp2p::protocol {
         auto rw = std::make_shared<basic::ProtobufMessageReadWriter>(stream);
         rw->read<relay::pb::HopMessage>(
             [self{ shared_from_this() }, stream, cb](auto&& res) {
-                self->relayConnectStatus(std::forward<decltype(res)>(res), stream, cb);
+                self->relayConnectStatus(std::forward<decltype(res)>(res), *stream, cb);
             });
     }
 
     void RelayUpgraderMessageProcessor::relayConnectStatus(
         outcome::result<relay::pb::HopMessage> msg_res,
-        const StreamSPtr& stream, CompletionCallback cb) {
+        libp2p::connection::Stream &stream, CompletionCallback cb) {
         auto [peer_id_str, peer_addr_str] = detail::getPeerIdentity(stream);
         if (!msg_res) {
             log_->error("cannot read an relay message from peer {}, {}: {}",

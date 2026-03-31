@@ -77,7 +77,7 @@ namespace libp2p::protocol {
      * @param peer_id we are connecting to
      */
     void holepunchConnectSent(outcome::result<size_t> written_bytes,
-                      const StreamSPtr &stream,
+                      StreamSPtr stream,
         peer::PeerId peer_id, int retry_count);
 
     /**
@@ -88,7 +88,7 @@ namespace libp2p::protocol {
      * @param peer_id we are connecting to
      */
     void holepunchConnectReturn(outcome::result<holepunch::pb::HolePunch> msg_res,
-        const StreamSPtr& stream, std::chrono::steady_clock::time_point start_time,
+        StreamSPtr stream, std::chrono::steady_clock::time_point start_time,
         peer::PeerId peer_id, int retry_count);
 
     Host &host_;
