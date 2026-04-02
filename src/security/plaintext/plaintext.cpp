@@ -40,7 +40,7 @@
 #define PLAINTEXT_OUTCOME_VOID_TRY(res, conn, cb) \
   PLAINTEXT_OUTCOME_TRY_VOID_I(_UNIQUE_NAME_(void_var), res, conn, cb)
 
-OUTCOME_CPP_DEFINE_CATEGORY_3(libp2p::security, Plaintext::Error, e) {
+OUTCOME_CPP_DEFINE_CATEGORY(libp2p::security, Plaintext::Error, e) {
   using E = libp2p::security::Plaintext::Error;
   switch (e) {
     case E::EXCHANGE_SEND_ERROR:
@@ -105,8 +105,8 @@ namespace libp2p::security {
       std::shared_ptr<connection::Stream> outbound,
       const peer::PeerId& p, SecConnCallbackFunc cb) {
       SL_DEBUG(log_, "securing outbound connection for relay");
-      
-      
+
+
       auto rw = std::make_shared<basic::ProtobufMessageReadWriter>(outbound);
       sendExchangeMsg(outbound, rw, cb);
       receiveExchangeMsg(outbound, rw, p, cb);
@@ -208,7 +208,7 @@ namespace libp2p::security {
 
     // PeerId is derived from the Protobuf-serialized public key, not a raw one
     auto derived_pid_res = peer::PeerId::fromPublicKey(in_exchange_msg.second);
-    
+
     if (!derived_pid_res) {
       log_->error("cannot create a PeerId from the received public key: {}",
                   derived_pid_res.error().message());

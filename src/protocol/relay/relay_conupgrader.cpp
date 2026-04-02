@@ -1,3 +1,4 @@
+#include <libp2p/connection/stream_and_protocol.hpp>
 #include <libp2p/protocol/relay/relay_conupgrader.hpp>
 
 #include <string>
@@ -19,7 +20,7 @@ namespace libp2p::protocol {
     }
 
 
-    void RelayUpgrader::handle(StreamResult stream_res)
+    void RelayUpgrader::handle(StreamAndProtocol stream_res)
     {
 
     }
@@ -28,9 +29,9 @@ namespace libp2p::protocol {
         return kRelayProto;
     }
 
-    void RelayUpgrader::start(StreamResult stream_res, peer::PeerInfo peer_info, CompletionCallback cb)
+    void RelayUpgrader::start(StreamAndProtocol stream_res, peer::PeerInfo peer_info, CompletionCallback cb)
     {
         log_->info("Creating a peer relay upgrade to {} ", peer_info.id.toBase58());
-        msg_processor_->initiateRelayCon(stream_res.value(), peer_info, cb);
+        msg_processor_->initiateRelayCon(stream_res.stream, std::move(peer_info), std::move(cb));
     }
 }

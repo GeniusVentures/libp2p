@@ -15,7 +15,7 @@ using libp2p::common::ByteArray;
 using libp2p::common::hex_upper;
 using libp2p::common::unhex;
 
-OUTCOME_CPP_DEFINE_CATEGORY_3(libp2p::multi, Multihash::Error, e) {
+OUTCOME_CPP_DEFINE_CATEGORY(libp2p::multi, Multihash::Error, e) {
   using E = libp2p::multi::Multihash::Error;
   switch (e) {
     case E::ZERO_INPUT_LENGTH:
@@ -89,7 +89,7 @@ namespace libp2p::multi {
   }
 
   outcome::result<Multihash> Multihash::createFromHex(std::string_view hex) {
-    OUTCOME_TRY((auto &&, buf), unhex(hex));
+    OUTCOME_TRY(buf, unhex(hex));
     return Multihash::createFromBytes(buf);
   }
 

@@ -11,7 +11,7 @@ namespace {
   constexpr uint8_t kMaximumVarintLength = 9;  // taken from Go
 }
 
-OUTCOME_CPP_DEFINE_CATEGORY_3(libp2p::basic, VarintReader::Error, e) {
+OUTCOME_CPP_DEFINE_CATEGORY(libp2p::basic, VarintReader::Error, e) {
   using E = libp2p::basic::VarintReader::Error;
   switch (e) {
     case E::NO_VARINT:

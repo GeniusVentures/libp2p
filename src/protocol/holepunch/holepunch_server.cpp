@@ -27,15 +27,7 @@ namespace libp2p::protocol {
     return msg_processor_->onHolepunchReceived(cb);
   }
 
-  //std::vector<multi::Multiaddress> HolepunchServer::getAllObservedAddresses() const {
-  //  return msg_processor_->getObservedAddresses().getAllAddresses();
-  //}
-
-  //std::vector<multi::Multiaddress> HolepunchServer::getObservedAddressesFor(
-  //    const multi::Multiaddress &address) const {
-  //  return msg_processor_->getObservedAddresses().getAddressesFor(address);
-  //}
-  void HolepunchServer::handle(StreamResult stream_res)
+  void HolepunchServer::handle(StreamAndProtocol stream_res)
   {
   }
 
@@ -46,11 +38,6 @@ namespace libp2p::protocol {
 
 
   void HolepunchServer::start(peer::PeerId peerid) {
-    //  if (started_) return;
-    //// no double starts
-    ////BOOST_ASSERT(!started_);
-    //started_ = true;
-      
       // Check if we have observed addresses before attempting holepunch
       if (!hasValidObservedAddresses()) {
           log_->warn("No observed addresses available for holepunch to {}. Holepunch cannot function without observed addresses.", peerid.toBase58());
@@ -59,21 +46,20 @@ namespace libp2p::protocol {
       
       log_->info("Initiate a holepunch with: {}", peerid.toBase58());
         msg_processor_->getHost().newStream(
-        peerid, kHolepunchServerProto,
+        peerid, {kHolepunchServerProto},
         [self{shared_from_this()}, peerid](auto &&stream_res) {
             if (!stream_res) {
                 self->log_->error("Failed to create new stream: {}", stream_res.error().message());
                 return;
             }
             self->log_->info("Sending dcutr holepunch request to peer {} ", peerid.toBase58());
-            auto stream = stream_res.value();
-            self->msg_processor_->sendHolepunchConnect(stream, peerid, 0);
+            self->msg_processor_->sendHolepunchConnect(stream_res.value().stream, peerid, 0);
         });
   }
 
   void HolepunchServer::initiateHolepunchServer(StreamSPtr stream, peer::PeerId peer_id) {
         //Send out connect message
-      msg_processor_->sendHolepunchConnect(stream, peer_id);
+      msg_processor_->sendHolepunchConnect(std::move(stream), std::move(peer_id));
   }
 
   bool HolepunchServer::hasValidObservedAddresses() const {

@@ -100,7 +100,7 @@ namespace libp2p::protocol::gossip {
 
   outcome::result<void> GossipCore::addBootstrapPeer(
       const std::string &address) {
-    OUTCOME_TRY((auto &&, ma), libp2p::multi::Multiaddress::create(address));
+    OUTCOME_TRY(ma, libp2p::multi::Multiaddress::create(address));
       //auto ma = libp2p::multi::Multiaddress::create(address);
       //if (!ma)
       //{
@@ -110,7 +110,7 @@ namespace libp2p::protocol::gossip {
     if (!peer_id_str) {
       return multi::Multiaddress::Error::INVALID_INPUT;
     }
-    OUTCOME_TRY((auto &&, peer_id), peer::PeerId::fromBase58(*peer_id_str));
+    OUTCOME_TRY(peer_id, peer::PeerId::fromBase58(*peer_id_str));
     addBootstrapPeer(peer_id, boost::optional<multi::Multiaddress>{std::move(ma)});
     return outcome::success();
   }
@@ -221,12 +221,12 @@ namespace libp2p::protocol::gossip {
 
   outcome::result<void> GossipCore::signMessage(TopicMessage &msg) const {
     const auto &keypair = idmgr_->getKeyPair();
-    OUTCOME_TRY((auto &&, signable), MessageBuilder::signableMessage(msg));
-    OUTCOME_TRY((auto &&, signature),
+    OUTCOME_TRY(signable, MessageBuilder::signableMessage(msg));
+    OUTCOME_TRY(signature,
                 crypto_provider_->sign(signable, keypair.privateKey));
     msg.signature = std::move(signature);
     if (idmgr_->getId().toMultihash().getType() != multi::HashType::identity) {
-      OUTCOME_TRY((auto &&, key), key_marshaller_->marshal(keypair.publicKey));
+      OUTCOME_TRY(key, key_marshaller_->marshal(keypair.publicKey));
       msg.key = std::move(key.key);
     }
     return outcome::success();
@@ -339,7 +339,7 @@ namespace libp2p::protocol::gossip {
       if (peer_id_res) {
         auto& conn_mgr = host_->getNetwork().getConnectionManager();
         conn_mgr.tagPeer(peer_id_res.value(), "gossip-active", 200);
-        log_.debug("tagged peer {} for sending valuable message on topic {}", 
+        log_.debug("tagged peer {} for sending valuable message on topic {}",
                   peer_id_res.value().toBase58(), msg->topic);
       }
     }
@@ -389,14 +389,14 @@ namespace libp2p::protocol::gossip {
 
     if (connected) {
       log_.debug("peer {} connected", ctx->str);
-      
+
       // Tag peer as gossip participant - they connected to our gossip network
       if (ctx) {
         auto& conn_mgr = host_->getNetwork().getConnectionManager();
         conn_mgr.tagPeer(ctx->peer_id, "gossip-connected", 100);
         log_.debug("tagged peer {} for joining gossip network", ctx->str);
       }
-      
+
       // notify the new peer about all topics we subscribed to
       if (!local_subscriptions_->subscribedTo().empty()) {
         for (const auto &local_sub : local_subscriptions_->subscribedTo()) {

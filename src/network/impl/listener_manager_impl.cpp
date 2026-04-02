@@ -309,23 +309,10 @@ namespace libp2p::network {
       this->cmgr_->addConnectionToPeer(id, conn);
   }
 
-
   void ListenerManagerImpl::removeRelayedConnections(
       peer::PeerId id)
   {
       cmgr_->removeRelayedConnections(id);
-  }
-
-
-  void ListenerManagerImpl::setProtocolHandler(const peer::Protocol &protocol,
-                                               StreamResultFunc cb) {
-    this->router_->setProtocolHandler(protocol, std::move(cb));
-  }
-
-  void ListenerManagerImpl::setProtocolHandler(
-      const peer::Protocol &protocol, StreamResultFunc cb,
-      Router::ProtoPredicate predicate) {
-    this->router_->setProtocolHandler(protocol, std::move(cb), predicate);
   }
 
   Router &ListenerManagerImpl::getRouter() {

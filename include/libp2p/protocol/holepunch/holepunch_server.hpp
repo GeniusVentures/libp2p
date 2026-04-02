@@ -55,7 +55,7 @@ namespace libp2p::protocol {
      * If we get a HolepunchServer CONNECT message, someone is trying to initiate a HolepunchServer with us via a circuit relay
      * This handler sends this to message processor
      */
-    void handle(StreamResult stream_res) override;
+    void handle(StreamAndProtocol stream_res) override;
 
     /**
      * We only create a protocol handler here accepting HolepunchServer dcutr.

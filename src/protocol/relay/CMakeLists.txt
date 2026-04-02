@@ -1,8 +1,3 @@
-#
-# Copyright Soramitsu Co., Ltd. All Rights Reserved.
-# SPDX-License-Identifier: Apache-2.0
-#
-
 add_subdirectory(protobuf)
 
 libp2p_add_library(p2p_relay_addresses

@@ -25,19 +25,25 @@ namespace libp2p::network {
                       std::chrono::milliseconds, const libp2p::network::RouteHelper::SourceAddresses &));
     MOCK_METHOD3(newStream,
                  void(const peer::PeerInfo &, const peer::Protocol &,
-                      StreamResultFunc));
+                      StreamAndProtocolOrErrorCb));
     MOCK_METHOD4(newStream,
                  void(const peer::PeerInfo &, const peer::Protocol &,
-                      StreamResultFunc, std::chrono::milliseconds));
+                      StreamAndProtocolOrErrorCb, std::chrono::milliseconds));
     MOCK_METHOD5(newStream,
                  void(const peer::PeerInfo &, const peer::Protocol &,
-                      StreamResultFunc, std::chrono::milliseconds, const libp2p::network::RouteHelper::SourceAddresses &));
+                      StreamAndProtocolOrErrorCb, std::chrono::milliseconds, const libp2p::network::RouteHelper::SourceAddresses &));
     MOCK_METHOD3(newStream,
                  void(const peer::PeerId &, const peer::Protocol &,
-                     StreamResultFunc));
+                     StreamAndProtocolOrErrorCb));
     MOCK_METHOD4(newStream,
                  void(const peer::PeerId &, const peer::Protocol &,
-                     StreamResultFunc, const libp2p::network::RouteHelper::SourceAddresses &));
+                     StreamAndProtocolOrErrorCb, const libp2p::network::RouteHelper::SourceAddresses &));
+    MOCK_METHOD4(newStream,
+                 void(const peer::PeerInfo &, StreamProtocols,
+                      StreamAndProtocolOrErrorCb, std::chrono::milliseconds));
+    MOCK_METHOD3(newStream,
+                 void(const peer::PeerId &, StreamProtocols,
+                      StreamAndProtocolOrErrorCb));
   };
 
 }  // namespace libp2p::network

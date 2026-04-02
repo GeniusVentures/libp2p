@@ -15,7 +15,7 @@ namespace {
       "/" + std::string{ProtocolList::get(Protocol::Code::P2P)->name} + "/";
 }  // namespace
 
-OUTCOME_CPP_DEFINE_CATEGORY_3(libp2p::peer, PeerAddress::FactoryError, e) {
+OUTCOME_CPP_DEFINE_CATEGORY(libp2p::peer, PeerAddress::FactoryError, e) {
   using E = libp2p::peer::PeerAddress::FactoryError;
   switch (e) {
     case E::ID_EXPECTED:
@@ -37,11 +37,11 @@ namespace libp2p::peer {
       : id_{std::move(id)}, address_{std::move(address)} {}
 
   PeerAddress::FactoryResult PeerAddress::create(std::string_view address) {
-    OUTCOME_TRY((auto &&, multiaddress), Multiaddress::create(address));
+    OUTCOME_TRY(multiaddress, Multiaddress::create(address));
 
-    OUTCOME_TRY((auto &&, id_b58_str),
+    OUTCOME_TRY(id_b58_str,
                 multiaddress.getFirstValueForProtocol(Protocol::Code::P2P));
-    OUTCOME_TRY((auto &&, id), PeerId::fromBase58(id_b58_str));
+    OUTCOME_TRY(id, PeerId::fromBase58(id_b58_str));
 
     multiaddress.decapsulate(Protocol::Code::P2P);
 

@@ -9,13 +9,13 @@
 
 namespace libp2p::protocol::detail {
   std::tuple<std::string, std::string> getPeerIdentity(
-      const std::shared_ptr<libp2p::connection::Stream> &stream) {
+      libp2p::connection::Stream &stream) {
     std::string id = "unknown";
     std::string addr = "unknown";
-    if (auto id_res = stream->remotePeerId()) {
+    if (auto id_res = stream.remotePeerId()) {
       id = id_res.value().toBase58();
     }
-    if (auto addr_res = stream->remoteMultiaddr()) {
+    if (auto addr_res = stream.remoteMultiaddr()) {
       addr = addr_res.value().getStringAddress();
     }
     return {std::move(id), std::move(addr)};
@@ -41,10 +41,10 @@ namespace libp2p::protocol::detail {
 
   void streamToEachConnectedPeer(Host &host,
                                  network::ConnectionManager &conn_manager,
-                                 const peer::Protocol &protocol,
-                                 const Host::StreamResultHandler &handler) {
+                                 StreamProtocols protocols,
+                                 StreamAndProtocolOrErrorCb handler) {
     for (const auto &peer : getActivePeers(host, conn_manager)) {
-      host.newStream(peer, protocol, handler);
+      host.newStream(peer, protocols, handler);
     }
   }
 }  // namespace libp2p::protocol::detail

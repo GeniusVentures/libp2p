@@ -84,9 +84,9 @@ namespace libp2p::protocol {
 
 
     void HolepunchServerMsgProc::holepunchConnectSent(
-        outcome::result<size_t> written_bytes, const StreamSPtr& stream,
+        outcome::result<size_t> written_bytes, StreamSPtr stream,
         peer::PeerId peer_id, int retry_count) {
-        auto [peer_id_str, peer_addr_str] = detail::getPeerIdentity(stream);
+        auto [peer_id_str, peer_addr_str] = detail::getPeerIdentity(*stream);
         if (!written_bytes) {
             log_->error("cannot write holepunch connect message to stream to peer {}, {} {}: {}",
                 peer_id_str, peer_addr_str, peer_id.toBase58(), written_bytes.error().message());
@@ -107,10 +107,10 @@ namespace libp2p::protocol {
 
     void HolepunchServerMsgProc::holepunchConnectReturn(
         outcome::result<holepunch::pb::HolePunch> msg_res,
-        const StreamSPtr& stream,
+        StreamSPtr stream,
         std::chrono::steady_clock::time_point start_time,
         peer::PeerId peer_id, int retry_count) {
-        auto [peer_id_str, peer_addr_str] = detail::getPeerIdentity(stream);
+        auto [peer_id_str, peer_addr_str] = detail::getPeerIdentity(*stream);
 
         if (!msg_res) {
             log_->error("cannot read an holepunch message from peer {}, {}: {}",

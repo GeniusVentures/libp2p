@@ -81,7 +81,7 @@ namespace libp2p::protocol {
      * @param stream with the other side
      */
     void autonatSent(outcome::result<size_t> written_bytes,
-                     const StreamSPtr &stream);
+                     StreamSPtr stream);
 
     /**
      * Called, when an autonat message is received from the other peer
@@ -89,7 +89,7 @@ namespace libp2p::protocol {
      * @param stream, over which it was received
      */
     void autonatReceived(outcome::result<autonat::pb::Message> msg_res,
-                         const StreamSPtr &stream);
+                         StreamSPtr stream);
 
     /**
      * Called, when an autonat message is a DIAL_RESPONSE(Which indicates they

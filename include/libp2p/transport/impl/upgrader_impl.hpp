@@ -16,7 +16,6 @@
 #include <libp2p/security/security_adaptor.hpp>
 #include <libp2p/transport/upgrader.hpp>
 
-
 namespace libp2p::transport {
   class UpgraderImpl : public Upgrader,
                        public std::enable_shared_from_this<UpgraderImpl> {
@@ -66,6 +65,6 @@ namespace libp2p::transport {
   };
 }  // namespace libp2p::transport
 
-OUTCOME_HPP_DECLARE_ERROR_2(libp2p::transport, UpgraderImpl::Error)
+OUTCOME_HPP_DECLARE_ERROR(libp2p::transport, UpgraderImpl::Error)
 
 #endif  // LIBP2P_UPGRADER_IMPL_HPP

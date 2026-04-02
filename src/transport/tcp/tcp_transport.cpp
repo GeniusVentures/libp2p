@@ -63,6 +63,7 @@ namespace libp2p::transport {
           [self, conn, handler{std::move(handler)}, remoteId, holepunch, holepunchserver](auto ec,
                                                               auto &e) mutable {
             if (ec) {
+              conn->close();
               return handler(ec);
             }
 
