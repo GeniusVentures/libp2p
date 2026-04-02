@@ -71,9 +71,10 @@ namespace libp2p::security::tls_details {
                       subject_name.size());
 
     log()->log(status ? log::Level::TRACE : log::Level::INFO,
-              "in certificate verify callback, subject={}, error={} ({}), "
-              "depth={}, status={}",
-              subject_name.data(), x509ErrorToStr(error), error, depth, status);
+               "in certificate verify callback, subject={}, error={} ({}), "
+               "depth={}, status={}",
+               subject_name.data(), x509ErrorToStr(error), error, depth,
+               status);
     return status;
   }
 
@@ -146,6 +147,7 @@ namespace libp2p::security::tls_details {
       memcpy(pk_data.data(), host_private_key.data.data(), 32);
 
       return crypto::ed25519::Ed25519ProviderImpl{}
+          // NOLINTNEXTLINE(cppcoreguidelines-narrowing-conversions)
           .sign(gsl::span<const uint8_t>(buf, msg_len), pk_data)
           .value();
     }
@@ -155,6 +157,7 @@ namespace libp2p::security::tls_details {
                       const crypto::ecdsa::PublicKey &cert_pub_key) {
       EVP_PKEY *pub = nullptr;
       const auto *data = cert_pub_key.data();
+      // NOLINTNEXTLINE(cppcoreguidelines-narrowing-conversions)
       d2i_PUBKEY(&pub, &data, cert_pub_key.size());
       if (pub == nullptr) {
         throw std::runtime_error("cannot deserialize certificate public key");
@@ -210,6 +213,7 @@ namespace libp2p::security::tls_details {
         X509 *cert, const std::array<uint8_t, kExtensionDataSize> &ext_data) {
       ASN1_OCTET_STRING *os = ASN1_OCTET_STRING_new();
       CLEANUP_PTR(os, ASN1_OCTET_STRING_free);
+      // NOLINTNEXTLINE(cppcoreguidelines-narrowing-conversions)
       ASN1_OCTET_STRING_set(os, ext_data.data(), ext_data.size());
 
       ASN1_OBJECT *obj = OBJ_txt2obj(extension_oid.data(), 1);
@@ -227,6 +231,7 @@ namespace libp2p::security::tls_details {
                          const crypto::ecdsa::PrivateKey &priv_key) {
       EC_KEY *ec_key = nullptr;
       const uint8_t *data = priv_key.data();
+      // NOLINTNEXTLINE(cppcoreguidelines-narrowing-conversions)
       d2i_ECPrivateKey(&ec_key, &data, priv_key.size());
       if (ec_key == nullptr) {
         throw std::runtime_error("cannot deserialize ECDSA private key");
@@ -262,7 +267,7 @@ namespace libp2p::security::tls_details {
     // 3. Create certificate
     X509 *cert = X509_new();
     CLEANUP_PTR(cert, X509_free);
-    X509_set_version(cert, 3);
+    X509_set_version(cert, 2);
     assignPubkey(cert, cert_keys.public_key);
     assignSerial(cert);
     assignIssuer(cert);
@@ -366,7 +371,7 @@ namespace libp2p::security::tls_details {
 
       if (!verify_res) {
         log()->info("peer {} verification failed, {}", peer_id.toBase58(),
-                   verify_res.error().message());
+                    verify_res.error().message());
         return TlsError::TLS_PEER_VERIFY_FAILED;
       }
 

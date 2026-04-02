@@ -301,8 +301,6 @@ namespace libp2p::connection {
     for (const auto &[id, handler] : streams_created) {
       auto it = streams_.find(id);
 
-      assert(it != streams_.end());
-
       if (it == streams_.end()) {
         log_()->error("fresh_streams_ inconsistency!");
         continue;
