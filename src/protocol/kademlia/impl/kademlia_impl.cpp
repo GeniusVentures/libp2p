@@ -57,7 +57,6 @@ namespace libp2p::protocol::kademlia {
   }
 
   void KademliaImpl::start() {
-    BOOST_ASSERT(!started_);
     if (started_) {
       return;
     }
@@ -301,7 +300,7 @@ namespace libp2p::protocol::kademlia {
       case Message::Type::kPing: msg_type_str = "Ping"; break;
     }
     log_.info("INCOMING MSG: {}", msg_type_str);
-    
+
     switch (msg.type) {
       case Message::Type::kPutValue:
         onPutValue(session, std::move(msg));
