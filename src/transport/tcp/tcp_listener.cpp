@@ -137,14 +137,8 @@ namespace libp2p::transport {
     }
 
     acceptor_.async_accept(
-        [wptr{this->weak_from_this()}](const boost::system::error_code &ec,
+        [self{this->shared_from_this()}](const boost::system::error_code &ec,
                                          ip::tcp::socket sock) {
-          auto self = wptr.lock();
-
-          if (!self) {
-            return;
-          }
-
           if (ec) {
             return self->handle_(ec);
           }
