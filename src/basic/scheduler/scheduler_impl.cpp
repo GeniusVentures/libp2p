@@ -6,6 +6,9 @@
 #include <libp2p/basic/scheduler/scheduler_impl.hpp>
 
 #include <cassert>
+#include <exception>
+
+#include <libp2p/log/logger.hpp>
 
 #include "platform/platform.hpp"
 
@@ -82,10 +85,24 @@ namespace libp2p::basic {
   }
 
   void SchedulerImpl::pulse(std::chrono::milliseconds current_clock) noexcept {
-    if (current_clock == kZeroTime) {
-      deferred_callbacks_.onTimer(shared_from_this());
-    } else {
-      timed_callbacks_.onTimer(current_clock, shared_from_this());
+    try {
+      if (current_clock == kZeroTime) {
+        deferred_callbacks_.onTimer(shared_from_this());
+      } else {
+        timed_callbacks_.onTimer(current_clock, shared_from_this());
+      }
+    } catch (const std::exception &e) {
+      try {
+        auto log = log::createLogger("Scheduler", "scheduler");
+        log->error("scheduler pulse exception: {}", e.what());
+      } catch (...) {
+      }
+    } catch (...) {
+      try {
+        auto log = log::createLogger("Scheduler", "scheduler");
+        log->error("scheduler pulse unknown exception");
+      } catch (...) {
+      }
     }
   }
 
