@@ -27,39 +27,35 @@
 
 namespace libp2p::security::noise {
   InsecureReadWriter::InsecureReadWriter(
-      std::shared_ptr<connection::RawConnection> connection,
-      std::shared_ptr<common::ByteArray> buffer)
-      : connection_{std::move(connection)}, buffer_{std::move(buffer)} {}
+      std::shared_ptr<connection::RawConnection> connection)
+      : connection_{std::move(connection)} {}
 
   InsecureReadWriter::InsecureReadWriter(
-      std::shared_ptr<connection::Stream> connection,
-      std::shared_ptr<common::ByteArray> buffer)
-      : connection_{ std::move(connection) }, buffer_{ std::move(buffer) } {}
+      std::shared_ptr<connection::Stream> connection)
+      : connection_{ std::move(connection) } {}
 
   void InsecureReadWriter::read(basic::MessageReadWriter::ReadCallbackFunc cb) {
-    buffer_->resize(kMaxMsgLen);  // ensure buffer capacity
-    auto read_cb = [cb{std::move(cb)}, self{shared_from_this()}](
+    auto buffer = std::make_shared<common::ByteArray>(kMaxMsgLen);
+    auto read_cb = [cb{std::move(cb)}, self{shared_from_this()}, buffer](
                        outcome::result<size_t> result) mutable {
       IO_OUTCOME_TRY(read_bytes, result, cb);
       if (kLengthPrefixSize != read_bytes) {
         return cb(std::errc::broken_pipe);
       }
       uint16_t frame_len{
-          ntohs(common::convert<uint16_t>(self->buffer_->data()))};  // NOLINT
-      auto read_cb = [cb = std::move(cb), self,
+          ntohs(common::convert<uint16_t>(buffer->data()))};  // NOLINT
+      auto read_cb = [cb = std::move(cb), self, buffer,
                       frame_len](outcome::result<size_t> result) {
         IO_OUTCOME_TRY(read_bytes, result, cb);
         if (frame_len != read_bytes) {
           return cb(std::errc::broken_pipe);
         }
-        self->buffer_->resize(read_bytes);
-        cb(self->buffer_);
+        buffer->resize(read_bytes);
+        cb(buffer);
       };
-      std::visit([self, frame_len, read_cb](auto&& conn) { return conn->read(*self->buffer_, frame_len, std::move(read_cb)); }, self->connection_);
-      //self->connection_->read(*self->buffer_, frame_len, std::move(read_cb));
+      std::visit([buffer, frame_len, read_cb](auto&& conn) { return conn->read(*buffer, frame_len, std::move(read_cb)); }, self->connection_);
     };
-    //connection_->read(*buffer_, kLengthPrefixSize, std::move(read_cb));
-    std::visit([self{ shared_from_this() }, read_cb](auto&& conn) { return conn->read(*self->buffer_, kLengthPrefixSize, std::move(read_cb)); }, connection_);
+    std::visit([self{ shared_from_this() }, buffer, read_cb](auto&& conn) { return conn->read(*buffer, kLengthPrefixSize, std::move(read_cb)); }, connection_);
 
   }
 

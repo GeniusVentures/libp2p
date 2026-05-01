@@ -63,11 +63,9 @@ namespace libp2p::security::noise {
         initiator_{is_initiator},
         connection_cb_{std::move(cb)},
         key_marshaller_{std::move(key_marshaller)},
-        read_buffer_{std::make_shared<ByteArray>(kMaxMsgLen)},
-        rw_{std::make_shared<InsecureReadWriter>(std::get<std::shared_ptr<connection::RawConnection>>(connection_), read_buffer_)},
+        rw_{std::make_shared<InsecureReadWriter>(std::get<std::shared_ptr<connection::RawConnection>>(connection_))},
         handshake_state_{std::make_unique<HandshakeState>()},
         remote_peer_id_{std::move(remote_peer_id)} {
-    read_buffer_->resize(kMaxMsgLen);
   }
 
   Handshake::Handshake(
@@ -86,11 +84,9 @@ namespace libp2p::security::noise {
       initiator_{ is_initiator },
       connection_cb_{ std::move(cb) },
       key_marshaller_{ std::move(key_marshaller) },
-      read_buffer_{ std::make_shared<ByteArray>(kMaxMsgLen) },
-      rw_{ std::make_shared<InsecureReadWriter>(std::get<std::shared_ptr<connection::Stream>>(connection_), read_buffer_) },
+      rw_{ std::make_shared<InsecureReadWriter>(std::get<std::shared_ptr<connection::Stream>>(connection_)) },
       handshake_state_{ std::make_unique<HandshakeState>() },
       remote_peer_id_{ std::move(remote_peer_id) } {
-      read_buffer_->resize(kMaxMsgLen);
   }
 
   void Handshake::connect() {
