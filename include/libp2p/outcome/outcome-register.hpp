@@ -41,8 +41,11 @@ namespace __libp2p {
     }
 
     LIBP2P_EXPORT static const Category<T> &get() {
-      static const Category<T> c;
-      return c;
+      // Intentionally leak the singleton to avoid registering an atexit
+      // destructor, which can contend with CRT shutdown locks when first use
+      // happens late during process teardown.
+      static const Category<T> *c = new Category<T>();
+      return *c;
     }
 
     ~Category() override = default;
