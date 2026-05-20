@@ -480,7 +480,7 @@ namespace libp2p::protocol::gossip {
       std::vector<std::pair<bool, TopicId>> flat_changes;
       flat_changes.reserve(local_changes.size());
       boost::for_each(local_changes, [&flat_changes](auto &&p) {
-        flat_changes.emplace_back(p.second, std::move(p.first));
+        flat_changes.emplace_back(p.second, p.first);
       });
 
       connected_peers_.selectAll(
