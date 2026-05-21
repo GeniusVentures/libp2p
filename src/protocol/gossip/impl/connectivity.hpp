@@ -6,6 +6,7 @@
 #ifndef LIBP2P_PROTOCOL_GOSSIP_CONNECTIVITY_HPP
 #define LIBP2P_PROTOCOL_GOSSIP_CONNECTIVITY_HPP
 
+#include <atomic>
 #include <map>
 #include <unordered_map>
 
@@ -108,7 +109,7 @@ namespace libp2p::protocol::gossip {
     std::shared_ptr<MessageReceiver> msg_receiver_;
     ConnectionStatusFeedback connected_cb_;
     Stream::Feedback on_stream_event_;
-    bool started_ = false;
+    std::atomic_bool started_{false};
 
     /// All known peers
     PeerSet all_peers_;

@@ -6,6 +6,7 @@
 #ifndef LIBP2P_PROTOCOL_GOSSIP_MESSAGE_BUILDER_HPP
 #define LIBP2P_PROTOCOL_GOSSIP_MESSAGE_BUILDER_HPP
 
+#include <mutex>
 #include <map>
 #include <unordered_set>
 
@@ -82,6 +83,9 @@ namespace libp2p::protocol::gossip {
 
     /// Used to prevent duplicate forwarding
     std::unordered_set<MessageId> messages_added_;
+
+      /// Protects builder internals shared across concurrent callbacks
+      mutable std::mutex mutex_;
   };
 }  // namespace libp2p::protocol::gossip
 
