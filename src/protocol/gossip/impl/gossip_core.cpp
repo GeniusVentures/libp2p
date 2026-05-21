@@ -142,7 +142,8 @@ namespace libp2p::protocol::gossip {
 
     started_.store(true);
 
-    for (const auto &[topic, _] : local_subscriptions_->subscribedTo()) {
+    const auto local_topics = local_subscriptions_->subscribedTo();
+    for (const auto &[topic, _] : local_topics) {
       remote_subscriptions_->onSelfSubscribed(true, topic);
     }
 
@@ -408,8 +409,9 @@ namespace libp2p::protocol::gossip {
       }
 
       // notify the new peer about all topics we subscribed to
-      if (!local_subscriptions_->subscribedTo().empty()) {
-        for (const auto &local_sub : local_subscriptions_->subscribedTo()) {
+      const auto local_topics = local_subscriptions_->subscribedTo();
+      if (!local_topics.empty()) {
+        for (const auto &local_sub : local_topics) {
           ctx->message_builder->addSubscription(true, local_sub.first);
         }
         connectivity_->peerIsWritable(ctx, true);
