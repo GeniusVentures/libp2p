@@ -23,7 +23,6 @@ namespace libp2p::protocol::gossip {
 
   void RemoteSubscriptions::onSelfSubscribed(bool subscribed,
                                              const TopicId &topic) {
-    std::lock_guard<std::recursive_mutex> lock(mutex_);
     auto res = getItem(topic, subscribed);
     if (!res) {
       log_.error("error in self subscribe to {}", topic);
@@ -40,7 +39,6 @@ namespace libp2p::protocol::gossip {
 
   void RemoteSubscriptions::onPeerSubscribed(const PeerContextPtr &peer,
                                              const TopicId &topic) {
-    std::lock_guard<std::recursive_mutex> lock(mutex_);
     if (!peer->subscribed_to.insert(topic).second) {
       // request from wire, already subscribed, ignoring double subscription
       log_.debug("peer {} already subscribed to {}", peer->str, topic);
@@ -61,7 +59,6 @@ namespace libp2p::protocol::gossip {
   void RemoteSubscriptions::onPeerUnsubscribed(const PeerContextPtr &peer,
                                                const TopicId &topic,
                                                bool disconnected) {
-    std::lock_guard<std::recursive_mutex> lock(mutex_);
     if (!disconnected && peer->subscribed_to.erase(topic) == 0) {
       // was not subscribed actually, ignore
       log_.debug("peer {} was not subscribed to {}", peer->str, topic);
@@ -85,7 +82,6 @@ namespace libp2p::protocol::gossip {
   }
 
   void RemoteSubscriptions::onPeerDisconnected(const PeerContextPtr &peer) {
-    std::lock_guard<std::recursive_mutex> lock(mutex_);
     std::set<std::string> subscribed_to;
     subscribed_to.swap(peer->subscribed_to);
 
@@ -95,13 +91,11 @@ namespace libp2p::protocol::gossip {
   }
 
   bool RemoteSubscriptions::hasTopic(const TopicId &topic) const {
-    std::lock_guard<std::recursive_mutex> lock(mutex_);
     return table_.count(topic) != 0;
   }
 
   void RemoteSubscriptions::onGraft(const PeerContextPtr &peer,
                                     const TopicId &topic) {
-    std::lock_guard<std::recursive_mutex> lock(mutex_);
     auto res = getItem(topic, false);
     if (!res) {
       // we don't have this topic anymore
@@ -115,7 +109,6 @@ namespace libp2p::protocol::gossip {
   void RemoteSubscriptions::onPrune(const PeerContextPtr &peer,
                                     const TopicId &topic,
                                     uint64_t backoff_time) {
-    std::lock_guard<std::recursive_mutex> lock(mutex_);
     auto res = getItem(topic, false);
     if (!res) {
       return;
@@ -127,7 +120,6 @@ namespace libp2p::protocol::gossip {
   void RemoteSubscriptions::onNewMessage(
       const boost::optional<PeerContextPtr> &from, const TopicMessage::Ptr &msg,
       const MessageId &msg_id) {
-    std::lock_guard<std::recursive_mutex> lock(mutex_);
     auto now = scheduler_.now();
     bool is_published_locally = !from.has_value();
     auto res = getItem(msg->topic, is_published_locally);
@@ -139,7 +131,6 @@ namespace libp2p::protocol::gossip {
   }
 
   void RemoteSubscriptions::onHeartbeat() {
-    std::lock_guard<std::recursive_mutex> lock(mutex_);
     auto now = scheduler_.now();
     for (auto it = table_.begin(); it != table_.end();) {
       it->second.onHeartbeat(now);
@@ -154,7 +145,6 @@ namespace libp2p::protocol::gossip {
   }
 
   size_t RemoteSubscriptions::getPeerCount(TopicId& topic) const {
-    std::lock_guard<std::recursive_mutex> lock(mutex_);
     auto it = table_.find(topic);
     if (it == table_.end()) {
       return 0;  // No subscribers for this topic
@@ -163,7 +153,6 @@ namespace libp2p::protocol::gossip {
   }
   
   std::vector<peer::PeerId> RemoteSubscriptions::getAllPeers(TopicId& topic) const {
-    std::lock_guard<std::recursive_mutex> lock(mutex_);
     auto it = table_.find(topic);
     if (it == table_.end()) {
       return {};  // Return empty vector if topic not found

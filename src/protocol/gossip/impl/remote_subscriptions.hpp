@@ -6,8 +6,6 @@
 #ifndef LIBP2P_PROTOCOL_GOSSIP_REMOTE_SUBSCRIPTIONS_HPP
 #define LIBP2P_PROTOCOL_GOSSIP_REMOTE_SUBSCRIPTIONS_HPP
 
-#include <mutex>
-
 #include <libp2p/log/sublogger.hpp>
 #include <libp2p/basic/scheduler.hpp>
 
@@ -72,9 +70,6 @@ namespace libp2p::protocol::gossip {
     // TODO(artem): bound table size (which may grow!)
     // by removing items not subscribed to locally. LRU(???)
     std::unordered_map<TopicId, TopicSubscriptions> table_;
-
-    /// Protects table_ from concurrent heartbeat/message callback access
-    mutable std::recursive_mutex mutex_;
 
     log::SubLogger &log_;
   };

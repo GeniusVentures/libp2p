@@ -43,7 +43,7 @@ namespace libp2p::protocol::gossip {
   }
 
   void Connectivity::start() {
-    if (started_.load()) {
+    if (started_) {
       return;
     }
 
@@ -67,13 +67,13 @@ namespace libp2p::protocol::gossip {
     );
     // clang-format on
 
-    started_.store(true);
+    started_ = true;
 
     log_.info("started");
   }
 
   void Connectivity::stop() {
-    started_.store(false);
+    started_ = false;
     all_peers_.selectAll([](const PeerContextPtr &ctx) {
       for (auto &stream : ctx->inbound_streams) {
         stream->close();
@@ -133,7 +133,7 @@ namespace libp2p::protocol::gossip {
     assert(ctx);
     assert(ctx->message_builder);
 
-    if (!started_.load()) {
+    if (!started_) {
       return;
     }
 
@@ -159,7 +159,7 @@ namespace libp2p::protocol::gossip {
   void Connectivity::handle(StreamAndProtocol stream_and_protocol) {
     auto &stream = stream_and_protocol.stream;
 
-    if (!started_.load()) {
+    if (!started_) {
       stream->reset();
       return;
     }
@@ -295,7 +295,7 @@ namespace libp2p::protocol::gossip {
     if (!rstream) {
       log_.info("outbound connection failed, error={}",
                 rstream.error().message());
-      if (started_.load()) {
+      if (started_) {
         banOrForget(ctx);
       }
       return;
@@ -303,7 +303,7 @@ namespace libp2p::protocol::gossip {
 
     auto &stream = rstream.value().stream;
 
-    if (!started_.load()) {
+    if (!started_) {
       stream->reset();
       return;
     }
@@ -406,7 +406,7 @@ namespace libp2p::protocol::gossip {
 
   void Connectivity::onStreamEvent(const PeerContextPtr &from,
                                    outcome::result<Success> event) {
-    if (!started_.load()) {
+    if (!started_) {
       return;
     }
 
@@ -441,7 +441,7 @@ namespace libp2p::protocol::gossip {
   }
 
   void Connectivity::onHeartbeat(const std::map<TopicId, bool> &local_changes) {
-    if (!started_.load()) {
+    if (!started_) {
       return;
     }
 
@@ -480,7 +480,7 @@ namespace libp2p::protocol::gossip {
       std::vector<std::pair<bool, TopicId>> flat_changes;
       flat_changes.reserve(local_changes.size());
       boost::for_each(local_changes, [&flat_changes](auto &&p) {
-        flat_changes.emplace_back(p.second, p.first);
+        flat_changes.emplace_back(p.second, std::move(p.first));
       });
 
       connected_peers_.selectAll(

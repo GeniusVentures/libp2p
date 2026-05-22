@@ -8,9 +8,7 @@
 
 #include <libp2p/protocol/gossip/gossip.hpp>
 
-#include <atomic>
 #include <map>
-#include <mutex>
 
 #include <libp2p/basic/scheduler.hpp>
 #include <libp2p/host/host.hpp>
@@ -140,14 +138,11 @@ namespace libp2p::protocol::gossip {
     /// Local {un}subscribe changes to be broadcasted to peers
     std::map<TopicId, bool> broadcast_on_heartbeat_;
 
-    /// Protects broadcast_on_heartbeat_ shared between timer and API callbacks
-    mutable std::mutex broadcast_on_heartbeat_mutex_;
-
     /// Incremented msg sequence number
     uint64_t msg_seq_;
 
     /// True if started and active
-    std::atomic_bool started_{false};
+    bool started_ = false;
 
     /// Heartbeat timer handle
     basic::Scheduler::Handle heartbeat_timer_;

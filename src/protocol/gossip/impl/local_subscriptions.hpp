@@ -7,7 +7,6 @@
 #define LIBP2P_PROTOCOL_GOSSIP_LOCAL_SUBSCRIPTIONS_HPP
 
 #include <map>
-#include <mutex>
 
 #include <libp2p/protocol/common/subscriptions.hpp>
 
@@ -30,7 +29,7 @@ namespace libp2p::protocol::gossip {
                            Gossip::SubscriptionCallback callback);
 
     /// Returns all topics (and counters) this host is subscribed to
-    std::map<TopicId, size_t> subscribedTo();
+    const std::map<TopicId, size_t> &subscribedTo();
 
     /// Forwards data to subscriptions
     void forwardMessage(const TopicMessage::Ptr &msg);
@@ -54,9 +53,6 @@ namespace libp2p::protocol::gossip {
 
     /// Used by filter()
     std::map<uint64_t, TopicSet> filters_;
-
-    /// Protects subscription state shared across async callbacks
-    mutable std::recursive_mutex mutex_;
   };
 
 }  // namespace libp2p::protocol::gossip
