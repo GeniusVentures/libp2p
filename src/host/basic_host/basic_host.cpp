@@ -171,19 +171,30 @@ namespace libp2p::host {
                             StreamAndProtocolOrErrorCb cb) {
 
     network_->getConnectionManager().collectGarbage();
+    auto available_listeners = network_->getListener().getListenAddresses();
+
     // For peer ID only, we need to construct PeerInfo from repository
     auto peer_info = repo_->getPeerInfo(peer_id);
     if (!peer_info.addresses.empty()) {
       // Get source addresses from available listeners
-      auto available_listeners = network_->getListener().getListenAddresses();
       auto source_addresses =
           libp2p::network::RouteHelper::getBestSourceAddresses(
               available_listeners);
       network_->getDialer().newStream(peer_id, protocols, cb,
                                       source_addresses);
     } else {
+      if (available_listeners.empty()) {
+        auto default_ipv4 = multi::Multiaddress::create("/ip4/0.0.0.0").value();
+        auto default_ipv6 = multi::Multiaddress::create("/ip6/::").value();
+        libp2p::network::RouteHelper::SourceAddresses fallback_addresses{
+            default_ipv4, default_ipv6, false, false};
+        network_->getDialer().newStream(peer_id, protocols, cb,
+                                        fallback_addresses);
+        return;
+      }
+
       // Fallback: create SourceAddresses from first listener address
-      auto listen_addr = network_->getListener().getListenAddresses().at(0);
+      auto listen_addr = available_listeners.at(0);
       auto default_ipv4 = multi::Multiaddress::create("/ip4/0.0.0.0").value();
       auto default_ipv6 = multi::Multiaddress::create("/ip6/::").value();
       libp2p::network::RouteHelper::SourceAddresses fallback_addresses{
