@@ -56,6 +56,7 @@ namespace libp2p::peer {
   }
 
   bool InmemAddressRepository::isNewDnsAddr(const multi::Multiaddress &ma) {
+    std::lock_guard<std::mutex> lock(mutex_);
     if (resolved_dns_addrs_.end() == resolved_dns_addrs_.find(ma)) {
       resolved_dns_addrs_.insert(ma);
       return true;
@@ -75,17 +76,29 @@ namespace libp2p::peer {
   outcome::result<bool> InmemAddressRepository::addAddresses(
       const PeerId &p, gsl::span<const multi::Multiaddress> ma,
       AddressRepository::Milliseconds ttl) {
+    std::lock_guard<std::mutex> lock(mutex_);
     bool added = false;
-    if (!ma.data()->hasCircuitRelay()) {
-      auto peer_it = findOrInsert(p);
-      auto &addresses = *peer_it->second;
+    if (ma.empty()) {
+      return added;
+    }
 
-      auto expires_at = Clock::now() + ttl;
-      for (const auto &m : ma) {
-        if (addresses.emplace(m, expires_at).second) {
-          signal_added_(p, m);
-          added = true;
-        }
+    auto peer_it = findOrInsert(p);
+    auto &addresses = *peer_it->second;
+
+    auto expires_at = Clock::now() + ttl;
+    for (const auto &m : ma) {
+      auto canonical = multi::Multiaddress::create(m.getStringAddress());
+      if (!canonical) {
+        continue;
+      }
+      const auto &addr = canonical.value();
+
+      if (addr.hasCircuitRelay()) {
+        continue;
+      }
+      if (addresses.emplace(addr, expires_at).second) {
+        signal_added_(p, addr);
+        added = true;
       }
     }
     return added;
@@ -94,20 +107,28 @@ namespace libp2p::peer {
   outcome::result<bool> InmemAddressRepository::upsertAddresses(
       const PeerId &p, gsl::span<const multi::Multiaddress> ma,
       AddressRepository::Milliseconds ttl) {
+    std::lock_guard<std::mutex> lock(mutex_);
     bool added = false;
     auto peer_it = findOrInsert(p);
     auto &addresses = *peer_it->second;
 
     auto expires_at = Clock::now() + ttl;
     for (const auto &m : ma) {
-      if (!ma.data()->hasCircuitRelay()) {
-        auto [addr_it, emplaced] = addresses.emplace(m, expires_at);
-        if (emplaced) {
-          signal_added_(p, m);
-          added = true;
-        } else {
-          addr_it->second = expires_at;
-        }
+      auto canonical = multi::Multiaddress::create(m.getStringAddress());
+      if (!canonical) {
+        continue;
+      }
+      const auto &addr = canonical.value();
+
+      if (addr.hasCircuitRelay()) {
+        continue;
+      }
+      auto [addr_it, emplaced] = addresses.emplace(addr, expires_at);
+      if (emplaced) {
+        signal_added_(p, addr);
+        added = true;
+      } else {
+        addr_it->second = expires_at;
       }
     }
 
@@ -116,6 +137,7 @@ namespace libp2p::peer {
 
   outcome::result<void> InmemAddressRepository::updateAddresses(
       const PeerId &p, Milliseconds ttl) {
+    std::lock_guard<std::mutex> lock(mutex_);
     auto peer_it = db_.find(p);
     if (peer_it == db_.end()) {
       return PeerError::NOT_FOUND;
@@ -131,6 +153,7 @@ namespace libp2p::peer {
 
   outcome::result<std::vector<multi::Multiaddress>>
   InmemAddressRepository::getAddresses(const PeerId &p) const {
+    std::lock_guard<std::mutex> lock(mutex_);
     auto peer_it = db_.find(p);
     if (peer_it == db_.end()) {
       return PeerError::NOT_FOUND;
@@ -139,12 +162,18 @@ namespace libp2p::peer {
 
     std::vector<multi::Multiaddress> ma;
     ma.reserve(addresses.size());
-    std::transform(addresses.begin(), addresses.end(), std::back_inserter(ma),
-                   [](auto &item) { return item.first; });
+    for (const auto &item : addresses) {
+      auto canonical =
+          multi::Multiaddress::create(item.first.getStringAddress());
+      if (canonical) {
+        ma.emplace_back(std::move(canonical.value()));
+      }
+    }
     return ma;
   }
 
   void InmemAddressRepository::clear(const PeerId &p) {
+    std::lock_guard<std::mutex> lock(mutex_);
     auto it = db_.find(p);
     if (it != db_.end()) {
       for (const auto &item : *it->second) {
@@ -155,6 +184,7 @@ namespace libp2p::peer {
   }
 
   void InmemAddressRepository::collectGarbage() {
+    std::lock_guard<std::mutex> lock(mutex_);
     auto now = Clock::now();
     auto peer = db_.begin();
     auto peer_end = db_.end();
@@ -187,6 +217,7 @@ namespace libp2p::peer {
   }
 
   std::unordered_set<PeerId> InmemAddressRepository::getPeers() const {
+    std::lock_guard<std::mutex> lock(mutex_);
     std::unordered_set<PeerId> peers;
     for (const auto &it : db_) {
       peers.insert(it.first);

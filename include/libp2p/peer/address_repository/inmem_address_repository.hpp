@@ -9,6 +9,7 @@
 #include <libp2p/peer/address_repository.hpp>
 
 #include <memory>
+#include <mutex>
 #include <set>
 #include <unordered_map>
 #include <vector>
@@ -68,6 +69,7 @@ namespace libp2p::peer {
     peer_db::iterator findOrInsert(const PeerId &p);
 
     std::shared_ptr<network::DnsaddrResolver> dnsaddr_resolver_;
+    mutable std::mutex mutex_;
     peer_db db_;
     std::set<multi::Multiaddress> resolved_dns_addrs_;
   };

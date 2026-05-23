@@ -255,7 +255,8 @@ namespace libp2p::protocol::gossip {
         && !msg_cache_.contains(msg_id)) {
       log_.debug("requesting msg id {}", common::hex_lower(msg_id));
 
-      from->message_builder->addIWant(msg_id);
+      auto requested_msg_id = msg_id;
+      from->message_builder->addIWant(requested_msg_id);
       connectivity_->peerIsWritable(from, false);
     }
   }

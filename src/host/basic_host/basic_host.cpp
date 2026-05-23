@@ -99,7 +99,7 @@ namespace libp2p::host {
   std::vector<multi::Multiaddress> BasicHost::getObservedAddresses() const {
     auto r = repo_->getAddressRepository().getAddresses(getId());
     if (r) {
-      return r.value();
+      return std::move(r.value());
     }
 
     // we don't know our addresses
