@@ -1,10 +1,10 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef LIBP2P_GOSSIP_HPP
-#define LIBP2P_GOSSIP_HPP
+#pragma once
 
 #include <chrono>
 #include <functional>
@@ -36,7 +36,7 @@ namespace libp2p {
 }  // namespace libp2p
 
 namespace libp2p::protocol::gossip {
-
+  using ByteArray = common::ByteArray;
   /// Gossip pub-sub protocol config
   struct Config {
     /// Network density factors for gossip meshes
@@ -93,8 +93,6 @@ namespace libp2p::protocol::gossip {
     bool sign_messages = false;
   };
 
-  using common::ByteArray;
-
   using TopicId = std::string;
   using TopicList = std::vector<TopicId>;
   using TopicSet = std::set<TopicId>;
@@ -103,18 +101,16 @@ namespace libp2p::protocol::gossip {
   class Gossip {
    public:
     virtual ~Gossip() = default;
-
-    /// Get Number of Peers in topic
+    
+        /// Get Number of Peers in topic
     virtual size_t getPeerCount(TopicId& topic) const = 0;
 
     /// Get PeerIDs subscribed to topic
     virtual std::vector<peer::PeerId> getAllPeers(TopicId& topic) const = 0;
-
     /// Adds bootstrap peer to the set of connectable peers
     virtual void addBootstrapPeer(
         const peer::PeerId &id,
         boost::optional<multi::Multiaddress> address) = 0;
-
     /// Adds bootstrap peer with multiple addresses to the set of connectable peers
     virtual void addBootstrapPeer(
         const peer::PeerId &id,
@@ -139,8 +135,7 @@ namespace libp2p::protocol::gossip {
     };
 
     /// Validator of messages arriving from the wire
-    using Validator =
-        std::function<bool(const ByteArray &from, const ByteArray &data)>;
+    using Validator = std::function<bool(const ByteArray &from, const ByteArray &data)>;
 
     /// Sets message validator for topic
     virtual void setValidator(const TopicId &topic, Validator validator) = 0;
@@ -166,12 +161,11 @@ namespace libp2p::protocol::gossip {
 
   // Creates Gossip object
   std::shared_ptr<Gossip> create(
-      std::shared_ptr<basic::Scheduler> scheduler, std::shared_ptr<Host> host,
+      std::shared_ptr<basic::Scheduler> scheduler,
+      std::shared_ptr<Host> host,
       std::shared_ptr<peer::IdentityManager> idmgr,
       std::shared_ptr<crypto::CryptoProvider> crypto_provider,
       std::shared_ptr<crypto::marshaller::KeyMarshaller> key_marshaller,
       Config config = Config{});
 
 }  // namespace libp2p::protocol::gossip
-
-#endif  // LIBP2P_GOSSIP_HPP

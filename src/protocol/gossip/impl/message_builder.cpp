@@ -1,5 +1,6 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -94,18 +95,12 @@ namespace libp2p::protocol::gossip {
         pb_msg_->SerializeToArray(buffer->data() + prefix_sz, msg_sz);
 
     if (control_not_empty_) {
-      pb_msg_->release_control();
+      std::ignore = pb_msg_->release_control();
     }
 
     static constexpr size_t kSizeThreshold = 8192;
     if (msg_sz > kSizeThreshold) {
-      pb_msg_.reset();
-      control_pb_msg_.reset();
-      empty_ = true;
-      control_not_empty_ = false;
-      decltype(ihaves_){}.swap(ihaves_);
-      decltype(iwant_){}.swap(iwant_);
-      decltype(messages_added_){}.swap(messages_added_);
+      reset();
     } else {
       clear();
     }
@@ -113,7 +108,7 @@ namespace libp2p::protocol::gossip {
     if (success) {
       return buffer;
     }
-    return outcome::failure(Error::MESSAGE_SERIALIZE_ERROR);
+    return Error::MESSAGE_SERIALIZE_ERROR;
   }
 
   void MessageBuilder::addSubscription(bool subscribe, const TopicId &topic) {
@@ -141,7 +136,6 @@ namespace libp2p::protocol::gossip {
   }
 
   void MessageBuilder::addGraft(const TopicId &topic) {
-    std::lock_guard<std::mutex> lock(mutex_);
     create_protobuf_structures();
 
     control_pb_msg_->add_graft()->set_topicid(topic);
@@ -198,7 +192,7 @@ namespace libp2p::protocol::gossip {
     std::copy(kPrefix.begin(), kPrefix.end(), signable.begin());
     if (!pb_msg.SerializeToArray(&signable[kPrefix.size()],
                                  static_cast<int>(size))) {
-      return outcome::failure(Error::MESSAGE_SERIALIZE_ERROR);
+      return Error::MESSAGE_SERIALIZE_ERROR;
     }
     return signable;
   }
