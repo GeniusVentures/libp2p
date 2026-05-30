@@ -7,6 +7,7 @@
 #include "gossip_core.hpp"
 
 #include <cassert>
+#include <mutex>
 
 #include <libp2p/crypto/crypto_provider.hpp>
 #include <libp2p/crypto/key_marshaller.hpp>
@@ -142,7 +143,8 @@ namespace libp2p::protocol::gossip {
 
     started_ = true;
 
-    for (const auto &[topic, _] : local_subscriptions_->subscribedTo()) {
+    auto local_topics = local_subscriptions_->subscribedToSnapshot();
+    for (const auto &[topic, _] : local_topics) {
       remote_subscriptions_->onSelfSubscribed(true, topic);
     }
 
@@ -152,6 +154,7 @@ namespace libp2p::protocol::gossip {
   }
 
   void GossipCore::stop() {
+    std::lock_guard<std::mutex> lock(gossip_state_mutex_);
     if (!started_) {
       return;
     }
@@ -297,6 +300,11 @@ namespace libp2p::protocol::gossip {
   void GossipCore::onTopicMessage(const PeerContextPtr &from,
                                   TopicMessage::Ptr msg) {
     assert(started_);
+    // Keep GossipCore alive for the full duration of this handler.
+    // A subscriber callback may drop the last external shared_ptr to us,
+    // which would destroy local_subscriptions_ and remote_subscriptions_
+    // while we still need them after forwardMessage() returns.
+    auto self = shared_from_this();
 
     // do we need this message?
     auto subscribed = remote_subscriptions_->hasTopic(msg->topic);
@@ -363,17 +371,26 @@ namespace libp2p::protocol::gossip {
   }
 
   void GossipCore::onHeartbeat() {
-    assert(started_);
+    std::shared_ptr<RemoteSubscriptions> remote_subscriptions;
+    std::map<TopicId, bool> broadcast_snapshot;
+    {
+      std::lock_guard<std::mutex> lock(gossip_state_mutex_);
+      if (!started_) {
+        return;
+      }
+      remote_subscriptions = remote_subscriptions_;
+      broadcast_snapshot = broadcast_on_heartbeat_;
+      broadcast_on_heartbeat_.clear();
+    }
 
-    // shift cache
+    // shift cache (no lock needed, msg_cache not shared with stop path)
     msg_cache_.shift();
 
     // heartbeat changes per topic
-    remote_subscriptions_->onHeartbeat();
+    remote_subscriptions->onHeartbeat();
 
     // send changes to peers
-    connectivity_->onHeartbeat(broadcast_on_heartbeat_);
-    broadcast_on_heartbeat_.clear();
+    connectivity_->onHeartbeat(broadcast_snapshot);
 
     setTimerHeartbeat();
   }
@@ -392,8 +409,9 @@ namespace libp2p::protocol::gossip {
       }
 
       // notify the new peer about all topics we subscribed to
-      if (!local_subscriptions_->subscribedTo().empty()) {
-        for (const auto &local_sub : local_subscriptions_->subscribedTo()) {
+      auto local_topics = local_subscriptions_->subscribedToSnapshot();
+      if (!local_topics.empty()) {
+        for (const auto &local_sub : local_topics) {
           ctx->message_builder->addSubscription(true, local_sub.first);
         }
         connectivity_->peerIsWritable(ctx, true);
@@ -407,21 +425,27 @@ namespace libp2p::protocol::gossip {
 
   void GossipCore::onLocalSubscriptionChanged(bool subscribe,
                                               const TopicId &topic) {
-    if (!started_) {
-      return;
+    std::shared_ptr<RemoteSubscriptions> remote_subscriptions;
+    {
+      std::lock_guard<std::mutex> lock(gossip_state_mutex_);
+      if (!started_) {
+        return;
+      }
+
+      // send this notification on next heartbeat to all connected peers
+      auto it = broadcast_on_heartbeat_.find(topic);
+      if (it == broadcast_on_heartbeat_.end()) {
+        broadcast_on_heartbeat_.emplace(topic, subscribe);
+      } else if (it->second != subscribe) {
+        // save traffic
+        broadcast_on_heartbeat_.erase(it);
+      }
+
+      remote_subscriptions = remote_subscriptions_;
     }
 
-    // send this notification on next heartbeat to all connected peers
-    auto it = broadcast_on_heartbeat_.find(topic);
-    if (it == broadcast_on_heartbeat_.end()) {
-      broadcast_on_heartbeat_.emplace(topic, subscribe);
-    } else if (it->second != subscribe) {
-      // save traffic
-      broadcast_on_heartbeat_.erase(it);
-    }
-
-    // update meshes per topic
-    remote_subscriptions_->onSelfSubscribed(subscribe, topic);
+    // update meshes per topic (outside lock)
+    remote_subscriptions->onSelfSubscribed(subscribe, topic);
   }
 
   void GossipCore::setTimerHeartbeat() {

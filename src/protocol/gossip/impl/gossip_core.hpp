@@ -153,6 +153,9 @@ namespace libp2p::protocol::gossip {
     /// Heartbeat timer handle
     basic::Scheduler::Handle heartbeat_timer_;
 
+    /// Protects: started_, remote_subscriptions_, broadcast_on_heartbeat_
+    mutable std::mutex gossip_state_mutex_;
+
     /// Logger
     log::SubLogger log_;
   };

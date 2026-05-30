@@ -7,6 +7,7 @@
 #include "remote_subscriptions.hpp"
 
 #include <algorithm>
+#include <mutex>
 
 #include "connectivity.hpp"
 #include "message_builder.hpp"
@@ -24,6 +25,7 @@ namespace libp2p::protocol::gossip {
 
   void RemoteSubscriptions::onSelfSubscribed(bool subscribed,
                                              const TopicId &topic) {
+    std::lock_guard<std::mutex> lock(table_mutex_);
     auto res = getItem(topic, subscribed);
     if (!res) {
       log_.error("error in self subscribe to {}", topic);
@@ -48,6 +50,7 @@ namespace libp2p::protocol::gossip {
     }
     log_.debug("peer {} subscribing to {}", peer->str, topic);
 
+    std::lock_guard<std::mutex> lock(table_mutex_);
     auto res = getItem(topic, true);
     if (!res) {
       // not error in this case, this is request from wire...
@@ -68,6 +71,7 @@ namespace libp2p::protocol::gossip {
     }
 
     log_.debug("peer {} unsubscribing from {}", peer->str, topic);
+    std::lock_guard<std::mutex> lock(table_mutex_);
     auto res = getItem(topic, false);
     if (!res) {
       // not error in this case, this is request from wire...
@@ -93,11 +97,13 @@ namespace libp2p::protocol::gossip {
   }
 
   bool RemoteSubscriptions::hasTopic(const TopicId &topic) const {
+    std::lock_guard<std::mutex> lock(table_mutex_);
     return table_.count(topic) != 0;
   }
 
   void RemoteSubscriptions::onGraft(const PeerContextPtr &peer,
                                     const TopicId &topic) {
+    std::lock_guard<std::mutex> lock(table_mutex_);
     auto res = getItem(topic, false);
     if (!res) {
       // we don't have this topic anymore
@@ -111,6 +117,7 @@ namespace libp2p::protocol::gossip {
   void RemoteSubscriptions::onPrune(const PeerContextPtr &peer,
                                     const TopicId &topic,
                                     uint64_t backoff_time) {
+    std::lock_guard<std::mutex> lock(table_mutex_);
     auto res = getItem(topic, false);
     if (!res) {
       return;
@@ -125,6 +132,7 @@ namespace libp2p::protocol::gossip {
       const MessageId &msg_id) {
     auto now = scheduler_.now();
     bool is_published_locally = !from.has_value();
+    std::lock_guard<std::mutex> lock(table_mutex_);
     auto res = getItem(msg->topic, is_published_locally);
     if (!res) {
       log_.error("error getting item for {}", msg->topic);
@@ -134,6 +142,7 @@ namespace libp2p::protocol::gossip {
   }
 
   void RemoteSubscriptions::onHeartbeat() {
+    std::lock_guard<std::mutex> lock(table_mutex_);
     auto now = scheduler_.now();
     for (auto it = table_.begin(); it != table_.end();) {
       it->second.onHeartbeat(now);

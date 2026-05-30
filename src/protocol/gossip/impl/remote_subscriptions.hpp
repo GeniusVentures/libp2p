@@ -76,6 +76,9 @@ namespace libp2p::protocol::gossip {
     // by removing items not subscribed to locally. LRU(???)
     std::unordered_map<TopicId, TopicSubscriptions> table_;
 
+    /// Protects table_ from concurrent access
+    mutable std::mutex table_mutex_;
+
     log::SubLogger &log_;
   };
 
