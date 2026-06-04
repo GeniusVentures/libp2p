@@ -23,19 +23,20 @@ namespace libp2p::protocol::gossip {
 
   bool operator<(const PeerContextPtr &ctx, const peer::PeerId &peer) {
     if (!ctx)
-      return false;
+      return true;  // null < everything (sentinel)
     return less(ctx->peer_id, peer);
   }
 
   bool operator<(const peer::PeerId &peer, const PeerContextPtr &ctx) {
     if (!ctx)
-      return false;
+      return false;  // everything ≥ null → peer < null is false
     return less(peer, ctx->peer_id);
   }
 
   bool operator<(const PeerContextPtr &a, const PeerContextPtr &b) {
-    if (!a || !b)
-      return false;
+    if (!a && !b) return false;  // both null → equivalent: !(a<b) && !(b<a)
+    if (!a)       return true;   // null < non-null
+    if (!b)       return false;  // non-null > null
     return less(a->peer_id, b->peer_id);
   }
 
