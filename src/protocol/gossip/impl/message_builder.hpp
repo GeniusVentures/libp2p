@@ -85,6 +85,6 @@ namespace libp2p::protocol::gossip {
     /// Used to prevent duplicate forwarding
     std::unordered_set<MessageId> messages_added_;
 
-    mutable std::mutex mutex_;
+    mutable std::recursive_mutex mutex_;
   };
 }  // namespace libp2p::protocol::gossip

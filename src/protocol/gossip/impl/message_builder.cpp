@@ -35,7 +35,7 @@ namespace libp2p::protocol::gossip {
   }
 
   void MessageBuilder::reset() {
-    std::lock_guard<std::mutex> lock(mutex_);
+    std::lock_guard<std::recursive_mutex> lock(mutex_);
     pb_msg_.reset();
     control_pb_msg_.reset();
     empty_ = true;
@@ -53,12 +53,12 @@ namespace libp2p::protocol::gossip {
   }
 
   bool MessageBuilder::empty() const {
-    std::lock_guard<std::mutex> lock(mutex_);
+    std::lock_guard<std::recursive_mutex> lock(mutex_);
     return empty_;
   }
 
   outcome::result<SharedBuffer> MessageBuilder::serialize() {
-    std::lock_guard<std::mutex> lock(mutex_);
+    std::lock_guard<std::recursive_mutex> lock(mutex_);
     create_protobuf_structures();
 
     for (auto &[topic, message_ids] : ihaves_) {
@@ -112,7 +112,7 @@ namespace libp2p::protocol::gossip {
   }
 
   void MessageBuilder::addSubscription(bool subscribe, const TopicId &topic) {
-    std::lock_guard<std::mutex> lock(mutex_);
+    std::lock_guard<std::recursive_mutex> lock(mutex_);
     create_protobuf_structures();
 
     auto *dst = pb_msg_->add_subscriptions();
@@ -122,14 +122,14 @@ namespace libp2p::protocol::gossip {
   }
 
   void MessageBuilder::addIHave(const TopicId &topic, const MessageId &msg_id) {
-    std::lock_guard<std::mutex> lock(mutex_);
+    std::lock_guard<std::recursive_mutex> lock(mutex_);
     ihaves_[topic].push_back(msg_id);
     control_not_empty_ = true;
     empty_ = false;
   }
 
   void MessageBuilder::addIWant(const MessageId &msg_id) {
-    std::lock_guard<std::mutex> lock(mutex_);
+    std::lock_guard<std::recursive_mutex> lock(mutex_);
     iwant_.push_back(msg_id);
     control_not_empty_ = true;
     empty_ = false;
@@ -144,7 +144,7 @@ namespace libp2p::protocol::gossip {
   }
 
   void MessageBuilder::addPrune(const TopicId &topic) {
-    std::lock_guard<std::mutex> lock(mutex_);
+    std::lock_guard<std::recursive_mutex> lock(mutex_);
     create_protobuf_structures();
 
     control_pb_msg_->add_prune()->set_topicid(topic);
@@ -154,7 +154,7 @@ namespace libp2p::protocol::gossip {
 
   void MessageBuilder::addMessage(const TopicMessage &msg,
                                   const MessageId &msg_id) {
-    std::lock_guard<std::mutex> lock(mutex_);
+    std::lock_guard<std::recursive_mutex> lock(mutex_);
     create_protobuf_structures();
 
     if (messages_added_.count(msg_id) != 0) {
