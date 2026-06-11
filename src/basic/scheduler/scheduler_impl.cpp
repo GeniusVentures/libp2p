@@ -28,6 +28,7 @@ namespace libp2p::basic {
   Scheduler::Handle SchedulerImpl::scheduleImpl(
       Callback &&cb, std::chrono::milliseconds delay_from_now,
       bool make_handle) noexcept {
+    std::lock_guard<std::recursive_mutex> lock(mutex_);
     assert(cb);
 
     if (!cb) {
@@ -53,6 +54,7 @@ namespace libp2p::basic {
   }
 
   void SchedulerImpl::cancel(Handle::Ticket ticket) noexcept {
+    std::lock_guard<std::recursive_mutex> lock(mutex_);
     if (ticket.first != kZeroTime) {
       timed_callbacks_.cancel(ticket, weak_from_this());
     } else {
@@ -63,6 +65,7 @@ namespace libp2p::basic {
   outcome::result<SchedulerImpl::Handle::Ticket> SchedulerImpl::reschedule(
       Handle::Ticket ticket,
       std::chrono::milliseconds delay_from_now) noexcept {
+    std::lock_guard<std::recursive_mutex> lock(mutex_);
     if (delay_from_now.count() <= 0) {
       return Error::kInvalidArgument;
     }
@@ -85,6 +88,7 @@ namespace libp2p::basic {
   }
 
   void SchedulerImpl::pulse(std::chrono::milliseconds current_clock) noexcept {
+    std::lock_guard<std::recursive_mutex> lock(mutex_);
     try {
       if (current_clock == kZeroTime) {
         deferred_callbacks_.onTimer(shared_from_this());
