@@ -1,12 +1,13 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef LIBP2P_PROTOCOL_GOSSIP_LOCAL_SUBSCRIPTIONS_HPP
-#define LIBP2P_PROTOCOL_GOSSIP_LOCAL_SUBSCRIPTIONS_HPP
+#pragma once
 
 #include <map>
+#include <mutex>
 
 #include <libp2p/protocol/common/subscriptions.hpp>
 
@@ -29,7 +30,7 @@ namespace libp2p::protocol::gossip {
                            Gossip::SubscriptionCallback callback);
 
     /// Returns all topics (and counters) this host is subscribed to
-    const std::map<TopicId, size_t> &subscribedTo();
+    std::map<TopicId, size_t> subscribedToSnapshot();
 
     /// Forwards data to subscriptions
     void forwardMessage(const TopicMessage::Ptr &msg);
@@ -53,8 +54,10 @@ namespace libp2p::protocol::gossip {
 
     /// Used by filter()
     std::map<uint64_t, TopicSet> filters_;
+
+    /// Protects Super subscription state and LocalSubscriptions maps
+    mutable std::recursive_mutex mutex_;
+
   };
 
 }  // namespace libp2p::protocol::gossip
-
-#endif  // LIBP2P_PROTOCOL_GOSSIP_LOCAL_SUBSCRIPTIONS_HPP

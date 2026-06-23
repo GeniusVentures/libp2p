@@ -138,7 +138,7 @@ void handleIncomingStream(libp2p::StreamAndProtocol stream_and_protocol) {
 }
 
 void handleOutgoingStream(libp2p::StreamAndProtocolOrError stream_res) {
-  if (not stream_res) {
+  if (!stream_res) {
     std::cerr << " ! outgoing connection failed: "
               << stream_res.error().message() << std::endl;
     return;

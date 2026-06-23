@@ -32,11 +32,13 @@ namespace libp2p::network {
   }
 
   bool ListenerManagerImpl::isStarted() const {
+    std::lock_guard<std::mutex> lock(listeners_mutex_);
     return started;
   }
 
   outcome::result<void> ListenerManagerImpl::closeListener(
       const multi::Multiaddress &ma) {
+    std::lock_guard<std::mutex> lock(listeners_mutex_);
     // we can find multiaddress directly
     auto it = listeners_.find(ma);
     if (it != listeners_.end()) {
@@ -78,6 +80,7 @@ namespace libp2p::network {
 
   outcome::result<void> ListenerManagerImpl::removeListener(
       const multi::Multiaddress &ma) {
+    std::lock_guard<std::mutex> lock(listeners_mutex_);
     auto it = listeners_.find(ma);
     if (it != listeners_.end()) {
       listeners_.erase(it);
@@ -89,6 +92,7 @@ namespace libp2p::network {
 
   // starts listening on all provided multiaddresses
   void ListenerManagerImpl::start() {
+    std::lock_guard<std::mutex> lock(listeners_mutex_);
     if (started) {
       return;
     }
@@ -110,6 +114,7 @@ namespace libp2p::network {
 
   // stops listening on all multiaddresses
   void ListenerManagerImpl::stop() {
+    std::lock_guard<std::mutex> lock(listeners_mutex_);
     if (!started) {
       return;
     }
@@ -131,6 +136,7 @@ namespace libp2p::network {
 
   outcome::result<void> ListenerManagerImpl::listen(
       const multi::Multiaddress &ma) {
+    std::lock_guard<std::mutex> lock(listeners_mutex_);
     auto tr = this->tmgr_->findBest(ma);
     if (tr == nullptr) {
       // can not listen on this address
@@ -153,6 +159,7 @@ namespace libp2p::network {
 
   std::vector<multi::Multiaddress> ListenerManagerImpl::getListenAddresses()
       const {
+    std::lock_guard<std::mutex> lock(listeners_mutex_);
     std::vector<multi::Multiaddress> mas;
     mas.reserve(listeners_.size());
 
@@ -165,6 +172,7 @@ namespace libp2p::network {
 
   std::vector<multi::Multiaddress>
   ListenerManagerImpl::getListenAddressesInterfaces() const {
+    std::lock_guard<std::mutex> lock(listeners_mutex_);
     std::vector<multi::Multiaddress> mas;
 
     for (auto &&e : listeners_) {

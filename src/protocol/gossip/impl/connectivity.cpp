@@ -1,5 +1,6 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -35,7 +36,8 @@ namespace libp2p::protocol::gossip {
         host_(std::move(host)),
         msg_receiver_(std::move(msg_receiver)),
         connected_cb_(std::move(on_connected)),
-        log_("gossip", "Connectivity",
+        log_("gossip",
+             "Connectivity",
              host_->getPeerInfo().id.toBase58().substr(46)) {}
 
   Connectivity::~Connectivity() {
@@ -108,8 +110,8 @@ namespace libp2p::protocol::gossip {
       connectable_peers_.insert(ctx);
     }
   }
-
-  void Connectivity::addBootstrapPeer(
+  
+    void Connectivity::addBootstrapPeer(
       const peer::PeerId &id,
       const std::vector<multi::Multiaddress> &addresses) {
     if (id == host_->getId()) {
@@ -167,16 +169,15 @@ namespace libp2p::protocol::gossip {
     // no remote peer id means dead stream
     auto peer_res = stream->remotePeerId();
     if (!peer_res) {
-      log_.info("ignoring dead stream: {}", peer_res.error().message());
+      //log_.info("ignoring dead stream: {}", peer_res.error());
       return;
     }
 
     auto &peer_id = peer_res.value();
 
-    log_.debug("new inbound stream, address={}, peer_id={}",
-               stream->remoteMultiaddr().value().getStringAddress(),
-               peer_id.toBase58());
-
+    // log_.debug("new inbound stream, address={}, peer_id={}",
+    //            stream->remoteMultiaddr().value().getStringAddress(),
+    //            peer_id.toBase58());
     stream->adjustWindowSize(64 * 1024 * 1024, [this, peer_id](outcome::result<void> res) {
       if (!res) {
         log_.warn("cannot adjustWindowSize for inbound stream, peer={}, error={}",
@@ -189,7 +190,7 @@ namespace libp2p::protocol::gossip {
     auto ctx_found = all_peers_.find(peer_id);
     if (!ctx_found) {
       if (connected_peers_.size() >= config_.max_connections_num) {
-        log_.warn("too many connections, refusing new stream");
+        //log_.warn("too many connections, refusing new stream");
         stream->close([](outcome::result<void>) {});
         return;
       }
@@ -210,9 +211,13 @@ namespace libp2p::protocol::gossip {
     stream_id = ctx->inbound_streams.size() + 1;
     is_new_connection = (stream_id == 1 && !ctx->outbound_stream);
 
-    auto gossip_stream = std::make_shared<Stream>(
-        stream_id, config_, *scheduler_, on_stream_event_, *msg_receiver_,
-        std::move(stream), ctx);
+    auto gossip_stream = std::make_shared<Stream>(stream_id,
+                                                  config_,
+                                                  *scheduler_,
+                                                  on_stream_event_,
+                                                  *msg_receiver_,
+                                                  std::move(stream),
+                                                  ctx);
 
     gossip_stream->read();
 
@@ -243,7 +248,7 @@ namespace libp2p::protocol::gossip {
 
     if (can_connect != Host::Connectedness::CONNECTED
         && can_connect != Host::Connectedness::CAN_CONNECT) {
-      log_.debug("{} is not connectable at the moment", ctx->str);
+      //log_.debug("{} is not connectable at the moment", ctx->str);
       banOrForget(ctx);
       return;
     }
@@ -259,8 +264,7 @@ namespace libp2p::protocol::gossip {
           if (self) {
             onNewStream(ctx, std::move(rstream));
           }
-        },
-        config_.rw_timeout_msec
+        }
     );
     // clang-format on
   }
@@ -293,8 +297,7 @@ namespace libp2p::protocol::gossip {
     assert(!ctx->outbound_stream);
 
     if (!rstream) {
-      log_.info("outbound connection failed, error={}",
-                rstream.error().message());
+      //log_.info("outbound connection failed, error={}", rstream.error());
       if (started_) {
         banOrForget(ctx);
       }
@@ -311,18 +314,17 @@ namespace libp2p::protocol::gossip {
     // no remote peer id means dead stream
     auto peer_res = stream->remotePeerId();
     if (!peer_res) {
-      log_.info("ignoring dead stream: {}", peer_res.error().message());
+      //log_.info("ignoring dead stream: {}", peer_res.error());
       banOrForget(ctx);
       return;
     }
 
     auto &peer_id = peer_res.value();
 
-    log_.debug("new outbound stream, address={}, peer_id={}",
-               stream->remoteMultiaddr().value().getStringAddress(),
-               peer_id.toBase58());
-
-    stream->adjustWindowSize(64 * 1024 * 1024, [this, peer_id](outcome::result<void> res) {
+    // log_.debug("new outbound stream, address={}, peer_id={}",
+    //            stream->remoteMultiaddr().value().getStringAddress(),
+    //            peer_id.toBase58());
+      stream->adjustWindowSize(64 * 1024 * 1024, [this, peer_id](outcome::result<void> res) {
       if (!res) {
         log_.warn("cannot adjustWindowSize for outbound stream, peer={}, error={}",
                   peer_id.toBase58(), res.error().message());
@@ -332,9 +334,13 @@ namespace libp2p::protocol::gossip {
     size_t stream_id = 0;
     bool is_new_connection = ctx->inbound_streams.empty();
 
-    auto gossip_stream = std::make_shared<Stream>(
-        stream_id, config_, *scheduler_, on_stream_event_, *msg_receiver_,
-        std::move(stream), ctx);
+    auto gossip_stream = std::make_shared<Stream>(stream_id,
+                                                  config_,
+                                                  *scheduler_,
+                                                  on_stream_event_,
+                                                  *msg_receiver_,
+                                                  std::move(stream),
+                                                  ctx);
 
     gossip_stream->read();
 
@@ -369,14 +375,14 @@ namespace libp2p::protocol::gossip {
     connected_cb_(false, ctx);
 
     if (++ctx->dial_attempts > config_.max_dial_attempts) {
-      log_.info("removing peer {}", ctx->str);
+      //log_.info("removing peer {}", ctx->str);
       if (ctx.use_count() > 2) {
-        log_.warn("{} extra links to peer still remain", ctx.use_count() - 1);
+        //log_.warn("{} extra links to peer still remain", ctx.use_count() - 1);
       }
       all_peers_.erase(ctx->peer_id);
     } else {
-      log_.info("banning peer {}, dial_attempts={}", ctx->str,
-                ctx->dial_attempts);
+      //log_.info(
+      //    "banning peer {}, dial_attempts={}", ctx->str, ctx->dial_attempts);
       auto ts = scheduler_->now() + config_.ban_interval_msec;
       ctx->banned_until = ts;
       banned_peers_expiration_.insert({ts, ctx});
@@ -390,7 +396,7 @@ namespace libp2p::protocol::gossip {
 
     auto it = banned_peers_expiration_.find({ts, ctx});
     if (it == banned_peers_expiration_.end()) {
-      log_.warn("cannot find banned peer {}", ctx->str);
+      //log_.warn("cannot find banned peer {}", ctx->str);
       return;
     }
 
@@ -400,7 +406,7 @@ namespace libp2p::protocol::gossip {
   void Connectivity::unban(BannedPeers::iterator it) {
     const auto &ctx = it->second;
     ctx->banned_until = Time::zero();
-    log_.info("unbanning peer {}", ctx->str);
+    //log_.info("unbanning peer {}", ctx->str);
     banned_peers_expiration_.erase(it);
   }
 
@@ -414,7 +420,7 @@ namespace libp2p::protocol::gossip {
       // do nothing at the moment, keep it connected
       return;
     }
-    log_.info("stream error='{}', peer={}", event.error().message(), from->str);
+    //log_.info("stream error='{}', peer={}", event.error(), from->str);
 
     // TODO(artem): ban incoming peers for protocol violations etc. - v.1.1
 
@@ -457,7 +463,7 @@ namespace libp2p::protocol::gossip {
 
       unban(it);
 
-      log_.debug("dialing unbanned {}", ctx->str);
+      //log_.debug("dialing unbanned {}", ctx->str);
       dial(ctx);
     }
 
@@ -468,7 +474,7 @@ namespace libp2p::protocol::gossip {
           config_.ideal_connections_num - sz);
       for (auto &p : peers) {
         if (!p->outbound_stream) {
-          log_.debug("dialing {}", p->str);
+          //log_.debug("dialing {}", p->str);
           dial(p);
         }
       }

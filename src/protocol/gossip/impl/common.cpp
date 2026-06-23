@@ -1,5 +1,6 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -25,7 +26,7 @@ OUTCOME_CPP_DEFINE_CATEGORY(libp2p::protocol::gossip, Error, e) {
     case E::READER_TIMEOUT:
       return "stream reader timeout";
     case E::WRITER_TIMEOUT:
-      return "stream writer timeout";
+      return "stream writer disconnected";
     case E::CANNOT_CONNECT:
       return "cannot connect to peer";
     case E::VALIDATION_FAILED:
@@ -88,7 +89,8 @@ namespace libp2p::protocol::gossip {
     return ret;
   }
 
-  MessageId createMessageId(const ByteArray &from, const ByteArray &seq,
+  MessageId createMessageId(const ByteArray &from,
+                            const ByteArray &seq,
                             const ByteArray &data) {
     MessageId msg_id(from);
     msg_id.reserve(seq.size() + from.size());
@@ -101,8 +103,10 @@ namespace libp2p::protocol::gossip {
         seq_no(std::move(_seq)),
         data(std::move(_data)) {}
 
-  TopicMessage::TopicMessage(const peer::PeerId &_from, uint64_t _seq,
-                             ByteArray _data, TopicId _topic)
+  TopicMessage::TopicMessage(const peer::PeerId &_from,
+                             uint64_t _seq,
+                             ByteArray _data,
+                             TopicId _topic)
       : from(_from.toVector()),
         seq_no(createSeqNo(_seq)),
         data(std::move(_data)),

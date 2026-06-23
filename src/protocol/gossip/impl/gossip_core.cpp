@@ -1,16 +1,18 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
 #include "gossip_core.hpp"
 
 #include <cassert>
+#include <mutex>
 
-#include <libp2p/common/hexutil.hpp>
 #include <libp2p/crypto/crypto_provider.hpp>
 #include <libp2p/crypto/key_marshaller.hpp>
 #include <libp2p/peer/identity_manager.hpp>
+#include <libp2p/common/hexutil.hpp>
 
 #include "connectivity.hpp"
 #include "local_subscriptions.hpp"
@@ -20,13 +22,16 @@
 namespace libp2p::protocol::gossip {
 
   std::shared_ptr<Gossip> create(
-      std::shared_ptr<basic::Scheduler> scheduler, std::shared_ptr<Host> host,
+      std::shared_ptr<basic::Scheduler> scheduler,
+      std::shared_ptr<Host> host,
       std::shared_ptr<peer::IdentityManager> idmgr,
       std::shared_ptr<crypto::CryptoProvider> crypto_provider,
       std::shared_ptr<crypto::marshaller::KeyMarshaller> key_marshaller,
       Config config) {
-    return std::make_shared<GossipCore>(std::move(config), std::move(scheduler),
-                                        std::move(host), std::move(idmgr),
+    return std::make_shared<GossipCore>(std::move(config),
+                                        std::move(scheduler),
+                                        std::move(host),
+                                        std::move(idmgr),
                                         std::move(crypto_provider),
                                         std::move(key_marshaller));
   }
@@ -79,6 +84,7 @@ namespace libp2p::protocol::gossip {
     }
     return remote_subscriptions_->getAllPeers(topic);
   }
+
   void GossipCore::addBootstrapPeer(
       const peer::PeerId &id, boost::optional<multi::Multiaddress> address) {
     if (started_) {
@@ -101,11 +107,6 @@ namespace libp2p::protocol::gossip {
   outcome::result<void> GossipCore::addBootstrapPeer(
       const std::string &address) {
     OUTCOME_TRY(ma, libp2p::multi::Multiaddress::create(address));
-      //auto ma = libp2p::multi::Multiaddress::create(address);
-      //if (!ma)
-      //{
-      //    return multi::Multiaddress::Error::INVALID_INPUT;
-      //}
     auto peer_id_str = ma.getPeerId();
     if (!peer_id_str) {
       return multi::Multiaddress::Error::INVALID_INPUT;
@@ -142,17 +143,18 @@ namespace libp2p::protocol::gossip {
 
     started_ = true;
 
-    for (const auto &[topic, _] : local_subscriptions_->subscribedTo()) {
+    auto local_topics = local_subscriptions_->subscribedToSnapshot();
+    for (const auto &[topic, _] : local_topics) {
       remote_subscriptions_->onSelfSubscribed(true, topic);
     }
 
-    heartbeat_timer_ =
-        scheduler_->scheduleWithHandle([this] { onHeartbeat(); });
+    setTimerHeartbeat();
 
     connectivity_->start();
   }
 
   void GossipCore::stop() {
+    std::lock_guard<std::mutex> lock(gossip_state_mutex_);
     if (!started_) {
       return;
     }
@@ -201,7 +203,7 @@ namespace libp2p::protocol::gossip {
     if (config_.sign_messages) {
       auto res = signMessage(*msg);
       if (!res) {
-        log_.warn("signMessage error: {}", res.error().message());
+        //log_.warn("signMessage error: {}", res.error());
       }
     }
 
@@ -232,12 +234,15 @@ namespace libp2p::protocol::gossip {
     return outcome::success();
   }
 
-  void GossipCore::onSubscription(const PeerContextPtr &peer, bool subscribe,
+  void GossipCore::onSubscription(const PeerContextPtr &peer,
+                                  bool subscribe,
                                   const TopicId &topic) {
     assert(started_);
 
-    log_.debug("peer {} {}subscribed, topic {}", peer->str,
-               (subscribe ? "" : "un"), topic);
+    log_.debug("peer {} {}subscribed, topic {}",
+               peer->str,
+               (subscribe ? "" : "un"),
+               topic);
     if (subscribe) {
       remote_subscriptions_->onPeerSubscribed(peer, topic);
     } else {
@@ -245,7 +250,8 @@ namespace libp2p::protocol::gossip {
     }
   }
 
-  void GossipCore::onIHave(const PeerContextPtr &from, const TopicId &topic,
+  void GossipCore::onIHave(const PeerContextPtr &from,
+                           const TopicId &topic,
                            const MessageId &msg_id) {
     assert(started_);
 
@@ -253,7 +259,7 @@ namespace libp2p::protocol::gossip {
 
     if (remote_subscriptions_->hasTopic(topic)
         && !msg_cache_.contains(msg_id)) {
-      log_.debug("requesting msg id {}", common::hex_lower(msg_id));
+      //log_.debug("requesting msg id {:x}", msg_id);
 
       from->message_builder->addIWant(msg_id);
       connectivity_->peerIsWritable(from, false);
@@ -262,8 +268,7 @@ namespace libp2p::protocol::gossip {
 
   void GossipCore::onIWant(const PeerContextPtr &from,
                            const MessageId &msg_id) {
-    log_.debug("peer {} wants message {}", from->str,
-               common::hex_lower(msg_id));
+    // log_.debug("peer {} wants message {:x}", from->str, msg_id);
 
     auto msg_found = msg_cache_.getMessage(msg_id);
     if (msg_found) {
@@ -282,7 +287,8 @@ namespace libp2p::protocol::gossip {
     remote_subscriptions_->onGraft(from, topic);
   }
 
-  void GossipCore::onPrune(const PeerContextPtr &from, const TopicId &topic,
+  void GossipCore::onPrune(const PeerContextPtr &from,
+                           const TopicId &topic,
                            uint64_t backoff_time) {
     assert(started_);
 
@@ -294,6 +300,11 @@ namespace libp2p::protocol::gossip {
   void GossipCore::onTopicMessage(const PeerContextPtr &from,
                                   TopicMessage::Ptr msg) {
     assert(started_);
+    // Keep GossipCore alive for the full duration of this handler.
+    // A subscriber callback may drop the last external shared_ptr to us,
+    // which would destroy local_subscriptions_ and remote_subscriptions_
+    // while we still need them after forwardMessage() returns.
+    auto self = shared_from_this();
 
     // do we need this message?
     auto subscribed = remote_subscriptions_->hasTopic(msg->topic);
@@ -303,7 +314,7 @@ namespace libp2p::protocol::gossip {
     }
 
     MessageId msg_id = create_message_id_(msg->from, msg->seq_no, msg->data);
-    log_.debug("message arrived, msg id={}", common::hex_lower(msg_id));
+    //log_.debug("message arrived, msg id={:x}", msg_id);
 
     if (msg_cache_.contains(msg_id)) {
       // already there, ignore
@@ -332,7 +343,7 @@ namespace libp2p::protocol::gossip {
       return;
     }
 
-    // Tag peer as valuable - they sent us a valid topic message
+        // Tag peer as valuable - they sent us a valid topic message
     if (from) {
       // Get peer ID from the message sender
       auto peer_id_res = peer::PeerId::fromBytes(msg->from);
@@ -360,28 +371,28 @@ namespace libp2p::protocol::gossip {
   }
 
   void GossipCore::onHeartbeat() {
-    assert(started_);
+    std::shared_ptr<RemoteSubscriptions> remote_subscriptions;
+    std::map<TopicId, bool> broadcast_snapshot;
+    {
+      std::lock_guard<std::mutex> lock(gossip_state_mutex_);
+      if (!started_) {
+        return;
+      }
+      remote_subscriptions = remote_subscriptions_;
+      broadcast_snapshot = broadcast_on_heartbeat_;
+      broadcast_on_heartbeat_.clear();
+    }
 
-    // shift cache
+    // shift cache (no lock needed, msg_cache not shared with stop path)
     msg_cache_.shift();
 
     // heartbeat changes per topic
-    remote_subscriptions_->onHeartbeat();
-
-    // Tag active peers during heartbeat - they maintain gossip connections
-    // Note: We could iterate through active peers here if we had access to them
-    // from connectivity_ or remote_subscriptions_, but for now we'll rely on
-    // message-based and connection-based tagging
-    log_.trace("heartbeat completed - maintaining gossip network health");
+    remote_subscriptions->onHeartbeat();
 
     // send changes to peers
-    connectivity_->onHeartbeat(broadcast_on_heartbeat_);
-    broadcast_on_heartbeat_.clear();
+    connectivity_->onHeartbeat(broadcast_snapshot);
 
-    auto res = heartbeat_timer_.reschedule(config_.heartbeat_interval_msec);
-    if (!res) {
-      log_.error("Heartbeat reschedule error: {}", res.error().message());
-    }
+    setTimerHeartbeat();
   }
 
   void GossipCore::onPeerConnection(bool connected, const PeerContextPtr &ctx) {
@@ -389,7 +400,7 @@ namespace libp2p::protocol::gossip {
 
     if (connected) {
       log_.debug("peer {} connected", ctx->str);
-
+      
       // Tag peer as gossip participant - they connected to our gossip network
       if (ctx) {
         auto& conn_mgr = host_->getNetwork().getConnectionManager();
@@ -398,8 +409,9 @@ namespace libp2p::protocol::gossip {
       }
 
       // notify the new peer about all topics we subscribed to
-      if (!local_subscriptions_->subscribedTo().empty()) {
-        for (const auto &local_sub : local_subscriptions_->subscribedTo()) {
+      auto local_topics = local_subscriptions_->subscribedToSnapshot();
+      if (!local_topics.empty()) {
+        for (const auto &local_sub : local_topics) {
           ctx->message_builder->addSubscription(true, local_sub.first);
         }
         connectivity_->peerIsWritable(ctx, true);
@@ -413,21 +425,38 @@ namespace libp2p::protocol::gossip {
 
   void GossipCore::onLocalSubscriptionChanged(bool subscribe,
                                               const TopicId &topic) {
-    if (!started_) {
-      return;
+    std::shared_ptr<RemoteSubscriptions> remote_subscriptions;
+    {
+      std::lock_guard<std::mutex> lock(gossip_state_mutex_);
+      if (!started_) {
+        return;
+      }
+
+      // send this notification on next heartbeat to all connected peers
+      auto it = broadcast_on_heartbeat_.find(topic);
+      if (it == broadcast_on_heartbeat_.end()) {
+        broadcast_on_heartbeat_.emplace(topic, subscribe);
+      } else if (it->second != subscribe) {
+        // save traffic
+        broadcast_on_heartbeat_.erase(it);
+      }
+
+      remote_subscriptions = remote_subscriptions_;
     }
 
-    // send this notification on next heartbeat to all connected peers
-    auto it = broadcast_on_heartbeat_.find(topic);
-    if (it == broadcast_on_heartbeat_.end()) {
-      broadcast_on_heartbeat_.emplace(topic, subscribe);
-    } else if (it->second != subscribe) {
-      // save traffic
-      broadcast_on_heartbeat_.erase(it);
-    }
-
-    // update meshes per topic
-    remote_subscriptions_->onSelfSubscribed(subscribe, topic);
+    // update meshes per topic (outside lock)
+    remote_subscriptions->onSelfSubscribed(subscribe, topic);
   }
 
+  void GossipCore::setTimerHeartbeat() {
+    heartbeat_timer_ = scheduler_->scheduleWithHandle(
+        [weak_self{weak_from_this()}] {
+          auto self = weak_self.lock();
+          if (!self) {
+            return;
+          }
+          self->onHeartbeat();
+        },
+        config_.heartbeat_interval_msec);
+  }
 }  // namespace libp2p::protocol::gossip

@@ -12,6 +12,7 @@
 #include <libp2p/network/transport_manager.hpp>
 #include <libp2p/peer/address_repository.hpp>
 #include <libp2p/protocol_muxer/protocol_muxer.hpp>
+#include <mutex>
 
 namespace libp2p::network {
 
@@ -57,6 +58,7 @@ namespace libp2p::network {
         peer::PeerId id) override;
 
    private:
+        mutable std::mutex listeners_mutex_;
     bool started = false;
 
     // clang-format off
