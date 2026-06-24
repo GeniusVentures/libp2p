@@ -12,6 +12,7 @@
 #include <libp2p/basic/scheduler.hpp>
 #include <libp2p/common/metrics/instance_count.hpp>
 #include <libp2p/connection/capable_connection.hpp>
+#include <libp2p/connection/stream.hpp>
 #include <libp2p/muxer/muxed_connection_config.hpp>
 #include <libp2p/muxer/yamux/yamux_reading_state.hpp>
 #include <libp2p/muxer/yamux/yamux_stream.hpp>
@@ -83,6 +84,9 @@ namespace libp2p::connection {
     void setRelay(bool isrelay) override;
 
     bool isRelay() override;
+
+    /// Get all active streams for idle connection detection
+    std::vector<std::shared_ptr<Stream>> getStreams() const override;
 
    private:
     using Streams = std::unordered_map<StreamId, std::shared_ptr<YamuxStream>>;
@@ -184,12 +188,8 @@ namespace libp2p::connection {
     /// Erases entry from pending streams, may affect incactivity timer
     void erasePendingOutboundStream(PendingOutboundStreams::iterator it);
 
-    /// Sets expire timer if last stream was just closed. Called from erase*()
-    /// functions
-    void adjustExpireTimer();
-
-    /// Expire timer callback
-    void onExpireTimer();
+    // NOTE: adjustExpireTimer and onExpireTimer methods removed
+    // Connection lifecycle is now managed by ConnectionManager using grace periods
 
     /// Copy of config
     const muxer::MuxedConnectionConfig config_;
@@ -237,8 +237,7 @@ namespace libp2p::connection {
     /// Cleanup for detached streams
     basic::Scheduler::Handle cleanup_handle_;
 
-    /// Timer handle for auto closing if inactive
-    basic::Scheduler::Handle inactivity_handle_;
+    // NOTE: inactivity_handle_ removed - lifecycle managed by ConnectionManager
 
     /// Called on connection close
     ConnectionClosedCallback closed_callback_;

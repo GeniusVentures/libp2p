@@ -1,12 +1,14 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef LIBP2P_PROTOCOL_GOSSIP_MESSAGE_BUILDER_HPP
-#define LIBP2P_PROTOCOL_GOSSIP_MESSAGE_BUILDER_HPP
+#pragma once
 
+#include <deque>
 #include <map>
+#include <mutex>
 #include <unordered_set>
 
 #include "common.hpp"
@@ -23,8 +25,8 @@ namespace libp2p::protocol::gossip {
   /// into bytes before sending into wire
   class MessageBuilder {
    public:
-    MessageBuilder(MessageBuilder &&) = default;
-    MessageBuilder &operator=(MessageBuilder &&) = default;
+    MessageBuilder(MessageBuilder &&) = delete;
+    MessageBuilder &operator=(MessageBuilder &&) = delete;
     MessageBuilder(const MessageBuilder &) = delete;
     MessageBuilder &operator=(const MessageBuilder &) = delete;
 
@@ -75,14 +77,14 @@ namespace libp2p::protocol::gossip {
     bool control_not_empty_;
 
     /// Intermediate struct for building IHave messages
-    std::map<TopicId, std::vector<MessageId>> ihaves_;
+    std::map<TopicId, std::deque<MessageId>> ihaves_;
 
     /// Intermediate struct for building IWant request
-    std::vector<MessageId> iwant_;
+    std::deque<MessageId> iwant_;
 
     /// Used to prevent duplicate forwarding
     std::unordered_set<MessageId> messages_added_;
+
+    mutable std::recursive_mutex mutex_;
   };
 }  // namespace libp2p::protocol::gossip
-
-#endif  // LIBP2P_PROTOCOL_GOSSIP_MESSAGE_BUILDER_HPP

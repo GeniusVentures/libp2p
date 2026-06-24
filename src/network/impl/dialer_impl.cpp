@@ -7,6 +7,7 @@
 #include <iostream>
 
 #include <libp2p/connection/stream.hpp>
+#include <libp2p/connection/stream_and_protocol.hpp>
 #include <libp2p/log/logger.hpp>
 #include <libp2p/network/impl/dialer_impl.hpp>
 #include <iostream>
@@ -15,7 +16,7 @@
 namespace libp2p::network {
     
   void DialerImpl::dial(const peer::PeerInfo &p, DialResultFunc cb,
-                        std::chrono::milliseconds timeout, multi::Multiaddress bindaddress, bool holepunch, bool holepunchserver) {
+                        std::chrono::milliseconds timeout, const libp2p::network::RouteHelper::SourceAddresses &source_addresses, bool holepunch, bool holepunchserver) {
       if (p.id.toBase58().size() == 0)
       {
           scheduler_->schedule(
@@ -23,7 +24,11 @@ namespace libp2p::network {
           SL_ERROR(log_, "Dialing contains no peer ID to dial");
           return;
       }
-    SL_TRACE(log_, "Dialing to {} from {} they have {} addresses", p.id.toBase58(), bindaddress.getStringAddress(), p.addresses.size());
+    SL_TRACE(log_, "Dialing to {} from IPv4:{} IPv6:{} they have {} addresses", 
+             p.id.toBase58(), 
+             source_addresses.has_ipv4 ? source_addresses.ipv4_source.getStringAddress() : "none",
+             source_addresses.has_ipv6 ? source_addresses.ipv6_source.getStringAddress() : "none",
+             p.addresses.size());
     if (!holepunch)
     {
         if (auto c = cmgr_->getBestConnectionForPeer(p.id); c != nullptr) {
@@ -32,7 +37,7 @@ namespace libp2p::network {
             SL_TRACE(log_, "Reusing connection to peer {}",
                 p.id.toBase58());
             scheduler_->schedule(
-                [cb{ std::move(cb) }, c{ std::move(c) }, bindaddress{ std::move(bindaddress) }]() mutable { cb(std::move(c)); });
+                [cb{ std::move(cb) }, c{ std::move(c) }]() mutable { cb(std::move(c)); });
             return;
         }
 
@@ -70,7 +75,7 @@ namespace libp2p::network {
 
     DialCtx new_ctx{/* .addresses =*/ limitedAddresses,
                     /*.timeout =*/ timeout,
-                    /*.bindaddress= */ bindaddress,
+                    /*.source_addresses= */ source_addresses,
                     /* holepunch= */ holepunch,
                     /* holepunchserver=*/ holepunchserver};
     new_ctx.callbacks.emplace_back(std::move(cb));
@@ -99,14 +104,17 @@ namespace libp2p::network {
       auto&& ctx = ctx_found->second;
 
       if (ctx.addresses.empty() && !ctx.dialled) {
+          SL_TRACE(log_, "Dial Failed, no addresses left, but we tried some {}", peer_id.toBase58());
           completeDial(peer_id, std::errc::address_family_not_supported);
           return;
       }
       if (ctx.addresses.empty() && ctx.result.has_value()) {
+          SL_TRACE(log_, "Dial failed, have value but no addresses {}", peer_id.toBase58());
           completeDial(peer_id, ctx.result.value());
           return;
       }
       if (ctx.addresses.empty()) {
+          SL_TRACE(log_, "Dial failed, no addresses left {}", peer_id.toBase58());
           completeDial(peer_id, std::errc::host_unreachable);
           return;
       }
@@ -160,7 +168,6 @@ namespace libp2p::network {
       const auto addr = *first_addr;
       ctx.tried_addresses.insert(addr);
       ctx.addresses.erase(first_addr);
-      //auto localcheck = addr.getFirstValueForProtocol(libp2p::multi::Protocol::Code::IP4);
       if (addr.hasCircuitRelay())
       {
           auto addr_peer_id = addr.getPeerId();
@@ -176,7 +183,8 @@ namespace libp2p::network {
                       upgradeDialRelay(peer_id, c);
                   }
                   else {
-                      tr->dial(peer_id_actual.value(), addr, dial_handler, ctx.timeout, ctx.bindaddress, ctx.holepunch, ctx.holepunchserver);
+                      SL_TRACE(log_, "Dialing relay to {} using dual source addresses", addr.getStringAddress());
+                      tr->dial(peer_id_actual.value(), addr, dial_handler, ctx.timeout, ctx.source_addresses, ctx.holepunch, ctx.holepunchserver);
                   }
                   
               }
@@ -200,9 +208,10 @@ namespace libp2p::network {
           if (auto tr = tmgr_->findBest(addr); nullptr != tr) {
 
               ctx.dialled = true;
-              SL_TRACE(log_, "Dial to non-relay {} via {}", peer_id.toBase58(), addr.getStringAddress());
+              SL_TRACE(log_, "Dial to non-relay {} using dual source addresses to outgoing address {}", peer_id.toBase58(), addr.getStringAddress());
 
-              tr->dial(peer_id, addr, dial_handler, ctx.timeout, ctx.bindaddress);
+              // Use the new TCP transport method with dual addresses
+              tr->dial(peer_id, addr, dial_handler, ctx.timeout, ctx.source_addresses);
           }
           else {
               scheduler_->schedule([wp{ weak_from_this() }, peer_id] {
@@ -223,19 +232,6 @@ namespace libp2p::network {
       }
       SL_TRACE(log_, "Holepunch Going to try to dial {}", peer_id.toBase58());
       auto&& ctx = ctx_found->second;
-
-      //if (ctx.addresses.empty() && !ctx.dialled) {
-      //    completeDial(peer_id, std::errc::address_family_not_supported);
-      //    return;
-      //}
-      //if (ctx.addresses.empty() && ctx.result.has_value()) {
-      //    completeDial(peer_id, ctx.result.value());
-      //    return;
-      //}
-      //if (ctx.addresses.empty()) {
-      //    completeDial(peer_id, std::errc::host_unreachable);
-      //    return;
-      //}
 
       auto dial_handler = [wp{ weak_from_this() }, peer_id](outcome::result<std::shared_ptr<connection::CapableConnection>> result) {
           if (auto self = wp.lock()) {
@@ -279,8 +275,10 @@ namespace libp2p::network {
                   if (auto tr = tmgr_->findBest(addr); nullptr != tr) {
 
                       indctx.dialled = true;
-                      SL_TRACE(log_, "Holepunch Dial to non-relay {} via {}", peer_id.toBase58(), addr.getStringAddress());
-                      tr->dial(peer_id, addr, dial_handler, indctx.timeout, indctx.bindaddress);
+                      SL_TRACE(log_, "Holepunch dial to {} using dual source addresses", peer_id.toBase58());
+                      
+                      // Use dual address approach for holepunch as well
+                      tr->dial(peer_id, addr, dial_handler, indctx.timeout, indctx.source_addresses);
 
                   }
               }
@@ -352,7 +350,7 @@ namespace libp2p::network {
                   addresses.push_back(stream_result.value()->remoteMultiaddr().value());
                   auto tr = self->tmgr_->findBest(stream_result.value()->remoteMultiaddr().value());
                   relayupg->start(
-                      stream_result.value(),
+                      {stream_result.value()},
                       peer::PeerInfo{ peer_id, addresses },
                       [self, peer_id, stream_result, relayupg, tr](const bool& success) mutable {
                           if (!self) return;
@@ -393,55 +391,65 @@ namespace libp2p::network {
           });
   }
 
-  void DialerImpl::newStream(const peer::PeerInfo &p,
-                             const peer::Protocol &protocol,
-                             StreamResultFunc cb,
+  void DialerImpl::newStream(const peer::PeerInfo &p, StreamProtocols protocols,
+                             StreamAndProtocolOrErrorCb cb,
                              std::chrono::milliseconds timeout,
-                             multi::Multiaddress bindaddress) {
+                             const libp2p::network::RouteHelper::SourceAddresses
+                                &source_addresses) {
     SL_TRACE(log_, "New stream to {} for {} (peer info)",
-             p.id.toBase58(), protocol);
+             p.id.toBase58().substr(46), fmt::join(protocols, " "));
     dial(
         p,
-        [self{shared_from_this()}, cb{std::move(cb)}, protocol](
+        [self{shared_from_this()}, protocols{std::move(protocols)},
+         cb{std::move(cb)}](
             outcome::result<std::shared_ptr<connection::CapableConnection>>
                 rconn) mutable {
           if (!rconn) {
             return cb(rconn.error());
           }
           auto &&conn = rconn.value();
-
-          auto result = conn->newStream();
-          if (!result) {
-            self->scheduler_->schedule(
-                [cb{std::move(cb)}, result] { cb(result); });
-            return;
-                }
-          self->multiselect_->simpleStreamNegotiate(result.value(), protocol,
-                                                    std::move(cb));
+          self->newStream(std::move(conn), std::move(protocols), std::move(cb));
         },
-        timeout, bindaddress);
+        timeout, source_addresses);
   }
 
   void DialerImpl::newStream(const peer::PeerId &peer_id,
-                             const peer::Protocol &protocol,
-                             StreamResultFunc cb, multi::Multiaddress bindaddress) {
+                             StreamProtocols protocols,
+                             StreamAndProtocolOrErrorCb cb,
+                             const libp2p::network::RouteHelper::SourceAddresses
+                                &source_addresses) {
     SL_TRACE(log_, "New stream to {} for {} (peer id)",
-             peer_id.toBase58(), protocol);
+             peer_id.toBase58().substr(46), fmt::join(protocols, " "));
     auto conn = cmgr_->getBestConnectionForPeer(peer_id);
     if (!conn) {
       scheduler_->schedule(
           [cb{std::move(cb)}] { cb(std::errc::not_connected); });
       return;
     }
+    newStream(std::move(conn), std::move(protocols), std::move(cb));
+  }
 
-    auto result = conn->newStream();
-    if (!result) {
-      scheduler_->schedule([cb{std::move(cb)}, result] { cb(result); });
+  void DialerImpl::newStream(
+      std::shared_ptr<connection::CapableConnection> conn,
+      StreamProtocols protocols, StreamAndProtocolOrErrorCb cb) {
+    auto stream_res = conn->newStream();
+    if (stream_res.has_error()) {
+      scheduler_->schedule(
+          [cb{std::move(cb)}, error{stream_res.error()}] { cb(error); });
       return;
     }
-
-    multiselect_->simpleStreamNegotiate(result.value(), protocol,
-                                        std::move(cb));
+    auto &&stream = stream_res.value();
+    auto stream_copy = stream;
+    multiselect_->selectOneOf(
+        protocols, std::move(stream_copy), true, true,
+        [stream{std::move(stream)}, cb{std::move(cb)}](
+            outcome::result<peer::Protocol> protocol_res) mutable {
+          if (protocol_res.has_error()) {
+            return cb(protocol_res.error());
+          }
+          auto &&protocol = protocol_res.value();
+          cb(StreamAndProtocol{std::move(stream), std::move(protocol)});
+        });
   }
 
   DialerImpl::DialerImpl(
@@ -455,7 +463,7 @@ namespace libp2p::network {
         cmgr_(std::move(cmgr)),
         listener_(std::move(listener)),
         scheduler_(std::move(scheduler)),
-        log_(log::createLogger("DialerImpl", "network")) {
+        log_(log::createLogger("DialerImpl")) {
     BOOST_ASSERT(multiselect_ != nullptr);
     BOOST_ASSERT(tmgr_ != nullptr);
     BOOST_ASSERT(cmgr_ != nullptr);

@@ -33,7 +33,7 @@ namespace libp2p::protocol {
     public:
         RelayUpgraderMessageProcessor();
 
-        void initiateRelayCon(StreamSPtr& stream_res, peer::PeerInfo peer_info, CompletionCallback cb);
+        void initiateRelayCon(StreamSPtr stream_res, peer::PeerInfo peer_info, CompletionCallback cb);
 
         /**
          * Called when data was sent to make a connection
@@ -41,7 +41,8 @@ namespace libp2p::protocol {
          * @param stream with the other side
          */
         void relayConnectSent(outcome::result<size_t> written_bytes,
-            const StreamSPtr& stream, CompletionCallback cb);
+                              StreamSPtr stream,
+                              CompletionCallback cb);
         
         /**
           * Called when a response is sent from an attempted relay connection initiation
@@ -49,12 +50,10 @@ namespace libp2p::protocol {
           * @param stream, over which it was received
           */
         void relayConnectStatus(outcome::result<relay::pb::HopMessage> msg_res,
-            const StreamSPtr& stream, CompletionCallback cb);
+                                libp2p::connection::Stream &stream,
+                                CompletionCallback cb);
     private:
 
-
-        //Host& host_;
-        //network::ConnectionManager& conn_manager_;
         log::Logger log_ = log::createLogger("RelayUpgraderMsgProcessor");
     };
 }

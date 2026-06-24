@@ -1,5 +1,6 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -32,7 +33,8 @@ namespace libp2p::protocol::gossip {
     using ConnectionStatusFeedback =
         std::function<void(bool connected, const PeerContextPtr &ctx)>;
 
-    Connectivity(Config config, std::shared_ptr<basic::Scheduler> scheduler,
+    Connectivity(Config config,
+                 std::shared_ptr<basic::Scheduler> scheduler,
                  std::shared_ptr<Host> host,
                  std::shared_ptr<MessageReceiver> msg_receiver,
                  ConnectionStatusFeedback on_connected);
@@ -48,6 +50,10 @@ namespace libp2p::protocol::gossip {
     void addBootstrapPeer(const peer::PeerId &id,
                           const boost::optional<multi::Multiaddress> &address);
 
+    /// Adds bootstrap peer with multiple addresses to the set of connectable peers
+    void addBootstrapPeer(const peer::PeerId &id,
+                          const std::vector<multi::Multiaddress> &addresses);
+                          
     /// Add peer to writable set, actual writes occur on flush() (piggybacking)
     /// The idea behind writable set and flush() is a compromise between
     /// latency and message rate
@@ -70,7 +76,7 @@ namespace libp2p::protocol::gossip {
     peer::Protocol getProtocolId() const override;
 
     /// BaseProtocol override, on new inbound stream
-    void handle(StreamResult rstream) override;
+    void handle(StreamAndProtocol stream) override;
 
     /// Tries to connect to peer
     void dial(const PeerContextPtr &peer);
@@ -79,9 +85,8 @@ namespace libp2p::protocol::gossip {
     void dialOverExistingConnection(const PeerContextPtr &peer);
 
     /// Outbound stream result callback
-    void onNewStream(
-        const PeerContextPtr& ctx,
-        outcome::result<std::shared_ptr<connection::Stream>> rstream);
+    void onNewStream(const PeerContextPtr &ctx,
+                     StreamAndProtocolOrError rstream);
 
     /// Async feedback from streams
     void onStreamEvent(const PeerContextPtr &from,
@@ -127,12 +132,11 @@ namespace libp2p::protocol::gossip {
     PeerSet writable_peers_on_heartbeat_;
 
     /// Renew addresses in address repo periodically within heartbeat timer
-    std::chrono::milliseconds addresses_renewal_time_ {0};
+    std::chrono::milliseconds addresses_renewal_time_{0};
 
     /// Logger
     log::SubLogger log_;
   };
 
 }  // namespace libp2p::protocol::gossip
-
-#endif  // LIBP2P_PROTOCOL_GOSSIP_CONNECTIVITY_HPP
+#endif

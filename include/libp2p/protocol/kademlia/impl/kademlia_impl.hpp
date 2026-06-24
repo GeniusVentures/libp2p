@@ -93,7 +93,7 @@ namespace libp2p::protocol::kademlia {
     void onFindNode(const std::shared_ptr<Session> &session, Message &&msg);
     void onPing(const std::shared_ptr<Session> &session, Message &&msg);
 
-    void handleProtocol(protocol::BaseProtocol::StreamResult stream_res);
+    void handleProtocol(StreamAndProtocol stream);
 
     std::shared_ptr<PutValueExecutor> createPutValueExecutor(
         ContentId key, ContentValue value,
@@ -138,7 +138,8 @@ namespace libp2p::protocol::kademlia {
 
     // Subscribtion to new connections
     event::Handle new_connection_subscription_;
-
+    event::Handle on_disconnected_;
+    
     struct StreamPtrComparator {
       bool operator()(const std::shared_ptr<connection::Stream> &lhs,
                       const std::shared_ptr<connection::Stream> &rhs) const {

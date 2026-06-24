@@ -50,28 +50,27 @@ namespace {
     DecodeFuncType *decode;
   };
 
-  static const std::unordered_map<MultibaseCodec::Encoding, CodecFunctions> &GetCodecs()
-  {
+  static const std::unordered_map<MultibaseCodec::Encoding, CodecFunctions> &
+  GetCodecs() {
     /// all available codec functions
-    static const std::unordered_map<MultibaseCodec::Encoding, CodecFunctions> codecs{
-        {MultibaseCodec::Encoding::BASE16_UPPER,
-        {&encodeBase16Upper, &decodeBase16Upper}},
-        {MultibaseCodec::Encoding::BASE16_LOWER,
-        {&encodeBase16Lower, &decodeBase16Lower}},
-        {MultibaseCodec::Encoding::BASE32_UPPER,
-        {&encodeBase32Upper, &decodeBase32Upper}},
-        {MultibaseCodec::Encoding::BASE32_LOWER,
-        {&encodeBase32Lower, &decodeBase32Lower}},
-        {MultibaseCodec::Encoding::BASE58, {&encodeBase58, &decodeBase58}},
-        {MultibaseCodec::Encoding::BASE64, {&encodeBase64, &decodeBase64}}};
-    
+    static const std::unordered_map<MultibaseCodec::Encoding, CodecFunctions>
+        codecs{
+            {MultibaseCodec::Encoding::BASE16_UPPER,
+             {&encodeBase16Upper, &decodeBase16Upper}},
+            {MultibaseCodec::Encoding::BASE16_LOWER,
+             {&encodeBase16Lower, &decodeBase16Lower}},
+            {MultibaseCodec::Encoding::BASE32_UPPER,
+             {&encodeBase32Upper, &decodeBase32Upper}},
+            {MultibaseCodec::Encoding::BASE32_LOWER,
+             {&encodeBase32Lower, &decodeBase32Lower}},
+            {MultibaseCodec::Encoding::BASE58, {&encodeBase58, &decodeBase58}},
+            {MultibaseCodec::Encoding::BASE64, {&encodeBase64, &decodeBase64}}};
+
     return codecs;
   }
 }  // namespace
 
-
-
-OUTCOME_CPP_DEFINE_CATEGORY_3(libp2p::multi, MultibaseCodecImpl::Error, e) {
+OUTCOME_CPP_DEFINE_CATEGORY(libp2p::multi, MultibaseCodecImpl::Error, e) {
   using E = libp2p::multi::MultibaseCodecImpl::Error;
   switch (e) {
     case E::INPUT_TOO_SHORT:

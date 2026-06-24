@@ -145,7 +145,7 @@ namespace libp2p::protocol::kademlia {
           config_.connectionTimeout);
 
       host_->newStream(
-          peer_info, config_.protocolId,
+          peer_info, {config_.protocolId},
           [holder](auto &&stream_res) {
             if (holder->first) {
               holder->second.cancel();
@@ -156,6 +156,10 @@ namespace libp2p::protocol::kademlia {
           config_.connectionTimeout);
     }
 
+    if (done_) {
+      return;
+    }
+
     if (requests_in_progress_ == 0) {
       done_ = true;
       log_.debug("done");
@@ -164,7 +168,7 @@ namespace libp2p::protocol::kademlia {
   }
 
   void GetValueExecutor::onConnected(
-      outcome::result<std::shared_ptr<connection::Stream>> stream_res) {
+      StreamAndProtocolOrError stream_res) {
     if (!stream_res) {
       --requests_in_progress_;
 
@@ -176,7 +180,7 @@ namespace libp2p::protocol::kademlia {
       return;
     }
 
-    auto &stream = stream_res.value();
+    auto &stream = stream_res.value().stream;
     assert(stream->remoteMultiaddr().has_value());
 
     std::string addr(stream->remoteMultiaddr().value().getStringAddress());
@@ -206,13 +210,15 @@ namespace libp2p::protocol::kademlia {
   bool GetValueExecutor::match(const Message &msg) const {
     return
         // Check if message type is appropriate
-        msg.type == Message::Type::kGetValue
-        // Check if response is accorded to request
-        && msg.key == key_.data;
+        msg.type == Message::Type::kGetValue;
   }
 
   void GetValueExecutor::onResult(const std::shared_ptr<Session> &session,
                                   outcome::result<Message> msg_res) {
+    if (done_) {
+      return;
+    }
+
     gsl::final_action respawn([this] {
       --requests_in_progress_;
       spawn();

@@ -29,6 +29,8 @@ namespace libp2p::protocol {
      * Get a set of addresses, which were observed by other peers, when they
      * tried to connect to the given (\param address)
      * @param address, for which the mapping is to be extracted
+     * @param checkconfirmed when false, returns ALL observed addresses (raw).
+     *        when true, returns only activated (≥4 observers) AND confirmed addresses
      * @return set of addresses
      */
     std::vector<multi::Multiaddress> getAddressesFor(
@@ -36,9 +38,18 @@ namespace libp2p::protocol {
 
     /**
      * Get all addresses, which were observed by other peers
+     * @param checkconfirmed when false, returns ALL observed addresses (raw).
+     *        when true, returns only activated (≥4 observers) AND confirmed addresses
      * @return the addresses
      */
     std::vector<multi::Multiaddress> getAllAddresses(bool checkconfirmed = true) const;
+
+    /**
+     * Get all activated addresses (seen by ≥4 observers) regardless of confirmation status
+     * This is useful for autonat which needs reliable addresses to test
+     * @return activated addresses that may or may not be confirmed
+     */
+    std::vector<multi::Multiaddress> getAllActivatedAddresses() const;
 
     /**
      * Add an address, which was observed by another peer

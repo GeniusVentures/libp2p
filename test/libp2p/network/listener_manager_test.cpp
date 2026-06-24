@@ -77,7 +77,7 @@ TEST_F(ListenerManagerTest, ListenValidAddr) {
 
   auto random_port_resolved = "/ip4/127.0.0.1/tcp/12345"_multiaddr;
   EXPECT_CALL(*transport_listener, getListenMultiaddr())
-      .WillOnce(Return(random_port_resolved));
+      .WillOnce(Return(std::vector<multi::Multiaddress>{random_port_resolved}));
 
   auto addrs_resolved = listener->getListenAddressesInterfaces();
   EXPECT_EQ(addrs_resolved,
@@ -127,43 +127,4 @@ TEST_F(ListenerManagerTest, StartStop) {
   ASSERT_TRUE(listener->isStarted());
   ASSERT_NO_FATAL_FAILURE(listener->stop());
   ASSERT_FALSE(listener->isStarted());
-}
-
-/**
- * @given listener
- * @when setProtocolHandler is executed
- * @then router successfully binds this protocol
- */
-TEST_F(ListenerManagerTest, SetProtocolHandler) {
-  using std::string_literals::operator""s;
-  auto p = "/test/1.0.0"s;
-
-  MockFunction<void(ListenerManager::StreamResult)> cb;
-
-  EXPECT_CALL(cb, Call(Eq(outcome::success(stream)))).Times(1);
-
-  EXPECT_CALL(*router, setProtocolHandler(Eq(p), _))
-      .WillOnce(Arg1CallbackWithArg(stream));
-
-  listener->setProtocolHandler(p, [&](auto &&s) { cb.Call(s); });
-}
-
-/**
- * @given listener
- * @when setProtocolHandler is executed
- * @then router successfully binds this protocol
- */
-TEST_F(ListenerManagerTest, SetProtocolHandlerWithMatcher) {
-  using std::string_literals::operator""s;
-  auto p = "/test/1.0.0"s;
-
-  MockFunction<void(ListenerManager::StreamResult)> cb;
-
-  EXPECT_CALL(cb, Call(Eq(outcome::success(stream)))).Times(1);
-
-  EXPECT_CALL(*router, setProtocolHandler(Eq(p), _, _))
-      .WillOnce(Arg1CallbackWithArg(stream));
-
-  listener->setProtocolHandler(p, [&](auto &&s) { cb.Call(s); },
-                               [p](auto &&proto) { return proto == p; });
 }

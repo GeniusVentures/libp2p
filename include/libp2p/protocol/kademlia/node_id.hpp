@@ -7,8 +7,8 @@
 #define LIBP2P_PROTOCOL_KADEMLIA_NODEID
 
 #include <bitset>
-#include <cstring>
 #include <climits>
+#include <cstring>
 #include <gsl/span>
 #include <memory>
 #include <vector>
@@ -66,7 +66,7 @@ namespace libp2p::protocol::kademlia {
     }
 
     explicit NodeId(const ContentId &content_id) {
-      auto digest_res = crypto::sha256(content_id.data);
+      auto digest_res = crypto::sha256(content_id);
       BOOST_ASSERT(digest_res.has_value());
       data_ = std::move(digest_res.value());
     }

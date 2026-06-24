@@ -22,7 +22,7 @@ namespace libp2p::protocol::detail {
    * stream) is connected to
    */
   std::tuple<std::string, std::string> getPeerIdentity(
-      const std::shared_ptr<libp2p::connection::Stream> &stream);
+      libp2p::connection::Stream &stream);
 
   /**
    * Get collection of peers, to which we have at least one active connection
@@ -45,8 +45,8 @@ namespace libp2p::protocol::detail {
    */
   void streamToEachConnectedPeer(Host &host,
                                  network::ConnectionManager &conn_manager,
-                                 const peer::Protocol &protocol,
-                                 const Host::StreamResultHandler &handler);
+                                 StreamProtocols protocols,
+                                 StreamAndProtocolOrErrorCb handler);
 }  // namespace libp2p::protocol::detail
 
 #endif  // LIBP2P_UTILS_HPP

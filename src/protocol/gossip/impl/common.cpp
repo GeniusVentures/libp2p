@@ -1,5 +1,6 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -7,7 +8,7 @@
 
 #include <boost/endian/conversion.hpp>
 
-OUTCOME_CPP_DEFINE_CATEGORY_3(libp2p::protocol::gossip, Error, e) {
+OUTCOME_CPP_DEFINE_CATEGORY(libp2p::protocol::gossip, Error, e) {
   using E = libp2p::protocol::gossip::Error;
   switch (e) {
     case E::MESSAGE_PARSE_ERROR:
@@ -88,7 +89,8 @@ namespace libp2p::protocol::gossip {
     return ret;
   }
 
-  MessageId createMessageId(const ByteArray &from, const ByteArray &seq,
+  MessageId createMessageId(const ByteArray &from,
+                            const ByteArray &seq,
                             const ByteArray &data) {
     MessageId msg_id(from);
     msg_id.reserve(seq.size() + from.size());
@@ -101,8 +103,10 @@ namespace libp2p::protocol::gossip {
         seq_no(std::move(_seq)),
         data(std::move(_data)) {}
 
-  TopicMessage::TopicMessage(const peer::PeerId &_from, uint64_t _seq,
-                             ByteArray _data, TopicId _topic)
+  TopicMessage::TopicMessage(const peer::PeerId &_from,
+                             uint64_t _seq,
+                             ByteArray _data,
+                             TopicId _topic)
       : from(_from.toVector()),
         seq_no(createSeqNo(_seq)),
         data(std::move(_data)),

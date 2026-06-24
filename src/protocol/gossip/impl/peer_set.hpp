@@ -1,10 +1,10 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef LIBP2P_PROTOCOL_GOSSIP_PEER_SET_HPP
-#define LIBP2P_PROTOCOL_GOSSIP_PEER_SET_HPP
+#pragma once
 
 #include <functional>
 #include <set>
@@ -61,11 +61,12 @@ namespace libp2p::protocol::gossip {
     /// Conditionally erases peers from the set
     void eraseIf(const FilterCallback &filter);
 
+        /// Get all peer IDs from this peerset
+    std::vector<peer::PeerId> getAllPeerIds() const;
+
    private:
     mutable std::shared_mutex mutex_;  // Added for thread safety
     std::set<PeerContextPtr, std::less<>> peers_;
   };
 
 }  // namespace libp2p::protocol::gossip
-
-#endif  // LIBP2P_PROTOCOL_GOSSIP_PEER_SET_HPP

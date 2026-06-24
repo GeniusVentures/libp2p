@@ -76,7 +76,7 @@ namespace libp2p::protocol {
      * @param stream, over which it was received
      */
     void holepunchIncomingReceived(outcome::result<holepunch::pb::HolePunch> msg_res,
-        const StreamSPtr& stream);
+        StreamSPtr stream);
 
     /**
      * Called, when a holepunch CONNECT is sent back to a node that initiated a holepunch
@@ -85,7 +85,7 @@ namespace libp2p::protocol {
      * @param Addresses we will connect to upon getting a sync
      */
     void holepunchConResponseSent(outcome::result<size_t> written_bytes,
-        const StreamSPtr& stream,
+        StreamSPtr stream,
         std::vector<libp2p::multi::Multiaddress> connaddrs);
 
     /**
@@ -95,7 +95,7 @@ namespace libp2p::protocol {
      * @param Addresses we will connect to upon getting a sync
      */
     void holepunchSyncResponseReturn(outcome::result<holepunch::pb::HolePunch> msg_res,
-        const StreamSPtr& stream,
+        StreamSPtr stream,
         std::vector<libp2p::multi::Multiaddress> connaddrs);
 
 

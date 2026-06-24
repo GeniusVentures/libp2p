@@ -7,9 +7,8 @@
 
 #include <libp2p/transport/tcp/tcp_util.hpp>
 
-#define TRACE_ENABLED 0
+#define TRACE_ENABLED 1
 #include <libp2p/common/trace.hpp>
-#include <iostream>
 
 namespace libp2p::transport {
 
@@ -194,9 +193,9 @@ namespace libp2p::transport {
       uint16_t port;
       auto ip_address_opt = bindaddress.getFirstValueForProtocol(libp2p::multi::Protocol::Code::IP4);
       if (!ip_address_opt) {
-          std::cerr << "Error: IP address not found in Multiaddress" << std::endl;
+          log().error("IP address not found in Multiaddress");
           cb(boost::system::error_code{boost::system::errc::invalid_argument,
-          boost::system::generic_category()}, 
+          boost::system::generic_category()},
           Tcp::endpoint{});
           return;
       }
@@ -204,9 +203,9 @@ namespace libp2p::transport {
 
       auto port_opt = bindaddress.getFirstValueForProtocol(libp2p::multi::Protocol::Code::TCP);
       if (!port_opt) {
-          std::cerr << "Error: Port not found in Multiaddress" << std::endl;
+          log().error("Port not found in Multiaddress");
           cb(boost::system::error_code{boost::system::errc::invalid_argument,
-          boost::system::generic_category()}, 
+          boost::system::generic_category()},
           Tcp::endpoint{});
           return;
       }
@@ -218,7 +217,7 @@ namespace libp2p::transport {
       boost::asio::socket_base::reuse_address option(true);
       socket_.set_option(option, reec);
       if (reec) {
-          std::cerr << "Error setting reuse address: " << reec.message() << std::endl;
+          log().error("Error setting reuse address: {}", reec.message());
           socket_.close();
           cb(reec, Tcp::endpoint{});
           return;
@@ -227,13 +226,20 @@ namespace libp2p::transport {
       boost::asio::detail::socket_option::boolean<SOL_SOCKET, SO_REUSEPORT> reuse_port_option(true);
       socket_.set_option(reuse_port_option, reec);
 #endif
+      socket_.set_option(boost::asio::ip::tcp::no_delay(true), reec);
+      if (reec) {
+          log().error("Error setting no_delay: {}", reec.message());
+          socket_.close();
+          cb(reec, Tcp::endpoint{});
+          return;
+      }
 
       socket_.bind(local_endpoint, reec);
       if (reec) {
-          std::cerr << "Error binding socket: " << reec.message() << std::endl;
+          log().error("Error binding socket: {}", reec.message());
           socket_.close();
           cb(boost::system::error_code{boost::system::errc::address_not_available,
-          boost::system::generic_category()}, 
+          boost::system::generic_category()},
           Tcp::endpoint{});
           return;
       }
@@ -241,7 +247,7 @@ namespace libp2p::transport {
       if (iterator.begin() != iterator.end()) {
           auto iter = iterator.begin();
           auto end = iterator.end();
-          //std::cout << "Connect to: " << iter->endpoint().address().to_string() << std::endl;;
+          // Connect to destination
           //auto connect_next = std::make_shared<std::function<void(boost::asio::ip::tcp::resolver::results_type::const_iterator)>>();
 
           //*connect_next = [this, wptr{ weak_from_this() }, cb, local_endpoint, connect_next, end, holepunch, holepunchserver]
@@ -250,10 +256,16 @@ namespace libp2p::transport {
           //    if (!self || self->closed_by_host_) {
           //        return;
           //    }
-
-              socket_.async_connect(*iter, [this, wptr{ weak_from_this() }, cb, iter, end, local_endpoint, holepunch, holepunchserver](const boost::system::error_code& ec) mutable {
+          log().info("Attempting to connect to {}", iter->endpoint().address().to_string());
+              socket_.async_connect(*iter, [wptr{ weak_from_this() }, cb, iter, end, local_endpoint, holepunch, holepunchserver](const boost::system::error_code& ec) mutable {
                   auto self = wptr.lock();
                   if (!self || self->closed_by_host_) {
+                      return;
+                  }
+
+                  bool expected = false;
+                  if (!self->connection_phase_done_.compare_exchange_strong(expected, true)) {
+                      // Connection already finished (timeout or earlier callback)
                       return;
                   }
 
@@ -272,8 +284,8 @@ namespace libp2p::transport {
                       }
                       auto save_result = self->saveMultiaddresses();
                       if (!save_result) {
-                          cb(boost::system::error_code{save_result.error().value(), 
-                            boost::system::generic_category()}, 
+                          cb(boost::system::error_code{save_result.error().value(),
+                            boost::system::generic_category()},
                             Tcp::endpoint{});
                           return;
                       }
@@ -290,9 +302,9 @@ namespace libp2p::transport {
                       } catch (const boost::system::system_error& e) {
                           endpoint_ec = e.code();
                       }
-                      cb(endpoint_ec ? endpoint_ec : 
-                      boost::system::error_code{boost::system::errc::not_connected, 
-                      boost::system::generic_category()}, 
+                      cb(endpoint_ec ? endpoint_ec :
+                      boost::system::error_code{boost::system::errc::not_connected,
+                      boost::system::generic_category()},
                       Tcp::endpoint{});
                       return;
                   }
@@ -314,9 +326,9 @@ namespace libp2p::transport {
 //                      return;
 //                  }
                   else {
-                      // All endpoints tried and failed
-                      //cb(ec, Tcp::endpoint{});
+                      // All endpoints tried and failed - must call callback!
                       self->socket_.close();
+                      cb(ec, Tcp::endpoint{});
                   }
                   });
              // };
@@ -325,9 +337,198 @@ namespace libp2p::transport {
           //(*connect_next)(iterator.begin());
       }
       else {
-          // No endpoints available, handle the error
-          //cb(boost::system::error_code{ boost::system::errc::address_not_available, boost::system::generic_category() }, Tcp::endpoint{});
+          // No endpoints available, handle the error - must call callback!
           socket_.close();
+          cb(boost::system::error_code{boost::system::errc::address_not_available,
+             boost::system::generic_category()}, Tcp::endpoint{});
+      }
+  }
+
+  void TcpConnection::connect(
+      const TcpConnection::ResolverResultsType &iterator,
+      TcpConnection::ConnectCallbackFunc cb, const libp2p::network::RouteHelper::SourceAddresses &source_addresses, bool holepunch, bool holepunchserver) {
+    connect(iterator, std::move(cb), std::chrono::milliseconds::zero(), source_addresses, holepunch, holepunchserver);
+  }
+
+  void TcpConnection::connect(
+      const TcpConnection::ResolverResultsType& iterator,
+      ConnectCallbackFunc cb, std::chrono::milliseconds timeout, const libp2p::network::RouteHelper::SourceAddresses &source_addresses, bool holepunch, bool holepunchserver) {
+      if (timeout > std::chrono::milliseconds::zero()) {
+          connecting_with_timeout_ = true;
+          deadline_timer_.expires_from_now(
+              boost::posix_time::milliseconds(timeout.count()));
+          deadline_timer_.async_wait(
+              [wptr{ weak_from_this() }, cb](const boost::system::error_code& error) {
+                  auto self = wptr.lock();
+                  if (!self || self->closed_by_host_) {
+                      return;
+                  }
+                  bool expected = false;
+                  if (self->connection_phase_done_.compare_exchange_strong(expected, true)) {
+                      if (!error) {
+                          // timeout happened, timer expired before connection was
+                          // established
+                          self->socket_.close();
+                          cb(boost::system::error_code{ boost::system::errc::timed_out,
+                                                        boost::system::generic_category() },
+                              Tcp::endpoint{});
+                      }
+                      // Another case is: boost::asio::error::operation_aborted == error
+                      // connection was established before timeout and timer has been
+                      // cancelled
+                  }
+              });
+      }
+
+      if (iterator.begin() != iterator.end()) {
+          auto iter = iterator.begin();
+
+          // Choose appropriate source address based on first resolved destination address
+          multi::Multiaddress chosen_source = multi::Multiaddress::create("/ip4/0.0.0.0").value();
+          bool found_compatible_source = false;
+
+          // Check if the first resolved address is IPv4 or IPv6
+          auto first_endpoint = *iter;
+          bool dest_is_ipv4 = first_endpoint.endpoint().address().is_v4();
+
+          if (dest_is_ipv4 && source_addresses.has_ipv4) {
+              chosen_source = source_addresses.ipv4_source;
+              found_compatible_source = true;
+          } else if (!dest_is_ipv4 && source_addresses.has_ipv6) {
+              chosen_source = source_addresses.ipv6_source;
+              found_compatible_source = true;
+          } else if (source_addresses.has_ipv4) {
+              // Fallback to IPv4 if available
+              chosen_source = source_addresses.ipv4_source;
+              found_compatible_source = true;
+          } else if (source_addresses.has_ipv6) {
+              // Fallback to IPv6 if available
+              chosen_source = source_addresses.ipv6_source;
+              found_compatible_source = true;
+          }
+
+          if (!found_compatible_source) {
+              // No compatible source address found
+              cb(boost::system::error_code{boost::system::errc::address_family_not_supported,
+                 boost::system::generic_category()}, Tcp::endpoint{});
+              return;
+          }
+
+          // Extract IP and port from chosen source address
+          std::string ip_address;
+          uint16_t port;
+          auto ip_address_opt = chosen_source.getFirstValueForProtocol(
+              dest_is_ipv4 ? libp2p::multi::Protocol::Code::IP4 : libp2p::multi::Protocol::Code::IP6);
+          if (!ip_address_opt) {
+              log().error("IP address not found in chosen source Multiaddress");
+              cb(boost::system::error_code{boost::system::errc::invalid_argument,
+              boost::system::generic_category()},
+              Tcp::endpoint{});
+              return;
+          }
+          ip_address = ip_address_opt.value();
+
+          auto port_opt = chosen_source.getFirstValueForProtocol(libp2p::multi::Protocol::Code::TCP);
+          if (!port_opt) {
+              log().error("Port not found in chosen source Multiaddress");
+              cb(boost::system::error_code{boost::system::errc::invalid_argument,
+              boost::system::generic_category()},
+              Tcp::endpoint{});
+              return;
+          }
+          port = static_cast<uint16_t>(std::stoi(port_opt.value()));
+
+          // Bind socket with chosen source address
+          boost::system::error_code reec;
+          boost::asio::ip::tcp::endpoint local_endpoint(boost::asio::ip::make_address(ip_address), port);
+          socket_.open(dest_is_ipv4 ? boost::asio::ip::tcp::v4() : boost::asio::ip::tcp::v6());
+          boost::asio::socket_base::reuse_address option(true);
+          socket_.set_option(option, reec);
+          if (reec) {
+              log().error("Error setting reuse address: {}", reec.message());
+              socket_.close();
+              cb(reec, Tcp::endpoint{});
+              return;
+          }
+#ifdef SO_REUSEPORT
+          boost::asio::detail::socket_option::boolean<SOL_SOCKET, SO_REUSEPORT> reuse_port_option(true);
+          socket_.set_option(reuse_port_option, reec);
+#endif
+
+          socket_.bind(local_endpoint, reec);
+          if (reec) {
+              log().error("Error binding socket to {}:{} - {}", ip_address, port, reec.message());
+              socket_.close();
+              cb(boost::system::error_code{boost::system::errc::address_not_available,
+              boost::system::generic_category()},
+              Tcp::endpoint{});
+              return;
+          }
+
+          // Now connect to the destination
+          socket_.async_connect(*iter, [wptr{ weak_from_this() }, cb, iter, local_endpoint, holepunch, holepunchserver](const boost::system::error_code& ec) mutable {
+              auto self = wptr.lock();
+              if (!self || self->closed_by_host_) {
+                  return;
+              }
+
+              bool expected = false;
+              if (!self->connection_phase_done_.compare_exchange_strong(expected, true)) {
+                  // Connection already finished (timeout or earlier callback)
+                  return;
+              }
+
+              if (!ec) {
+                  // Connection successful
+                  if (self->connecting_with_timeout_) {
+                      self->deadline_timer_.cancel();
+                  }
+                  self->initiator_ = true;
+                  if (holepunch)
+                  {
+                      if (!holepunchserver)
+                      {
+                          self->initiator_ = false;
+                      }
+                  }
+                  auto save_result = self->saveMultiaddresses();
+                  if (!save_result) {
+                      cb(boost::system::error_code{save_result.error().value(),
+                        boost::system::generic_category()},
+                        Tcp::endpoint{});
+                      return;
+                  }
+                  boost::system::error_code endpoint_ec;
+                  Tcp::endpoint remote_ep;
+                  try {
+                      if (self->socket_.is_open()) {
+                          remote_ep = self->socket_.remote_endpoint(endpoint_ec);
+                          if (!endpoint_ec) {
+                              cb(ec, remote_ep);
+                              return;
+                          }
+                      }
+                  } catch (const boost::system::system_error& e) {
+                      endpoint_ec = e.code();
+                  }
+                  cb(endpoint_ec ? endpoint_ec :
+                  boost::system::error_code{boost::system::errc::not_connected,
+                  boost::system::generic_category()},
+                  Tcp::endpoint{});
+                  return;
+              }
+              else {
+                  // Connection failed
+                  self->socket_.close();
+                  cb(ec, Tcp::endpoint{});
+              }
+              });
+      }
+      else {
+          // No endpoints available, handle the error
+          socket_.close();
+          cb(boost::system::error_code{boost::system::errc::address_not_available,
+             boost::system::generic_category()}, Tcp::endpoint{});
       }
   }
 
@@ -397,14 +598,14 @@ namespace libp2p::transport {
       if (!local_multiaddress_) {
         auto endpoint(socket_.local_endpoint(ec));
         if (!ec) {
-          OUTCOME_TRY((auto &&, addr), detail::makeAddress(endpoint));
+          OUTCOME_TRY(addr, detail::makeAddress(endpoint));
           local_multiaddress_ = std::move(addr);
         }
       }
       if (!remote_multiaddress_) {
         auto endpoint(socket_.remote_endpoint(ec));
         if (!ec) {
-          OUTCOME_TRY((auto &&, addr), detail::makeAddress(endpoint));
+          OUTCOME_TRY(addr, detail::makeAddress(endpoint));
           remote_multiaddress_ = std::move(addr);
         }
       }

@@ -32,11 +32,13 @@ namespace libp2p::network {
   }
 
   bool ListenerManagerImpl::isStarted() const {
+    std::lock_guard<std::mutex> lock(listeners_mutex_);
     return started;
   }
 
   outcome::result<void> ListenerManagerImpl::closeListener(
       const multi::Multiaddress &ma) {
+    std::lock_guard<std::mutex> lock(listeners_mutex_);
     // we can find multiaddress directly
     auto it = listeners_.find(ma);
     if (it != listeners_.end()) {
@@ -51,23 +53,25 @@ namespace libp2p::network {
 
     // we did not find direct multiaddress
     // lets try to search across interface addresses
-    for (auto &&entry : listeners_) {
-      auto r = entry.second->getListenMultiaddr();
+    for (auto it = listeners_.begin(); it != listeners_.end(); ++it) {
+      auto r = it->second->getListenMultiaddr();
       if (!r) {
         // ignore error
         continue;
       }
 
-      auto &&addr = r.value();
-      if (addr == ma) {
-        // found. close listener.
-        auto listener = entry.second;
-        listeners_.erase(it);
-        if (!listener->isClosed()) {
-          return listener->close();
-        }
+      auto &&addresses = r.value();
+      for (const auto& addr : addresses) {
+        if (addr == ma) {
+          // found. close listener.
+          auto listener = it->second;
+          listeners_.erase(it);
+          if (!listener->isClosed()) {
+            return listener->close();
+          }
 
-        return outcome::success();
+          return outcome::success();
+        }
       }
     }
 
@@ -76,6 +80,7 @@ namespace libp2p::network {
 
   outcome::result<void> ListenerManagerImpl::removeListener(
       const multi::Multiaddress &ma) {
+    std::lock_guard<std::mutex> lock(listeners_mutex_);
     auto it = listeners_.find(ma);
     if (it != listeners_.end()) {
       listeners_.erase(it);
@@ -87,6 +92,7 @@ namespace libp2p::network {
 
   // starts listening on all provided multiaddresses
   void ListenerManagerImpl::start() {
+    std::lock_guard<std::mutex> lock(listeners_mutex_);
     if (started) {
       return;
     }
@@ -108,6 +114,7 @@ namespace libp2p::network {
 
   // stops listening on all multiaddresses
   void ListenerManagerImpl::stop() {
+    std::lock_guard<std::mutex> lock(listeners_mutex_);
     if (!started) {
       return;
     }
@@ -129,6 +136,7 @@ namespace libp2p::network {
 
   outcome::result<void> ListenerManagerImpl::listen(
       const multi::Multiaddress &ma) {
+    std::lock_guard<std::mutex> lock(listeners_mutex_);
     auto tr = this->tmgr_->findBest(ma);
     if (tr == nullptr) {
       // can not listen on this address
@@ -151,6 +159,7 @@ namespace libp2p::network {
 
   std::vector<multi::Multiaddress> ListenerManagerImpl::getListenAddresses()
       const {
+    std::lock_guard<std::mutex> lock(listeners_mutex_);
     std::vector<multi::Multiaddress> mas;
     mas.reserve(listeners_.size());
 
@@ -163,14 +172,16 @@ namespace libp2p::network {
 
   std::vector<multi::Multiaddress>
   ListenerManagerImpl::getListenAddressesInterfaces() const {
+    std::lock_guard<std::mutex> lock(listeners_mutex_);
     std::vector<multi::Multiaddress> mas;
-    mas.reserve(listeners_.size());
 
     for (auto &&e : listeners_) {
-      auto addr = e.second->getListenMultiaddr();
+      auto addresses = e.second->getListenMultiaddr();
       // ignore failed sockets
-      if (addr) {
-        mas.push_back(std::move(addr.value()));
+      if (addresses) {
+        for (auto& addr : addresses.value()) {
+          mas.push_back(std::move(addr));
+        }
       }
     }
 
@@ -306,23 +317,10 @@ namespace libp2p::network {
       this->cmgr_->addConnectionToPeer(id, conn);
   }
 
-
   void ListenerManagerImpl::removeRelayedConnections(
       peer::PeerId id)
   {
       cmgr_->removeRelayedConnections(id);
-  }
-
-
-  void ListenerManagerImpl::setProtocolHandler(const peer::Protocol &protocol,
-                                               StreamResultFunc cb) {
-    this->router_->setProtocolHandler(protocol, std::move(cb));
-  }
-
-  void ListenerManagerImpl::setProtocolHandler(
-      const peer::Protocol &protocol, StreamResultFunc cb,
-      Router::ProtoPredicate predicate) {
-    this->router_->setProtocolHandler(protocol, std::move(cb), predicate);
   }
 
   Router &ListenerManagerImpl::getRouter() {

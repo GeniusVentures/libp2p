@@ -7,7 +7,7 @@
 
 #include <libp2p/network/impl/dnsaddr_resolver_impl.hpp>
 
-OUTCOME_CPP_DEFINE_CATEGORY_3(libp2p::network, DnsaddrResolverImpl::Error, e) {
+OUTCOME_CPP_DEFINE_CATEGORY(libp2p::network, DnsaddrResolverImpl::Error, e) {
   using E = libp2p::network::DnsaddrResolverImpl::Error;
   switch (e) {
     case E::INVALID_DNSADDR:
@@ -80,7 +80,7 @@ namespace libp2p::network {
     if (!address.hasProtocol(kDnsaddr)) {
       return Error::INVALID_DNSADDR;
     }
-    OUTCOME_TRY((auto &&, hostname), address.getFirstValueForProtocol(kDnsaddr));
+    OUTCOME_TRY(hostname, address.getFirstValueForProtocol(kDnsaddr));
     return "_dnsaddr." + hostname;
   }
 }  // namespace libp2p::network

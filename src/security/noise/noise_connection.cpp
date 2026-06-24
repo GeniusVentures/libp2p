@@ -41,7 +41,7 @@ namespace libp2p::connection {
         frame_buffer_{
             std::make_shared<common::ByteArray>(security::noise::kMaxMsgLen)},
         framer_{std::make_shared<security::noise::InsecureReadWriter>(
-            std::get<std::shared_ptr<connection::RawConnection>>(connection_), frame_buffer_)} {
+            std::get<std::shared_ptr<connection::RawConnection>>(connection_))} {
     BOOST_ASSERT(std::get<std::shared_ptr<connection::RawConnection>>(connection_));
     BOOST_ASSERT(key_marshaller_);
     BOOST_ASSERT(encoder_cs_);
@@ -66,7 +66,7 @@ namespace libp2p::connection {
       frame_buffer_{
           std::make_shared<common::ByteArray>(security::noise::kMaxMsgLen) },
           framer_{ std::make_shared<security::noise::InsecureReadWriter>(
-              std::get<std::shared_ptr<connection::Stream>>(connection_), frame_buffer_) } {
+              std::get<std::shared_ptr<connection::Stream>>(connection_)) } {
       BOOST_ASSERT(std::get<std::shared_ptr<connection::Stream>>(connection_));
       BOOST_ASSERT(key_marshaller_);
       BOOST_ASSERT(encoder_cs_);
@@ -81,7 +81,7 @@ namespace libp2p::connection {
   }
 
   outcome::result<void> NoiseConnection::close() {
-      return std::visit([this](auto& conn) -> outcome::result<void> {
+      return std::visit([](auto& conn) -> outcome::result<void> {
           if constexpr (std::is_same_v<decltype(conn), std::shared_ptr<RawConnection>>) {
               // For RawConnection, directly return the result of close()
               return conn->close();
@@ -232,12 +232,12 @@ namespace libp2p::connection {
   }
 
   outcome::result<libp2p::peer::PeerId> NoiseConnection::localPeer() const {
-    OUTCOME_TRY((auto &&, proto_local_key), key_marshaller_->marshal(local_));
+    OUTCOME_TRY(proto_local_key, key_marshaller_->marshal(local_));
     return peer::PeerId::fromPublicKey(proto_local_key);
   }
 
   outcome::result<libp2p::peer::PeerId> NoiseConnection::remotePeer() const {
-    OUTCOME_TRY((auto &&, proto_remote_key), key_marshaller_->marshal(remote_));
+    OUTCOME_TRY(proto_remote_key, key_marshaller_->marshal(remote_));
     return peer::PeerId::fromPublicKey(proto_remote_key);
   }
 

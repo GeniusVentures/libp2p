@@ -20,20 +20,17 @@ namespace libp2p::protocol {
         event::Bus& event_bus, 
         std::shared_ptr<libp2p::transport::Upgrader> upgrader, 
         CompletionCallback callback)
-        : host_{ host }, msg_processor_{ std::move(msg_processor) }, bus_{ event_bus }, callback_(callback), upgrader_ { upgrader } 
-    {
-        autonat_msg_processor_ = std::make_shared<libp2p::protocol::AutonatMessageProcessor>(host, host.getNetwork().getConnectionManager());
-        autonat_ = std::make_shared<libp2p::protocol::Autonat>(host, autonat_msg_processor_, host.getBus(), upgrader_, callback);
-    
+        : host_{ host }, msg_processor_{ std::move(msg_processor) }, bus_{ event_bus }, callback_(callback), upgrader_{ upgrader }
+    {    
         BOOST_ASSERT(msg_processor_);
     
         msg_processor_->onIdentifyReceived([this](const peer::PeerId& peer_id) {
-        if (getAllObservedAddresses().size() > 0)
-        {
-            //log_->info("Starting autonat after getting observed addresses");
-            autonat_->start();
-        }
+            if (getAllObservedAddresses().size() > 0 && autonat_) {
+                //log_->info("Starting autonat after getting observed addresses");
+                autonat_->start();
+            }
         });
+
   }
 
   boost::signals2::connection Identify::onIdentifyReceived(
@@ -50,15 +47,16 @@ namespace libp2p::protocol {
     return msg_processor_->getObservedAddresses().getAddressesFor(address);
   }
 
+  void Identify::setAutonat(std::shared_ptr<libp2p::protocol::Autonat> autonat) {
+    autonat_ = autonat;
+  }
+
   peer::Protocol Identify::getProtocolId() const {
     return kIdentifyProto;
   }
 
-  void Identify::handle(StreamResult stream_res) {
-    if (!stream_res) {
-      return;
-    }
-    msg_processor_->sendIdentify(std::move(stream_res.value()));
+  void Identify::handle(StreamAndProtocol stream) {
+    msg_processor_->sendIdentify(std::move(stream.stream));
   }
 
   void Identify::start() {
@@ -66,13 +64,12 @@ namespace libp2p::protocol {
     BOOST_ASSERT(!started_);
     started_ = true;
 
-    host_.setProtocolHandler(
-        kIdentifyProto,
-        [wp = weak_from_this()](protocol::BaseProtocol::StreamResult rstream) {
-          if (auto self = wp.lock()) {
-            self->handle(std::move(rstream));
-          }
-        });
+    host_.setProtocolHandler({kIdentifyProto},
+                             [wp = weak_from_this()](StreamAndProtocol stream) {
+                               if (auto self = wp.lock()) {
+                                 self->handle(std::move(stream));
+                               }
+                             });
 
     sub_ = bus_.getChannel<event::network::OnNewConnectionChannel>().subscribe(
         [wp = weak_from_this()](auto &&conn) {
@@ -103,12 +100,13 @@ namespace libp2p::protocol {
                                  std::move(remote_peer_addr_res.value())}};
 
     msg_processor_->getHost().newStream(
-        peer_info, kIdentifyProto,
+        peer_info, {kIdentifyProto},
         [self{shared_from_this()}](auto &&stream_res) {
           if (!stream_res) {
             return;
           }
-          self->msg_processor_->receiveIdentify(std::move(stream_res.value()));
+          self->msg_processor_->receiveIdentify(
+              std::move(stream_res.value().stream));
         });
   }
 }  // namespace libp2p::protocol

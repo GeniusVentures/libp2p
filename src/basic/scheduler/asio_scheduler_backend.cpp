@@ -5,6 +5,8 @@
 
 #include <libp2p/basic/scheduler/asio_scheduler_backend.hpp>
 
+#include <exception>
+
 #include <libp2p/log/logger.hpp>
 
 namespace libp2p::basic {
@@ -23,7 +25,21 @@ namespace libp2p::basic {
       io_context_->post([scheduler = std::move(scheduler)]() {
         auto sch = scheduler.lock();
         if (sch) {
-          sch->pulse(kZeroTime);
+          try {
+            sch->pulse(kZeroTime);
+          } catch (const std::exception &e) {
+            try {
+              auto log = log::createLogger("Scheduler", "scheduler");
+              log->error("scheduler deferred pulse exception: {}", e.what());
+            } catch (...) {
+            }
+          } catch (...) {
+            try {
+              auto log = log::createLogger("Scheduler", "scheduler");
+              log->error("scheduler deferred pulse unknown exception");
+            } catch (...) {
+            }
+          }
         }
       });
       return;
@@ -46,7 +62,21 @@ namespace libp2p::basic {
       if (!error) {
         auto sch = scheduler.lock();
         if (sch) {
-          sch->pulse(nowImpl());
+          try {
+            sch->pulse(nowImpl());
+          } catch (const std::exception &e) {
+            try {
+              auto log = log::createLogger("Scheduler", "scheduler");
+              log->error("scheduler timed pulse exception: {}", e.what());
+            } catch (...) {
+            }
+          } catch (...) {
+            try {
+              auto log = log::createLogger("Scheduler", "scheduler");
+              log->error("scheduler timed pulse unknown exception");
+            } catch (...) {
+            }
+          }
         }
       }
     });

@@ -1,5 +1,6 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -35,8 +36,8 @@ namespace libp2p::protocol::gossip {
     auto &idx = table_->get<ById>();
     auto it = idx.find(id);
     if (it == idx.end()) {
-      TRACE("MessageCache: {} not found, current size {}",
-            common::hex_upper(id), table_->size());
+      TRACE(
+          "MessageCache: {:X} not found, current size {}", id, table_->size());
       return boost::none;
     }
     return it->message;

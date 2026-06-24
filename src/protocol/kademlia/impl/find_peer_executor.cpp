@@ -9,6 +9,9 @@
 #include <libp2p/protocol/kademlia/error.hpp>
 #include <libp2p/protocol/kademlia/impl/session.hpp>
 #include <libp2p/protocol/kademlia/message.hpp>
+#include <unordered_set>
+#include <string>
+#include <chrono>
 
 namespace libp2p::protocol::kademlia {
 
@@ -105,14 +108,39 @@ namespace libp2p::protocol::kademlia {
 
     auto self_peer_id = host_->getId();
 
+    log_.debug("spawn: queue_size={}, requests_in_progress={}, concurrency_limit={}, failed_peers={}", 
+               queue_.size(), requests_in_progress_, config_.requestConcurency, failed_peers_.size());
+
     while (started_ && !done_ && !queue_.empty()
-           && requests_in_progress_ < config_.requestConcurency) {
+           && requests_in_progress_ < config_.requestConcurency
+           && total_connections_attempted_ < FindPeerExecutor::MAX_CONNECTIONS_PER_QUERY) {  // Add connection limit
       auto peer_id = *queue_.top();
       queue_.pop();
 
       // Exclude yoursef, because not found locally anyway
       if (peer_id == self_peer_id) {
         continue;
+      }
+
+      // Skip peers that have recently failed (allow retry after expiration)
+      auto failed_it = failed_peers_.find(peer_id);
+      if (failed_it != failed_peers_.end()) {
+        auto now = std::chrono::steady_clock::now();
+        auto time_since_failure = now - failed_it->second;
+        
+        if (time_since_failure < FindPeerExecutor::FAILED_PEER_RETRY_DELAY) {
+          log_.debug("skipping recently failed peer: {} (failed {:.1f}s ago, retry in {:.1f}s)", 
+                     peer_id.toBase58(),
+                     std::chrono::duration<double>(time_since_failure).count(),
+                     std::chrono::duration<double>(FindPeerExecutor::FAILED_PEER_RETRY_DELAY - time_since_failure).count());
+          continue;
+        } else {
+          // Peer failure has expired, remove from failed list and allow retry
+          log_.debug("retry allowed for previously failed peer: {} (failed {:.1f}s ago)", 
+                     peer_id.toBase58(),
+                     std::chrono::duration<double>(time_since_failure).count());
+          failed_peers_.erase(failed_it);
+        }
       }
 
       // Get peer info
@@ -124,13 +152,17 @@ namespace libp2p::protocol::kademlia {
       // Check if connectable
       auto connectedness = host_->connectedness(peer_info);
       if (connectedness == Message::Connectedness::CAN_NOT_CONNECT) {
+        // Mark as failed to avoid retrying
+        failed_peers_.emplace(peer_id, std::chrono::steady_clock::now());
         continue;
       }
 
       ++requests_in_progress_;
+      ++total_connections_attempted_;  // Track total attempts
 
-      log_.debug("connecting to {}; active {}, in queue {}", peer_id.toBase58(),
-                 requests_in_progress_, queue_.size());
+      log_.debug("connecting to {}; active {}, in queue {}, total_attempted {}", 
+                 peer_id.toBase58(), requests_in_progress_, queue_.size(), 
+                 total_connections_attempted_);
 
       auto holder =
           std::make_shared<std::pair<std::shared_ptr<FindPeerExecutor>,
@@ -138,21 +170,21 @@ namespace libp2p::protocol::kademlia {
 
       holder->first = shared_from_this();
       holder->second = scheduler_->scheduleWithHandle(
-          [holder] {
+          [holder, peer_id] {
             if (holder->first) {
               holder->second.cancel();
-              holder->first->onConnected(Error::TIMEOUT);
+              holder->first->onConnected(Error::TIMEOUT, peer_id);
               holder->first.reset();
             }
           },
           config_.connectionTimeout);
 
       host_->newStream(
-          peer_info, config_.protocolId,
-          [holder](auto &&stream_res) {
+          peer_info, {config_.protocolId},
+          [holder, peer_id](auto &&stream_res) {
             if (holder->first) {
               holder->second.cancel();
-              holder->first->onConnected(stream_res);
+              holder->first->onConnected(stream_res, peer_id);
               holder->first.reset();
             }
           },
@@ -160,24 +192,43 @@ namespace libp2p::protocol::kademlia {
     }
 
     if (requests_in_progress_ == 0) {
-      done(Error::VALUE_NOT_FOUND);
+      // Check if we've exhausted our connection budget
+      if (total_connections_attempted_ >= FindPeerExecutor::MAX_CONNECTIONS_PER_QUERY) {
+        log_.debug("Terminating: reached max connections limit ({})", FindPeerExecutor::MAX_CONNECTIONS_PER_QUERY);
+        done(Error::VALUE_NOT_FOUND);
+      } else if (total_peers_processed_ >= FindPeerExecutor::MAX_TOTAL_PEERS_PROCESSED) {
+        log_.debug("Terminating: reached max peer processing limit ({})", FindPeerExecutor::MAX_TOTAL_PEERS_PROCESSED);
+        done(Error::VALUE_NOT_FOUND);
+      } else if (queue_.empty()) {
+        log_.debug("Terminating: queue is empty, failed_peers={}", failed_peers_.size());
+        done(Error::VALUE_NOT_FOUND);
+      } else {
+        log_.debug("Terminating: no more work available");
+        done(Error::VALUE_NOT_FOUND);
+      }
+    } else {
+      log_.debug("spawn_exit: still have {} requests in progress", requests_in_progress_);
     }
   }
 
   void FindPeerExecutor::onConnected(
-      outcome::result<std::shared_ptr<connection::Stream>> stream_res) {
+      StreamAndProtocolOrError stream_res,
+      const PeerId& attempted_peer_id) {
     if (!stream_res) {
       --requests_in_progress_;
 
-      log_.debug("cannot connect to peer: {}; active {}, in queue {}",
-                 stream_res.error().message(), requests_in_progress_,
-                 queue_.size());
+      // Mark this peer as failed to avoid retrying
+      failed_peers_.emplace(attempted_peer_id, std::chrono::steady_clock::now());
+
+      log_.debug("cannot connect to peer {}: {}; active {}, in queue {}, marked as failed",
+                 attempted_peer_id.toBase58(), stream_res.error().message(), 
+                 requests_in_progress_, queue_.size());
 
       spawn();
       return;
     }
 
-    auto &stream = stream_res.value();
+    auto &stream = stream_res.value().stream;
     assert(stream->remoteMultiaddr().has_value());
 
     std::string addr(stream->remoteMultiaddr().value().getStringAddress());
@@ -240,15 +291,68 @@ namespace libp2p::protocol::kademlia {
 
     auto self_peer_id = host_->getId();
 
-    log_.debug("Result from {} is gotten; active {}, in queue {}",
-               remote_peer_id.toBase58(), requests_in_progress_, queue_.size());
+    log_.debug("Result from {} is gotten; active {}, in queue {}, total_attempted {}",
+               remote_peer_id.toBase58(), requests_in_progress_, queue_.size(),
+               total_connections_attempted_);
 
-    // Append gotten peer to queue
+    // Append gotten peer to queue with protective limits (go-libp2p style)
     if (msg.closer_peers) {
+      size_t peers_processed_this_response = 0;
+      std::unordered_set<std::string> ip_addresses_seen;  // For IP diversity
+      
       for (auto &peer : msg.closer_peers.value()) {
+        // LIMIT 1: Max peers per response (prevent single response flooding)
+        if (peers_processed_this_response >= FindPeerExecutor::MAX_PEERS_PER_RESPONSE) {
+          log_.debug("Reached max peers per response limit ({}), ignoring remaining {} peers",
+                     FindPeerExecutor::MAX_PEERS_PER_RESPONSE, 
+                     msg.closer_peers.value().size() - peers_processed_this_response);
+          break;
+        }
+        
+        // LIMIT 2: Max total peers processed across all responses (fixed budget)
+        if (total_peers_processed_ >= FindPeerExecutor::MAX_TOTAL_PEERS_PROCESSED) {
+          log_.debug("Reached total peer processing limit ({}), stopping peer discovery",
+                     FindPeerExecutor::MAX_TOTAL_PEERS_PROCESSED);
+          break;
+        }
+        
+        // LIMIT 3: Max queue size (prevent unbounded memory growth)
+        if (queue_.size() >= FindPeerExecutor::MAX_QUEUE_SIZE) {
+          log_.debug("Queue size limit reached ({}), ignoring remaining peers", FindPeerExecutor::MAX_QUEUE_SIZE);
+          break;
+        }
+
         // Skip non connectable peers
         if (peer.conn_status == Message::Connectedness::CAN_NOT_CONNECT) {
           continue;
+        }
+
+        // LIMIT 4: IP Diversity filtering (go-libp2p style protection)
+        // Extract IP address from first address for diversity check
+        if (!peer.info.addresses.empty()) {
+          try {
+            auto first_addr = peer.info.addresses[0];
+            auto addr_str = first_addr.getStringAddress();
+            
+            // Extract IP portion (simplified - go-libp2p is more sophisticated)
+            auto ip_end = addr_str.find("/tcp/");
+            if (ip_end == std::string::npos) {
+              ip_end = addr_str.find("/udp/");
+            }
+            if (ip_end != std::string::npos) {
+              std::string ip_part = std::string(addr_str.substr(0, ip_end));  // Explicit conversion
+              
+              // Allow maximum MAX_PEERS_PER_IP peers per IP block (go-libp2p style)
+              if (ip_addresses_seen.count(ip_part) >= FindPeerExecutor::MAX_PEERS_PER_IP) {
+                log_.debug("IP diversity limit: skipping peer {} from IP {} (already have {}+ from this IP)",
+                           peer.info.id.toBase58(), ip_part, FindPeerExecutor::MAX_PEERS_PER_IP);
+                continue;
+              }
+              ip_addresses_seen.insert(ip_part);
+            }
+          } catch (...) {
+            // If IP extraction fails, continue processing peer
+          }
         }
 
         // Add/Update peer info
@@ -272,6 +376,7 @@ namespace libp2p::protocol::kademlia {
         // Found
         if (peer.info.id == sought_peer_id_) {
           done(peer.info);
+          return;  // Early termination when target found
         }
 
         // Skip himself
@@ -284,11 +389,38 @@ namespace libp2p::protocol::kademlia {
           continue;
         }
 
+        // Skip peers that have recently failed
+        auto failed_it = failed_peers_.find(peer.info.id);
+        if (failed_it != failed_peers_.end()) {
+          auto now = std::chrono::steady_clock::now();
+          auto time_since_failure = now - failed_it->second;
+          
+          if (time_since_failure < FindPeerExecutor::FAILED_PEER_RETRY_DELAY) {
+            log_.debug("Skipping recently failed peer {} when adding to queue (failed {:.1f}s ago)", 
+                       peer.info.id.toBase58(),
+                       std::chrono::duration<double>(time_since_failure).count());
+            continue;
+          } else {
+            // Allow retry - remove from failed list
+            failed_peers_.erase(failed_it);
+          }
+        }
+
         // New peer add to queue
         if (auto [it, ok] = nearest_peer_ids_.emplace(peer.info.id); ok) {
           queue_.emplace(*it, target_);
+          peers_processed_this_response++;
+          total_peers_processed_++;
+          
+          log_.debug("Added peer {} to queue (response: {}/{}, total: {}, queue_size: {})",
+                     peer.info.id.toBase58(), peers_processed_this_response, 
+                     FindPeerExecutor::MAX_PEERS_PER_RESPONSE, total_peers_processed_, queue_.size());
         }
       }
+      
+      log_.debug("Processed {}/{} peers from response (total_processed: {}, queue_size: {})",
+                 peers_processed_this_response, msg.closer_peers.value().size(),
+                 total_peers_processed_, queue_.size());
     }
   }
 

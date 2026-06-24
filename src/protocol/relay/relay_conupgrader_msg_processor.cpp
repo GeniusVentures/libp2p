@@ -1,4 +1,4 @@
-
+#include <fmt/std.h>
 #include "libp2p/protocol/relay/relay_conupgrader_msg_processor.hpp"
 
 #include <tuple>
@@ -32,9 +32,9 @@ namespace libp2p::protocol {
 
     RelayUpgraderMessageProcessor::RelayUpgraderMessageProcessor()
     {
-
     }
-	void RelayUpgraderMessageProcessor::initiateRelayCon(StreamSPtr& stream_res, peer::PeerInfo peer_info, CompletionCallback cb)
+
+	void RelayUpgraderMessageProcessor::initiateRelayCon(StreamSPtr stream_res, peer::PeerInfo peer_info, CompletionCallback cb)
 	{
         log_->info("Creating and sending hop connect message to {}", peer_info.id.toBase58());
 		relay::pb::HopMessage msg;
@@ -59,9 +59,10 @@ namespace libp2p::protocol {
 	}
 
     void RelayUpgraderMessageProcessor::relayConnectSent(
-        outcome::result<size_t> written_bytes, const StreamSPtr& stream, CompletionCallback cb) {
+            outcome::result<size_t> written_bytes, StreamSPtr stream,
+            CompletionCallback cb) {
         
-        auto [peer_id, peer_addr] = detail::getPeerIdentity(stream);
+        auto [peer_id, peer_addr] = detail::getPeerIdentity(*stream);
         if (!written_bytes) {
             log_->error("cannot write Relay message to stream to peer {}, {}: {}",
                 peer_id, peer_addr, written_bytes.error().message());
@@ -75,13 +76,13 @@ namespace libp2p::protocol {
         auto rw = std::make_shared<basic::ProtobufMessageReadWriter>(stream);
         rw->read<relay::pb::HopMessage>(
             [self{ shared_from_this() }, stream, cb](auto&& res) {
-                self->relayConnectStatus(std::forward<decltype(res)>(res), stream, cb);
+                self->relayConnectStatus(std::forward<decltype(res)>(res), *stream, cb);
             });
     }
 
     void RelayUpgraderMessageProcessor::relayConnectStatus(
         outcome::result<relay::pb::HopMessage> msg_res,
-        const StreamSPtr& stream, CompletionCallback cb) {
+        libp2p::connection::Stream &stream, CompletionCallback cb) {
         auto [peer_id_str, peer_addr_str] = detail::getPeerIdentity(stream);
         if (!msg_res) {
             log_->error("cannot read an relay message from peer {}, {}: {}",
@@ -100,8 +101,37 @@ namespace libp2p::protocol {
         //Make sure connection is OK
         if (msg.status() != relay::pb::OK)
         {
-            log_->error("Relay got status that indicates connections are unavailable from: {}, {}  : {}", peer_id_str,
-                peer_addr_str, msg.status());
+            // Provide detailed diagnostic information for different status codes
+            switch (msg.status()) {
+                case relay::pb::MALFORMED_MESSAGE:
+                    log_->error("Relay server rejected our CONNECT message as malformed from: {}, {} - Check peer field, addresses, and protobuf serialization", 
+                        peer_id_str, peer_addr_str);
+                    break;
+                case relay::pb::UNEXPECTED_MESSAGE:
+                    log_->error("Relay server received unexpected CONNECT message from: {}, {} - Wrong protocol state or sequence", 
+                        peer_id_str, peer_addr_str);
+                    break;
+                case relay::pb::CONNECTION_FAILED:
+                    log_->error("Relay connection to target peer failed from: {}, {} - Target peer unreachable or refused connection", 
+                        peer_id_str, peer_addr_str);
+                    break;
+                case relay::pb::NO_RESERVATION:
+                    log_->error("No relay reservation found for connection from: {}, {} - Reservation expired or never established", 
+                        peer_id_str, peer_addr_str);
+                    break;
+                case relay::pb::RESOURCE_LIMIT_EXCEEDED:
+                    log_->warn("Relay resource limit exceeded for connection from: {}, {} - Server overloaded", 
+                        peer_id_str, peer_addr_str);
+                    break;
+                case relay::pb::PERMISSION_DENIED:
+                    log_->warn("Relay connection permission denied from: {}, {} - Authorization failed", 
+                        peer_id_str, peer_addr_str);
+                    break;
+                default:
+                    log_->error("Relay connection failed with unknown status {} from: {}, {}", 
+                        static_cast<int>(msg.status()), peer_id_str, peer_addr_str);
+                    break;
+            }
             return cb(false);
         }
         //Run Callback

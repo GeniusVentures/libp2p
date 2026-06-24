@@ -151,7 +151,7 @@ namespace libp2p::connection {
     new_stream_id_ += 2;
     enqueue(newStreamMsg(stream_id));
     pending_outbound_streams_[stream_id] = std::move(cb);
-    inactivity_handle_.cancel();
+    // NOTE: inactivity timer removed - connection lifecycle managed by ConnectionManager
   }
 
   void YamuxedConnection::onStream(NewStreamHandlerFunc cb) {
@@ -241,6 +241,18 @@ namespace libp2p::connection {
       return isRelay_;
   }
 
+  std::vector<std::shared_ptr<Stream>> YamuxedConnection::getStreams() const {
+    std::vector<std::shared_ptr<Stream>> active_streams;
+    active_streams.reserve(streams_.size());
+    
+    for (const auto& [stream_id, yamux_stream] : streams_) {
+      // Convert YamuxStream to Stream (YamuxStream inherits from Stream)
+      active_streams.push_back(yamux_stream);
+    }
+    
+    return active_streams;
+  }
+
   void YamuxedConnection::continueReading() {
     SL_TRACE(log_(), "YamuxedConnection::continueReading");
     connection_->readSome(*raw_read_buffer_, raw_read_buffer_->size(),
@@ -270,7 +282,7 @@ namespace libp2p::connection {
     auto n = res.value();
     gsl::span<uint8_t> bytes_read(*raw_read_buffer_);
 
-    SL_TRACE(log_(), "read {} bytes", n);
+    SL_TRACE(log_(), "read {} bytes from {}", n, remotePeer().value().toBase58());
 
     assert(n <= raw_read_buffer_->size());
 
@@ -288,8 +300,6 @@ namespace libp2p::connection {
     streams_created.swap(fresh_streams_);
     for (const auto &[id, handler] : streams_created) {
       auto it = streams_.find(id);
-
-      assert(it != streams_.end());
 
       if (it == streams_.end()) {
         log_()->error("fresh_streams_ inconsistency!");
@@ -481,9 +491,10 @@ namespace libp2p::connection {
         SL_DEBUG(log_(), "received ACK on unknown stream id {}",
                  frame.stream_id);
         ok = false;
+      } else {
+        stream_handler = std::move(it->second);
+        erasePendingOutboundStream(it);
       }
-      stream_handler = std::move(it->second);
-      erasePendingOutboundStream(it);
     }
 
     if (!ok) {
@@ -668,7 +679,17 @@ namespace libp2p::connection {
     if (is_writing_) {
       write_queue_.push_back(
           WriteQueueItem{std::move(packet), stream_id, some});
+      
+      // Calculate total queued bytes for diagnostics
+      size_t total_queued = 0;
+      for (const auto& item : write_queue_) {
+        total_queued += item.packet.size();
+      }
+      SL_TRACE(log_(), "yamux write queued: stream={}, size={}, queue_depth={}, total_queued={}",
+               stream_id, packet.size(), write_queue_.size(), total_queued);
     } else {
+      SL_TRACE(log_(), "yamux writing immediately: stream={}, size={}",
+               stream_id, packet.size());
       doWrite(WriteQueueItem{std::move(packet), stream_id, some});
     }
   }
@@ -739,6 +760,15 @@ namespace libp2p::connection {
     if (started_ && !write_queue_.empty()) {
       auto next_packet = std::move(write_queue_.front());
       write_queue_.pop_front();
+      
+      // Calculate remaining queued bytes for diagnostics
+      size_t total_queued = 0;
+      for (const auto& item : write_queue_) {
+        total_queued += item.packet.size();
+      }
+      SL_TRACE(log_(), "yamux dequeuing next write: stream={}, size={}, remaining_queue_depth={}, remaining_bytes={}",
+               next_packet.stream_id, next_packet.packet.size(), write_queue_.size(), total_queued);
+      
       doWrite(std::move(next_packet));
     }
   }
@@ -748,39 +778,25 @@ namespace libp2p::connection {
         shared_from_this(), *this, stream_id, config_.maximum_window_size,
         basic::WriteQueue::kDefaultSizeLimit);
     streams_[stream_id] = stream;
-    inactivity_handle_.cancel();
+    // NOTE: inactivity timer removed - connection lifecycle managed by ConnectionManager
     return stream;
   }
 
   void YamuxedConnection::eraseStream(StreamId stream_id) {
     SL_DEBUG(log_(), "erasing stream {}", stream_id);
     streams_.erase(stream_id);
-    adjustExpireTimer();
+    // NOTE: adjustExpireTimer removed - connection lifecycle managed by ConnectionManager
   }
 
   void YamuxedConnection::erasePendingOutboundStream(
       PendingOutboundStreams::iterator it) {
     SL_TRACE(log_(), "erasing pending outbound stream {}", it->first);
     pending_outbound_streams_.erase(it);
-    adjustExpireTimer();
+    // NOTE: adjustExpireTimer removed - connection lifecycle managed by ConnectionManager
   }
 
-  void YamuxedConnection::adjustExpireTimer() {
-    if (config_.no_streams_interval > basic::kZeroTime && streams_.empty()
-        && pending_outbound_streams_.empty()) {
-      SL_DEBUG(log_(), "scheduling expire timer to {} msec",
-               config_.no_streams_interval.count());
-      inactivity_handle_ = scheduler_->scheduleWithHandle(
-          [this] { onExpireTimer(); },
-          scheduler_->now() + config_.no_streams_interval);
-    }
-  }
-
-  void YamuxedConnection::onExpireTimer() {
-    if (streams_.empty() && pending_outbound_streams_.empty()) {
-      SL_DEBUG(log_(), "closing expired connection");
-      close(Error::CONNECTION_NOT_ACTIVE, YamuxFrame::GoAwayError::NORMAL);
-    }
-  }
+  // NOTE: adjustExpireTimer and onExpireTimer methods removed
+  // Connection lifecycle is now managed by ConnectionManager using grace periods
+  // and value-based trimming instead of stream activity timers
 
 }  // namespace libp2p::connection

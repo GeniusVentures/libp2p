@@ -1,4 +1,4 @@
-
+#include <fmt/std.h>
 #include "libp2p/protocol/relay/relay_msg_processor.hpp"
 
 #include <tuple>
@@ -13,12 +13,6 @@
 #include <iostream>
 
 namespace {
-  inline std::string fromMultiaddrToString(
-      const libp2p::multi::Multiaddress &ma) {
-    auto const &addr = ma.getBytesAddress();
-    return std::string(addr.begin(), addr.end());
-  }
-
   inline libp2p::outcome::result<libp2p::multi::Multiaddress>
   fromStringToMultiaddr(const std::string &addr) {
     return libp2p::multi::Multiaddress::create(gsl::span<const uint8_t>(
@@ -62,8 +56,8 @@ namespace libp2p::protocol {
 
 
     void RelayMessageProcessor::relayReservationSent(
-        outcome::result<size_t> written_bytes, const StreamSPtr& stream) {
-        auto [peer_id, peer_addr] = detail::getPeerIdentity(stream);
+        outcome::result<size_t> written_bytes, StreamSPtr stream) {
+        auto [peer_id, peer_addr] = detail::getPeerIdentity(*stream);
         if (!written_bytes) {
             log_->error("cannot write Relay message to stream to peer {}, {}: {}",
                 peer_id, peer_addr, written_bytes.error().message());
@@ -78,7 +72,7 @@ namespace libp2p::protocol {
         auto rw = std::make_shared<basic::ProtobufMessageReadWriter>(stream);
         rw->read<relay::pb::HopMessage>(
             [self{ shared_from_this() }, stream](auto&& res) {
-                self->relayReservationReceived(std::forward<decltype(res)>(res), stream);
+                self->relayReservationReceived(std::forward<decltype(res)>(res), *stream);
             });
     }
 
@@ -111,23 +105,23 @@ namespace libp2p::protocol {
 
     void RelayMessageProcessor::relayReservationReceived(
         outcome::result<relay::pb::HopMessage> msg_res,
-        const StreamSPtr& stream) {
+        libp2p::connection::Stream& stream) {
         auto [peer_id_str, peer_addr_str] = detail::getPeerIdentity(stream);
         if (!msg_res) {
             log_->error("cannot read an relay message from peer {}, {}: {}",
                 peer_id_str, peer_addr_str, msg_res.error());
             signal_relay_received_(false);
-            return stream->reset();
+            return stream.reset();
         }
         // in order for observed addresses feature to work, all those parameters
         // must be gotten
-        auto remote_addr_res = stream->remoteMultiaddr();
-        auto local_addr_res = stream->localMultiaddr();
-        auto is_initiator_res = stream->isInitiator();
+        auto remote_addr_res = stream.remoteMultiaddr();
+        auto local_addr_res = stream.localMultiaddr();
+        auto is_initiator_res = stream.isInitiator();
         if (!remote_addr_res || !local_addr_res || !is_initiator_res) {
             signal_relay_received_(false);
             log_->error("We appear to be missing an address on the stream containing relay info");
-            return stream->reset();
+            return stream.reset();
         }
 
         log_->info("received an relay message from peer {}, {}", peer_id_str,
@@ -141,15 +135,45 @@ namespace libp2p::protocol {
             signal_relay_received_(false);
             log_->info("Relay got a type other than STATUS when expecting status from: {}, {}", peer_id_str,
                 peer_addr_str);
-            return stream->reset();
+            return stream.reset();
         }
         //Make sure reservation is OK
         if (msg.status() != relay::pb::OK)
         {
             signal_relay_received_(false);
-            log_->info("Relay got status that indicates reservations are unavailable from: {}, {}", peer_id_str,
-                peer_addr_str);
-            return stream->reset();
+
+            // Provide detailed diagnostic information for different status codes
+            switch (msg.status()) {
+                case relay::pb::MALFORMED_MESSAGE:
+                    log_->error("Relay server rejected our RESERVE message as malformed from: {}, {} - Check message structure, required fields, and protobuf serialization",
+                        peer_id_str, peer_addr_str);
+                    break;
+                case relay::pb::UNEXPECTED_MESSAGE:
+                    log_->error("Relay server received unexpected message type from: {}, {} - Protocol state mismatch",
+                        peer_id_str, peer_addr_str);
+                    break;
+                case relay::pb::RESERVATION_REFUSED:
+                    log_->warn("Relay reservation refused by: {}, {} - Server policy rejection",
+                        peer_id_str, peer_addr_str);
+                    break;
+                case relay::pb::RESOURCE_LIMIT_EXCEEDED:
+                    log_->warn("Relay resource limit exceeded at: {}, {} - Server at capacity",
+                        peer_id_str, peer_addr_str);
+                    break;
+                case relay::pb::PERMISSION_DENIED:
+                    log_->warn("Relay permission denied by: {}, {} - Authentication or authorization issue",
+                        peer_id_str, peer_addr_str);
+                    break;
+                case relay::pb::NO_RESERVATION:
+                    log_->warn("No relay reservation available at: {}, {} - Need to establish reservation first",
+                        peer_id_str, peer_addr_str);
+                    break;
+                default:
+                    log_->error("Relay reservation failed with unknown status {} from: {}, {}",
+                        static_cast<int>(msg.status()), peer_id_str, peer_addr_str);
+                    break;
+            }
+            return stream.reset();
         }
         // if our local address is not one of our "official" listen addresses, we don't know how to map this.
         auto& listener = host_.getNetwork().getListener();
@@ -167,7 +191,7 @@ namespace libp2p::protocol {
             signal_relay_received_(false);
             log_->error("Relay stream address does not contain a valid listening address:  {}",
                 local_addr_res.value().getStringAddress());
-            return stream->reset();
+            return stream.reset();
         }
 
         //Get Reservation info
@@ -196,15 +220,15 @@ namespace libp2p::protocol {
             else {
                 signal_relay_received_(false);
                 log_->error("Could not resolve an address from reservation");
-                return stream->reset();
+                return stream.reset();
             }
         }
     }
 
     void RelayMessageProcessor::relayConnectReceived(
         outcome::result<relay::pb::StopMessage> msg_res,
-        const StreamSPtr& stream, RelayStopCallback cb) {
-        auto [peer_id_str, peer_addr_str] = detail::getPeerIdentity(stream);
+        StreamSPtr stream, RelayStopCallback cb) {
+        auto [peer_id_str, peer_addr_str] = detail::getPeerIdentity(*stream);
         if (!msg_res) {
             log_->error("cannot read an relay message from peer {}, {}: {}",
                 peer_id_str, peer_addr_str, msg_res.error());
@@ -221,7 +245,7 @@ namespace libp2p::protocol {
         {
             log_->error("Relay Connnect got a type other than CONNECT when expecting status from: {}, {}", peer_id_str,
                 peer_addr_str);
-            
+
             return stream->reset();
         }
         auto remotepeer = msg.peer().id();
@@ -232,7 +256,7 @@ namespace libp2p::protocol {
             log_->error("Remote relay connection peer id is bad {} ", remotepeer_res.error().message());
             return stream->reset();
         }
-        
+
         //Make sure reservation is OK
         //if (msg.status() != relay::pb::OK)
         //{
@@ -244,7 +268,7 @@ namespace libp2p::protocol {
         relayConnectResponse(stream, remotepeer_res.value(), cb);
     }
 
-    void RelayMessageProcessor::relayConnectResponse(const StreamSPtr& stream, peer::PeerId peer_id, RelayStopCallback cb)
+    void RelayMessageProcessor::relayConnectResponse(StreamSPtr stream, peer::PeerId peer_id, RelayStopCallback cb)
     {
         log_->info("Remote relay connection response being sent to {} ", peer_id.toBase58());
         //Create a Stop Message
@@ -262,7 +286,7 @@ namespace libp2p::protocol {
             });
     }
 
-    void RelayMessageProcessor::relayConnectUpgrade(const StreamSPtr& stream, peer::PeerId peer_id, RelayStopCallback cb)
+    void RelayMessageProcessor::relayConnectUpgrade(StreamSPtr stream, peer::PeerId peer_id, RelayStopCallback cb)
     {
         log_->info("Remote relay connection encryption being upgraded {} ", peer_id.toBase58());
         auto session = std::make_shared<libp2p::transport::UpgraderSession>(
@@ -277,7 +301,7 @@ namespace libp2p::protocol {
                     self->log_->info("Remote relay connection failed {} because {}", peer_id.toBase58(), result.error().message());
                     cb(result.error());
                 }
-                
+
             });
         stream->setIncomingRelay(true);
         session->secureInboundRelay();

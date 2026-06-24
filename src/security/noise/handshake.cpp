@@ -63,11 +63,9 @@ namespace libp2p::security::noise {
         initiator_{is_initiator},
         connection_cb_{std::move(cb)},
         key_marshaller_{std::move(key_marshaller)},
-        read_buffer_{std::make_shared<ByteArray>(kMaxMsgLen)},
-        rw_{std::make_shared<InsecureReadWriter>(std::get<std::shared_ptr<connection::RawConnection>>(connection_), read_buffer_)},
+        rw_{std::make_shared<InsecureReadWriter>(std::get<std::shared_ptr<connection::RawConnection>>(connection_))},
         handshake_state_{std::make_unique<HandshakeState>()},
         remote_peer_id_{std::move(remote_peer_id)} {
-    read_buffer_->resize(kMaxMsgLen);
   }
 
   Handshake::Handshake(
@@ -86,11 +84,9 @@ namespace libp2p::security::noise {
       initiator_{ is_initiator },
       connection_cb_{ std::move(cb) },
       key_marshaller_{ std::move(key_marshaller) },
-      read_buffer_{ std::make_shared<ByteArray>(kMaxMsgLen) },
-      rw_{ std::make_shared<InsecureReadWriter>(std::get<std::shared_ptr<connection::Stream>>(connection_), read_buffer_) },
+      rw_{ std::make_shared<InsecureReadWriter>(std::get<std::shared_ptr<connection::Stream>>(connection_)) },
       handshake_state_{ std::make_unique<HandshakeState>() },
       remote_peer_id_{ std::move(remote_peer_id) } {
-      read_buffer_->resize(kMaxMsgLen);
   }
 
   void Handshake::connect() {
@@ -120,7 +116,7 @@ namespace libp2p::security::noise {
     std::copy(prefix.begin(), prefix.end(), std::back_inserter(to_sign));
     std::copy(pubkey.begin(), pubkey.end(), std::back_inserter(to_sign));
 
-    OUTCOME_TRY((auto &&, signed_payload),
+    OUTCOME_TRY(signed_payload,
                 crypto_provider_->sign(to_sign, local_key_.privateKey));
     security::noise::HandshakeMessage payload{
         /*.identity_key =*/ local_key_.publicKey,
@@ -135,6 +131,9 @@ namespace libp2p::security::noise {
                    cb);
     auto write_cb = [self{shared_from_this()}, cb{std::move(cb)},
                      wr{write_result}](outcome::result<size_t> result) {
+      if (result.has_error()) {
+        SL_DEBUG(self->log_, "Failed to write handshake message: {}", result.error().message());
+      }
       IO_OUTCOME_TRY(bytes_written, result, cb);
       if (wr.cs1 && wr.cs2) {
         self->setCipherStates(wr.cs1, wr.cs2);
@@ -147,6 +146,9 @@ namespace libp2p::security::noise {
   void Handshake::readHandshakeMessage(
       basic::MessageReadWriter::ReadCallbackFunc cb) {
     auto read_cb = [self{shared_from_this()}, cb{std::move(cb)}](auto result) {
+      if (result.has_error()) {
+        SL_DEBUG(self->log_, "Failed to read handshake message: {}", result.error().message());
+      }
       IO_OUTCOME_TRY(buffer, result, cb);
       IO_OUTCOME_TRY(rr, self->handshake_state_->readMessage({}, *buffer), cb);
       if (rr.cs1 && rr.cs2) {
@@ -161,8 +163,8 @@ namespace libp2p::security::noise {
 
   outcome::result<void> Handshake::handleRemoteHandshakePayload(
       gsl::span<const uint8_t> payload) {
-    OUTCOME_TRY((auto &&, remote_payload), noise_marshaller_->unmarshal(payload));
-    OUTCOME_TRY((auto &&, remote_id), peer::PeerId::fromPublicKey(remote_payload.second));
+    OUTCOME_TRY(remote_payload, noise_marshaller_->unmarshal(payload));
+    OUTCOME_TRY(remote_id, peer::PeerId::fromPublicKey(remote_payload.second));
     auto &&handy_payload = remote_payload.first;
     if (initiator_ && remote_peer_id_ != remote_id) {
       SL_DEBUG(log_,
@@ -175,10 +177,10 @@ namespace libp2p::security::noise {
                       + handy_payload.identity_key.data.size());
     std::copy(kPayloadPrefix.begin(), kPayloadPrefix.end(),
               std::back_inserter(to_verify));
-    OUTCOME_TRY((auto &&, remote_static), handshake_state_->remotePeerStaticPubkey());
+    OUTCOME_TRY(remote_static, handshake_state_->remotePeerStaticPubkey());
     std::copy(remote_static.begin(), remote_static.end(),
               std::back_inserter(to_verify));
-    OUTCOME_TRY((auto &&, signature_correct),
+    OUTCOME_TRY(signature_correct,
                 crypto_provider_->verify(to_verify, handy_payload.identity_sig,
                                          handy_payload.identity_key));
     if (!signature_correct) {
@@ -192,11 +194,11 @@ namespace libp2p::security::noise {
 
   outcome::result<void> Handshake::runHandshake() {
     auto cipher_suite = defaultCipherSuite();
-    OUTCOME_TRY((auto &&, keypair), cipher_suite->generate());
+    OUTCOME_TRY(keypair, cipher_suite->generate());
     HandshakeStateConfig config(defaultCipherSuite(), handshakeXX, initiator_,
                                 keypair);
     OUTCOME_TRY(handshake_state_->init(std::move(config)));
-    OUTCOME_TRY((auto &&, payload), generateHandshakePayload(keypair));
+    OUTCOME_TRY(payload, generateHandshakePayload(keypair));
     const size_t dh25519_len = 32;
     const size_t poly1305_tag_size = 16;
     const size_t length_prefix_size = 2;
@@ -207,29 +209,38 @@ namespace libp2p::security::noise {
       //
       // Outgoing connection. Stage 0
       //
-      SL_TRACE(log_, "outgoing connection. stage 0");
+      auto addr = std::visit([](auto&& conn) { return conn->remoteMultiaddr(); }, connection_);
+      SL_TRACE(log_, "outgoing connection. stage 0 - sending initial message to {}",
+               addr ? addr.value().getStringAddress() : "<unknown>");
       sendHandshakeMessage(
           {},
           [self{shared_from_this()}, payload{std::move(payload)}](auto result) {
             IO_OUTCOME_TRY(bytes_written, result, self->hscb);
             if (0 == bytes_written) {
+              SL_DEBUG(self->log_, "outgoing connection. stage 0 failed - zero bytes written");
               return self->hscb(std::errc::bad_message);
             }
             //
             // Outgoing connection. Stage 1
             //
-            SL_TRACE(self->log_, "outgoing connection. stage 1");
+            auto addr1 = std::visit([](auto&& conn) { return conn->remoteMultiaddr(); }, self->connection_);
+            SL_TRACE(self->log_, "outgoing connection. stage 1 - waiting for remote response from {}",
+                     addr1 ? addr1.value().getStringAddress() : "<unknown>");
             self->readHandshakeMessage([self, payload](auto result) {
               IO_OUTCOME_TRY(bytes_read, result, self->hscb);
+              SL_TRACE(self->log_, "outgoing connection. stage 1 - received {} bytes, verifying payload", bytes_read->size());
               auto handle_result =
                   self->handleRemoteHandshakePayload(*bytes_read);
               if (handle_result.has_error()) {
+                SL_DEBUG(self->log_, "outgoing connection. stage 1 - payload verification failed");
                 return self->hscb(handle_result.error());
               }
               //
               // Outgoing connection. Stage 2
               //
-              SL_TRACE(self->log_, "outgoing connection. stage 2");
+              auto addr2 = std::visit([](auto&& conn) { return conn->remoteMultiaddr(); }, self->connection_);
+              SL_TRACE(self->log_, "outgoing connection. stage 2 - sending final message to {}",
+                       addr2 ? addr2.value().getStringAddress() : "<unknown>");
               self->sendHandshakeMessage(
                   payload, [self, to_write(payload.size())](auto result) {
                     IO_OUTCOME_TRY(bytes_written, result, self->hscb);
@@ -242,10 +253,13 @@ namespace libp2p::security::noise {
       //
       // Incoming connection. Stage 0
       //
-      SL_TRACE(log_, "incoming connection. stage 0");
+      auto addr = std::visit([](auto&& conn) { return conn->remoteMultiaddr(); }, connection_);
+      SL_TRACE(log_, "incoming connection. stage 0 - waiting for initial message from {}",
+               addr ? addr.value().getStringAddress() : "<unknown>");
       readHandshakeMessage(
           [self{shared_from_this()}, payload{std::move(payload)}](auto result) {
             IO_OUTCOME_TRY(plaintext, result, self->hscb);
+            SL_TRACE(self->log_, "incoming connection. stage 0 - received {} bytes", plaintext->size());
             unused(plaintext);
             /*
              * Seems that plaintext has to be ignored here. Probably we have to
@@ -254,7 +268,10 @@ namespace libp2p::security::noise {
             //
             // Incoming connection. Stage 1
             //
-            SL_TRACE(self->log_, "incoming connection. stage 1");
+            auto addr1 = std::visit([](auto&& conn) { return conn->remoteMultiaddr(); }, self->connection_);
+            SL_TRACE(self->log_, "incoming connection. stage 1 - sending response to {}",
+                     addr1 ? addr1.value().getStringAddress() : "<unknown>");
+            //
             self->sendHandshakeMessage(
                 payload, [self, to_write(payload.size())](auto result) {
                   IO_OUTCOME_TRY(bytes_written, result, self->hscb);
@@ -262,13 +279,17 @@ namespace libp2p::security::noise {
                   //
                   // Incoming connection. Stage 2
                   //
-                  SL_TRACE(self->log_, "incoming connection. stage 2");
+                  auto addr2 = std::visit([](auto&& conn) { return conn->remoteMultiaddr(); }, self->connection_);
+                  SL_TRACE(self->log_, "incoming connection. stage 2 - waiting for final message from {}",
+                           addr2 ? addr2.value().getStringAddress() : "<unknown>");
                   self->readHandshakeMessage([self](auto result) {
                     IO_OUTCOME_TRY(plaintext, result, self->hscb);
+                    SL_TRACE(self->log_, "incoming connection. stage 2 - received {} bytes, verifying payload", plaintext->size());
                     // may be need to check that plaintext is non empty
                     auto handle_result =
                         self->handleRemoteHandshakePayload(*plaintext);
                     if (handle_result.has_error()) {
+                      SL_DEBUG(self->log_, "incoming connection. stage 2 - payload verification failed");
                       self->hscb(handle_result.error());
                     }
                     self->hscb(true);
@@ -281,7 +302,15 @@ namespace libp2p::security::noise {
 
   void Handshake::hscb(outcome::result<bool> secured) {
     if (secured.has_error()) {
-      log_->error("handshake failed, {}", secured.error().message());
+      auto addr = std::visit([](auto&& conn) -> outcome::result<multi::Multiaddress> {
+        return conn->remoteMultiaddr();
+      }, connection_);
+
+
+      log_->error("Noise handshake failed, {} with {} on address {}",
+                 secured.error().message(),
+                 remote_peer_id_ ? remote_peer_id_->toBase58() : "<unknown peer>",
+                 addr ? addr.value().getStringAddress() : "<unknown address>");
       return connection_cb_(secured.error());
     }
     if (!secured.value()) {

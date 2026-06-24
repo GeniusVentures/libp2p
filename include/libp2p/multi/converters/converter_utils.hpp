@@ -24,7 +24,6 @@ namespace libp2p::multi::converters {
   auto addressToHex(const Protocol &protocol, std::string_view addr)
       -> outcome::result<std::string>;
 
-
   /**
   * Checks if a protocol is implemented
   */

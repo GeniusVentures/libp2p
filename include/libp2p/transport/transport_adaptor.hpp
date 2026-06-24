@@ -18,6 +18,7 @@
 #include <libp2p/outcome/outcome.hpp>  // for outcome::result
 #include <libp2p/peer/peer_id.hpp>
 #include <libp2p/transport/transport_listener.hpp>
+#include <libp2p/network/route_helper.hpp>
 
 namespace libp2p::transport {
 
@@ -83,6 +84,49 @@ namespace libp2p::transport {
      * @param handler
      */
     virtual void upgradeRelaySecure(const peer::PeerId& remoteId, std::shared_ptr<libp2p::connection::Stream> conn, HandlerFunc handler) = 0;
+
+    /**
+     * Try to establish connection with dual source addresses (default implementation chooses one)
+     * @param remoteId id of remote peer to dial
+     * @param address of the peer
+     * @param handler callback that will be executed on connection/error
+     * @param source_addresses both IPv4 and IPv6 source addresses available
+     * @return connection in case of success, error otherwise
+     */
+    virtual void dial(const peer::PeerId &remoteId, multi::Multiaddress address,
+                      HandlerFunc handler,
+                      const libp2p::network::RouteHelper::SourceAddresses &source_addresses, bool holepunch = false, bool holepunchserver = false) {
+      // Default implementation: choose IPv4 if available, otherwise IPv6, otherwise fallback
+      multi::Multiaddress chosen_source = multi::Multiaddress::create("/ip4/0.0.0.0").value();
+      if (source_addresses.has_ipv4) {
+        chosen_source = source_addresses.ipv4_source;
+      } else if (source_addresses.has_ipv6) {
+        chosen_source = source_addresses.ipv6_source;
+      }
+      dial(remoteId, std::move(address), std::move(handler), std::chrono::milliseconds(0), chosen_source, holepunch, holepunchserver);
+    }
+
+    /**
+     * Try to establish connection with dual source addresses and timeout (default implementation chooses one)
+     * @param remoteId id of remote peer to dial
+     * @param address of the peer
+     * @param handler callback that will be executed on connection/error
+     * @param timeout in milliseconds for connection establishing
+     * @param source_addresses both IPv4 and IPv6 source addresses available
+     * @return connection in case of success, error otherwise
+     */
+    virtual void dial(const peer::PeerId &remoteId, multi::Multiaddress address,
+                      HandlerFunc handler,
+                      std::chrono::milliseconds timeout, const libp2p::network::RouteHelper::SourceAddresses &source_addresses, bool holepunch = false, bool holepunchserver = false) {
+      // Default implementation: choose IPv4 if available, otherwise IPv6, otherwise fallback
+      multi::Multiaddress chosen_source = multi::Multiaddress::create("/ip4/0.0.0.0").value();
+      if (source_addresses.has_ipv4) {
+        chosen_source = source_addresses.ipv4_source;
+      } else if (source_addresses.has_ipv6) {
+        chosen_source = source_addresses.ipv6_source;
+      }
+      dial(remoteId, std::move(address), std::move(handler), timeout, chosen_source, holepunch, holepunchserver);
+    }
   };
 }  // namespace libp2p::transport
 

@@ -7,6 +7,7 @@
 #define LIBP2P_BASIC_SCHEDULER_IMPL_HPP
 
 #include <map>
+#include <mutex>
 #include <unordered_map>
 #include <vector>
 
@@ -235,6 +236,9 @@ namespace libp2p::basic {
 
     /// Timed callbacks
     TimedCallbacks timed_callbacks_;
+
+    /// Mutex to serialize concurrent access from multiple io_context threads
+    mutable std::recursive_mutex mutex_;
   };
 }  // namespace libp2p::basic
 

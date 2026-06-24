@@ -1,10 +1,10 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef LIBP2P_PROTOCOL_GOSSIP_COMMON_HPP
-#define LIBP2P_PROTOCOL_GOSSIP_COMMON_HPP
+#pragma once
 
 #include <cstdint>
 #include <memory>
@@ -12,7 +12,7 @@
 #include <libp2p/protocol/gossip/gossip.hpp>
 
 namespace libp2p::protocol::gossip {
-
+  using ByteArray = common::ByteArray;
   /// Error codes
   enum class Error {
     MESSAGE_PARSE_ERROR = 1,
@@ -72,7 +72,9 @@ namespace libp2p::protocol::gossip {
     TopicMessage(ByteArray _from, ByteArray _seq, ByteArray _data);
 
     /// Creates topic message from scratch before publishing
-    TopicMessage(const peer::PeerId &_from, uint64_t _seq, ByteArray _data,
+    TopicMessage(const peer::PeerId &_from,
+                 uint64_t _seq,
+                 ByteArray _data,
                  TopicId _topic);
   };
 
@@ -95,10 +97,9 @@ namespace libp2p::protocol::gossip {
   ByteArray fromString(const std::string &s);
 
   /// Creates message id, default function
-  MessageId createMessageId(const ByteArray &from, const ByteArray &seq,
+  MessageId createMessageId(const ByteArray &from,
+                            const ByteArray &seq,
                             const ByteArray &data);
 }  // namespace libp2p::protocol::gossip
 
-OUTCOME_HPP_DECLARE_ERROR_2(libp2p::protocol::gossip, Error);
-
-#endif  // LIBP2P_PROTOCOL_GOSSIP_COMMON_HPP
+OUTCOME_HPP_DECLARE_ERROR(libp2p::protocol::gossip, Error);

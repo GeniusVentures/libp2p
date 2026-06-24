@@ -9,4 +9,5 @@ target_link_libraries(p2p_basic_host
     p2p_multiaddress
     p2p_relay_addresses
 	p2p_observed_addresses
+    p2p_route_helper
     )

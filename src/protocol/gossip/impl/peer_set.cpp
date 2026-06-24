@@ -1,13 +1,14 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
 #include "peer_set.hpp"
 
 #include <algorithm>
-#include <random>
 #include <chrono>
+#include <random>
 
 #include <boost/range/adaptor/filtered.hpp>
 #include <boost/range/algorithm/for_each.hpp>
@@ -27,9 +28,8 @@ namespace libp2p::protocol::gossip {
     }
     return *this;
   }
-  
-  boost::optional<PeerContextPtr> PeerSet::find(
-    const peer::PeerId &id) const {
+
+  boost::optional<PeerContextPtr> PeerSet::find(const peer::PeerId &id) const {
     std::shared_lock<std::shared_mutex> lock(mutex_);
     auto it = peers_.find(id);
     if (it == peers_.end()) {
@@ -85,8 +85,8 @@ namespace libp2p::protocol::gossip {
       ret.reserve(n > size() ? size() : n);
       std::mt19937 gen;
       gen.seed(std::chrono::system_clock::now().time_since_epoch().count());
-      std::sample(peers_.begin(), peers_.end(), std::back_inserter(ret), n,
-                  gen);
+      std::sample(
+          peers_.begin(), peers_.end(), std::back_inserter(ret), n, gen);
     }
     return ret;
   }
@@ -111,6 +111,18 @@ namespace libp2p::protocol::gossip {
         ++it;
       }
     }
+  }
+
+  std::vector<peer::PeerId> PeerSet::getAllPeerIds() const {
+    std::shared_lock lock(mutex_);
+    std::vector<peer::PeerId> result;
+    result.reserve(peers_.size());
+    
+    for (const auto& peer : peers_) {
+      result.push_back(peer->peer_id);
+    }
+    
+    return result;
   }
 
 }  // namespace libp2p::protocol::gossip

@@ -26,6 +26,7 @@ namespace libp2p::protocol {
      * connection events and react to them
      * @param msg_processor to work with Relay messages
      * @param event_bus - bus, over which the events arrive
+     * @param holepunch - optional holepunch server instance, will create one if nullptr and config enables it
      */
     Relay(Host &host,
              std::shared_ptr<RelayMessageProcessor> msg_processor,
@@ -52,18 +53,24 @@ namespace libp2p::protocol {
     std::vector<multi::Multiaddress> getObservedAddressesFor(
         const multi::Multiaddress &address) const;
 
+    /**
+     * Assign a HolepunchServer protocol instance for direct connections
+     * @param holepunch - holepunch server instance to use
+     */
+    void setHolepunchServer(std::shared_ptr<libp2p::protocol::HolepunchServer> holepunch);
+
     peer::Protocol getProtocolId() const override;
 
     /**
      * Stub in case we want to enable acting as a relay
      */
-    void handle(StreamResult stream_res) override;
+    void handle(StreamAndProtocol stream_res) override;
 
     /**
      * If we have an incoming stop message, someone is trying to connect to us via circuit relay
      * @param stream contains the stream that negotiated a stop protocol with us.
      */
-    void handleStopMessage(StreamResult stream_res);
+    void handleStopMessage(StreamAndProtocolOrError stream_res);
     
     
     /**
@@ -83,8 +90,7 @@ namespace libp2p::protocol {
     std::shared_ptr<RelayMessageProcessor> msg_processor_;
     event::Bus &bus_;
     event::Handle sub_;  // will unsubscribe during destruction by itself
-    std::shared_ptr<libp2p::protocol::HolepunchServer> holepunch_;
-    std::shared_ptr<libp2p::protocol::HolepunchServerMsgProc> holepunch_msg_proc_;
+    std::shared_ptr<libp2p::protocol::HolepunchServer> holepunch_ = nullptr;
     log::Logger log_ = log::createLogger("Relay");
     int maxrelays = 3;
     int relayconnections = 0;

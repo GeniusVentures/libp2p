@@ -82,7 +82,6 @@ namespace libp2p::security::noise {
     SecurityAdaptor::SecConnCallbackFunc connection_cb_;
 
     std::shared_ptr<crypto::marshaller::KeyMarshaller> key_marshaller_;
-    std::shared_ptr<ByteArray> read_buffer_;
     std::shared_ptr<InsecureReadWriter> rw_;
 
     // other params

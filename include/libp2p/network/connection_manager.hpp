@@ -7,6 +7,7 @@
 #define LIBP2P_CONNECTION_MANAGER_HPP
 
 #include <memory>
+#include <chrono>
 
 #include <libp2p/basic/garbage_collectable.hpp>
 #include <libp2p/connection/capable_connection.hpp>
@@ -36,6 +37,27 @@ namespace libp2p::network {
     using Connection = connection::CapableConnection;
     using ConnectionSPtr = std::shared_ptr<Connection>;
 
+    /// Configuration for connection threshold management
+    struct Config {
+      /// High watermark - triggers trimming when exceeded (like go-libp2p)
+      size_t high_water;
+      /// Low watermark - target after trimming (like go-libp2p)  
+      size_t low_water;
+      /// Grace period for new connections (go-libp2p style)
+      std::chrono::seconds grace_period;
+      /// Silence period - minimum time between trims (go-libp2p style)
+      std::chrono::seconds silence_period;
+      /// Enable automatic purging when threshold is exceeded
+      bool auto_purge_enabled;
+      
+      /// Default configuration following go-libp2p patterns
+      Config() : high_water(1000),
+                 low_water(800), 
+                 grace_period(10),          // 10 seconds grace period
+                 silence_period(10),        // 10 seconds between trims
+                 auto_purge_enabled(true) {}
+    };
+
     ~ConnectionManager() override = default;
 
     // get list of all connections (including inbound and outbound)
@@ -63,6 +85,32 @@ namespace libp2p::network {
         const std::shared_ptr<connection::CapableConnection> &conn) = 0;
 
     virtual void removeRelayedConnections(const peer::PeerId& peer_id) = 0;
+
+    // purge idle connections (connections with no active streams)
+    virtual void purgeIdleConnections() = 0;
+    
+    // go-libp2p style peer management methods
+    
+    /// Tag a peer with a named tag and value (for prioritization)
+    virtual void tagPeer(const peer::PeerId& peer_id, const std::string& tag, int value) = 0;
+    
+    /// Remove a tag from a peer
+    virtual void untagPeer(const peer::PeerId& peer_id, const std::string& tag) = 0;
+    
+    /// Protect a peer from connection trimming
+    virtual void protectPeer(const peer::PeerId& peer_id, const std::string& tag) = 0;
+    
+    /// Remove protection from a peer
+    virtual bool unprotectPeer(const peer::PeerId& peer_id, const std::string& tag) = 0;
+    
+    /// Force trim connections to low watermark (for testing/manual cleanup)
+    virtual void forceTrim() = 0;
+
+    /// Get configuration for inspection/adjustment
+    virtual Config& getConfig() = 0;
+    
+    /// Get configuration (read-only access)
+    virtual const Config& getConfig() const = 0;
   };
 
 }  // namespace libp2p::network

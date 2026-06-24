@@ -169,7 +169,7 @@ namespace libp2p::multi {
     outcome::result<T> getFirstValueForProtocol(
         Protocol::Code protocol,
         std::function<T(const std::string &)> caster) const {
-      OUTCOME_TRY((auto &&, val), getFirstValueForProtocol(protocol));
+      OUTCOME_TRY(val, getFirstValueForProtocol(protocol));
 
       try {
         return caster(val);
@@ -207,6 +207,6 @@ namespace std {
   };
 }  // namespace std
 
-OUTCOME_HPP_DECLARE_ERROR_2(libp2p::multi, Multiaddress::Error)
+OUTCOME_HPP_DECLARE_ERROR(libp2p::multi, Multiaddress::Error)
 
 #endif  // LIBP2P_MULTIADDRESS_HPP

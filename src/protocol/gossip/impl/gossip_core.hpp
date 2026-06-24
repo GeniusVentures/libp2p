@@ -1,10 +1,10 @@
 /**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * Copyright Quadrivium LLC
+ * All Rights Reserved
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef LIBP2P_PROTOCOL_GOSSIP_CORE_HPP
-#define LIBP2P_PROTOCOL_GOSSIP_CORE_HPP
+#pragma once
 
 #include <libp2p/protocol/gossip/gossip.hpp>
 
@@ -35,7 +35,8 @@ namespace libp2p::protocol::gossip {
     GossipCore &operator=(GossipCore &&) = delete;
 
     GossipCore(
-        Config config, std::shared_ptr<basic::Scheduler> scheduler,
+        Config config,
+        std::shared_ptr<basic::Scheduler> scheduler,
         std::shared_ptr<Host> host,
         std::shared_ptr<peer::IdentityManager> idmgr,
         std::shared_ptr<crypto::CryptoProvider> crypto_provider,
@@ -43,12 +44,21 @@ namespace libp2p::protocol::gossip {
 
     ~GossipCore() override = default;
 
+    /// Get Number of Peers in topic
+    size_t getPeerCount(TopicId& topic) const override;
+
+    /// Get PeerIDs subscribed to topic
+    std::vector<peer::PeerId> getAllPeers(TopicId& topic) const override;
+    
    private:
     // Gossip overrides
     void addBootstrapPeer(
         const peer::PeerId &id,
         boost::optional<multi::Multiaddress> address) override;
-    outcome::result<void> addBootstrapPeer(const std::string &address) override;
+    void addBootstrapPeer(
+        const peer::PeerId &id,
+        const std::vector<multi::Multiaddress> &addresses) override;
+        outcome::result<void> addBootstrapPeer(const std::string &address) override;
     void start() override;
     void stop() override;
     void setValidator(const TopicId &topic, Validator validator) override;
@@ -60,13 +70,16 @@ namespace libp2p::protocol::gossip {
     outcome::result<void> signMessage(TopicMessage &msg) const;
 
     // MessageReceiver overrides
-    void onSubscription(const PeerContextPtr &from, bool subscribe,
+    void onSubscription(const PeerContextPtr &from,
+                        bool subscribe,
                         const TopicId &topic) override;
-    void onIHave(const PeerContextPtr &from, const TopicId &topic,
+    void onIHave(const PeerContextPtr &from,
+                 const TopicId &topic,
                  const MessageId &msg_id) override;
     void onIWant(const PeerContextPtr &from, const MessageId &msg_id) override;
     void onGraft(const PeerContextPtr &from, const TopicId &topic) override;
-    void onPrune(const PeerContextPtr &from, const TopicId &topic,
+    void onPrune(const PeerContextPtr &from,
+                 const TopicId &topic,
                  uint64_t backoff_time) override;
     void onTopicMessage(const PeerContextPtr &from,
                         TopicMessage::Ptr msg) override;
@@ -80,6 +93,8 @@ namespace libp2p::protocol::gossip {
 
     /// Remote peer connected or disconnected
     void onPeerConnection(bool connected, const PeerContextPtr &ctx);
+
+    void setTimerHeartbeat();
 
     /// Configuration parameters
     const Config config_;
@@ -138,10 +153,11 @@ namespace libp2p::protocol::gossip {
     /// Heartbeat timer handle
     basic::Scheduler::Handle heartbeat_timer_;
 
+    /// Protects: started_, remote_subscriptions_, broadcast_on_heartbeat_
+    mutable std::mutex gossip_state_mutex_;
+
     /// Logger
     log::SubLogger log_;
   };
 
 }  // namespace libp2p::protocol::gossip
-
-#endif  // LIBP2P_PROTOCOL_GOSSIP_CORE_HPP

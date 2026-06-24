@@ -33,8 +33,8 @@ namespace libp2p::protocol {
    public:
     using AutonatCallback = void(const bool &);
 
-    AutonatMessageProcessor(
-        Host &host, network::ConnectionManager &conn_manager);
+    AutonatMessageProcessor(std::shared_ptr<Host> host,
+                            network::ConnectionManager &conn_manager);
 
     boost::signals2::connection onAutonatReceived(
         const std::function<AutonatCallback> &cb);
@@ -81,7 +81,7 @@ namespace libp2p::protocol {
      * @param stream with the other side
      */
     void autonatSent(outcome::result<size_t> written_bytes,
-                      const StreamSPtr &stream);
+                     StreamSPtr stream);
 
     /**
      * Called, when an autonat message is received from the other peer
@@ -89,39 +89,45 @@ namespace libp2p::protocol {
      * @param stream, over which it was received
      */
     void autonatReceived(outcome::result<autonat::pb::Message> msg_res,
-                          const StreamSPtr &stream);
-
+                         StreamSPtr stream);
 
     /**
-     * Called, when an autonat message is a DIAL_RESPONSE(Which indicates they have tried dialing us)
+     * Called, when an autonat message is a DIAL_RESPONSE(Which indicates they
+     * have tried dialing us)
      * @param stream, over which it was received
      * @param msg, which was read
      * @param peer_id_str peer id we are interacting with
      * @param peer_addr_str Address of peer we are connected to
      */
-    void autonatParseDIALRESPONSE(const StreamSPtr& stream, autonat::pb::Message& msg, std::string& peer_id_str, std::string& peer_addr_str);
+    void autonatParseDIALRESPONSE(const StreamSPtr &stream,
+                                  autonat::pb::Message &msg,
+                                  std::string &peer_id_str,
+                                  std::string &peer_addr_str);
 
     /**
-     * Called, when an autonat message is a DIAL(Which indicates we should try dialing them)
+     * Called, when an autonat message is a DIAL(Which indicates we should try
+     * dialing them)
      * @param stream, over which it was received
      * @param msg, which was read
      * @param peer_id_str peer id we are interacting with
      * @param peer_addr_str Address of peer we are connected to
      */
-    void autonatParseDIALREQUEST(const StreamSPtr& stream, autonat::pb::Message& msg, std::string& peer_id_str, std::string& peer_addr_str);
+    void autonatParseDIALREQUEST(const StreamSPtr &stream,
+                                 autonat::pb::Message &msg,
+                                 std::string &peer_id_str,
+                                 std::string &peer_addr_str);
 
-    Host &host_;
+    std::shared_ptr<Host> host_;
     network::ConnectionManager &conn_manager_;
-    //ObservedAddresses observed_addresses_;
+    // ObservedAddresses observed_addresses_;
     boost::signals2::signal<AutonatCallback> signal_autonat_received_;
-    //int successful_addresses_;
-    //int unsuccessful_addresses_;
+    // int successful_addresses_;
+    // int unsuccessful_addresses_;
     std::unordered_map<std::string, int> successful_addresses_;
     std::unordered_map<std::string, int> unsuccessful_addresses_;
 
-
     log::Logger log_ = log::createLogger("AutonatMsgProcessor");
   };
-}
+}  // namespace libp2p::protocol
 
 #endif
