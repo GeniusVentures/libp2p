@@ -17,7 +17,7 @@ namespace libp2p::protocol::gossip {
   /// Peer set for pub-sub protocols
   class PeerSet {
    public:
-       PeerSet() = default;
+    PeerSet() = default;
     PeerSet(PeerSet&& other) noexcept;  // Move constructor
     PeerSet& operator=(PeerSet&& other) noexcept;  // Move assignment
 

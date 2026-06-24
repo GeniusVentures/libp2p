@@ -93,7 +93,6 @@ namespace libp2p::protocol::gossip {
 
   void PeerSet::selectAll(const SelectCallback &callback) const {
     std::shared_lock<std::shared_mutex> lock(mutex_);
-
     boost::for_each(peers_, callback);
   }
 
