@@ -48,6 +48,12 @@ namespace libp2p::basic {
     /// Timer callback, called from SchedulerBackend
     void pulse(std::chrono::milliseconds current_clock) noexcept override;
 
+    struct PulseState {
+      bool in_progress = false;
+      bool deferred_pending = false;
+      std::chrono::milliseconds timed_pending = kZeroTime;
+    };
+
     struct Item {
       uint64_t seq = 0;
       Callback cb;
@@ -187,7 +193,8 @@ namespace libp2p::basic {
 
       /// Timer callback, owner arg helps control lifetime
       void onTimer(std::chrono::milliseconds clock,
-                   std::shared_ptr<Scheduler> owner);
+                   std::shared_ptr<Scheduler> owner,
+                   std::unique_lock<std::recursive_mutex> &lock);
 
       /// Cancels an item and reschedules timer if needed
       void cancel(const Ticket &ticket,
@@ -239,6 +246,9 @@ namespace libp2p::basic {
 
     /// Mutex to serialize concurrent access from multiple io_context threads
     mutable std::recursive_mutex mutex_;
+
+    /// Coalesces overlapping backend pulses while callbacks run without mutex_.
+    PulseState pulse_state_;
   };
 }  // namespace libp2p::basic
 

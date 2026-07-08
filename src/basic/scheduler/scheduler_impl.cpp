@@ -88,12 +88,43 @@ namespace libp2p::basic {
   }
 
   void SchedulerImpl::pulse(std::chrono::milliseconds current_clock) noexcept {
-    std::lock_guard<std::recursive_mutex> lock(mutex_);
-    try {
+    std::unique_lock<std::recursive_mutex> lock(mutex_);
+    // Timed callbacks are allowed to call back into the scheduler, or into code
+    // that takes other locks before scheduling more work. Do not execute them
+    // while holding mutex_; instead, serialize overlapping backend pulses here
+    // and let the active pulse drain pending work.
+    if (pulse_state_.in_progress) {
       if (current_clock == kZeroTime) {
-        deferred_callbacks_.onTimer(shared_from_this());
-      } else {
-        timed_callbacks_.onTimer(current_clock, shared_from_this());
+        pulse_state_.deferred_pending = true;
+      } else if (current_clock > pulse_state_.timed_pending) {
+        pulse_state_.timed_pending = current_clock;
+      }
+      return;
+    }
+    pulse_state_.in_progress = true;
+
+    try {
+      auto owner = shared_from_this();
+      for (;;) {
+        if (current_clock == kZeroTime) {
+          deferred_callbacks_.onTimer(owner);
+        } else {
+          timed_callbacks_.onTimer(current_clock, owner, lock);
+        }
+
+        if (pulse_state_.deferred_pending) {
+          pulse_state_.deferred_pending = false;
+          current_clock = kZeroTime;
+          continue;
+        }
+
+        if (pulse_state_.timed_pending != kZeroTime) {
+          current_clock = pulse_state_.timed_pending;
+          pulse_state_.timed_pending = kZeroTime;
+          continue;
+        }
+
+        break;
       }
     } catch (const std::exception &e) {
       try {
@@ -108,6 +139,7 @@ namespace libp2p::basic {
       } catch (...) {
       }
     }
+    pulse_state_.in_progress = false;
   }
 
   void SchedulerImpl::DeferredCallbacksWithoutCancel::push(uint64_t seq,
@@ -339,8 +371,9 @@ namespace libp2p::basic {
   }
 
   void SchedulerImpl::TimedCallbacks::onTimer(
-      std::chrono::milliseconds clock, std::shared_ptr<Scheduler> owner) {
-    [this, clock, owner = std::move(owner)]() {
+      std::chrono::milliseconds clock, std::shared_ptr<Scheduler> owner,
+      std::unique_lock<std::recursive_mutex> &lock) {
+    [this, clock, owner = std::move(owner), &lock]() {
       current_timer_ = kZeroTime;
 
       while (!items_.empty() && !owner.unique()) {
@@ -357,7 +390,20 @@ namespace libp2p::basic {
 
         assert(cb);
 
-        cb();
+        try {
+          // User callbacks may acquire graphsync/libp2p locks and then schedule
+          // more work. Holding the scheduler lock here creates a lock inversion.
+          lock.unlock();
+          cb();
+          lock.lock();
+        } catch (...) {
+          if (!lock.owns_lock()) {
+            lock.lock();
+          }
+          seq_in_process_ = 0;
+          current_callback_rescheduled_.reset();
+          throw;
+        }
 
         if (current_callback_rescheduled_.has_value()) {
           items_.emplace(std::move(current_callback_rescheduled_.value()),
