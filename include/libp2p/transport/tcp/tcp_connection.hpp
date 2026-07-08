@@ -148,6 +148,7 @@ namespace libp2p::transport {
 
    private:
     outcome::result<void> saveMultiaddresses();
+    void doClose(std::error_code reason);
 
     boost::asio::io_context &context_;
     Tcp::socket socket_;

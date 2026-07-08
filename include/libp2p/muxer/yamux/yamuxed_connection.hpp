@@ -6,6 +6,7 @@
 #ifndef LIBP2P_YAMUXED_CONNECTION_HPP
 #define LIBP2P_YAMUXED_CONNECTION_HPP
 
+#include <mutex>
 #include <unordered_map>
 
 #include <libp2p/basic/read_buffer.hpp>
@@ -36,7 +37,7 @@ namespace libp2p::connection {
     YamuxedConnection &operator=(const YamuxedConnection &other) = delete;
     YamuxedConnection(YamuxedConnection &&other) = delete;
     YamuxedConnection &operator=(YamuxedConnection &&other) = delete;
-    ~YamuxedConnection() override = default;
+    ~YamuxedConnection() override;
 
     /**
      * Create a new YamuxedConnection instance
@@ -214,6 +215,9 @@ namespace libp2p::connection {
 
     /// Write queue
     std::deque<WriteQueueItem> write_queue_;
+
+    /// Guards is_writing_ and write_queue_ across stream callback threads
+    std::mutex write_mutex_;
 
     /// Active streams
     Streams streams_;

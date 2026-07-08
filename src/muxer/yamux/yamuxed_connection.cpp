@@ -61,6 +61,26 @@ namespace libp2p::connection {
     new_stream_id_ = (connection_->isInitiator() ? 1 : 2);
   }
 
+  YamuxedConnection::~YamuxedConnection() {
+    started_ = false;
+    {
+      std::lock_guard<std::mutex> lock(write_mutex_);
+      write_queue_.clear();
+    }
+    fresh_streams_.clear();
+    streams_.clear();
+    pending_outbound_streams_.clear();
+    new_stream_handler_ = nullptr;
+    closed_callback_ = nullptr;
+    ping_handle_.cancel();
+    cleanup_handle_.cancel();
+
+    if (connection_ && !connection_->isClosed()) {
+      std::ignore = connection_->close();
+    }
+    connection_.reset();
+  }
+
   void YamuxedConnection::start() {
     if (started_) {
       log_()->error("already started (double start)");
@@ -95,7 +115,12 @@ namespace libp2p::connection {
           [this, ping_counter = 0u]() mutable {
             if (started_) {
               // dont send pings if something is being written
-              if (!is_writing_) {
+              bool can_write_ping = false;
+              {
+                std::lock_guard<std::mutex> lock(write_mutex_);
+                can_write_ping = !is_writing_;
+              }
+              if (can_write_ping) {
                 enqueue(pingOutMsg(++ping_counter));
                 SL_TRACE(log_(), "written ping message #{}", ping_counter);
               }
@@ -587,6 +612,9 @@ namespace libp2p::connection {
       std::error_code notify_streams_code,
       boost::optional<YamuxFrame::GoAwayError> reply_to_peer_code) {
     if (!started_) {
+      if (connection_ && !connection_->isClosed()) {
+        std::ignore = connection_->close();
+      }
       return;
     }
 
@@ -595,7 +623,13 @@ namespace libp2p::connection {
     SL_DEBUG(log_(), "closing connection, reason: {}",
              notify_streams_code.message());
 
-    write_queue_.clear();
+    {
+      std::lock_guard<std::mutex> lock(write_mutex_);
+      write_queue_.clear();
+    }
+    fresh_streams_.clear();
+    ping_handle_.cancel();
+    cleanup_handle_.cancel();
 
     if (reply_to_peer_code.has_value() && !connection_->isClosed()) {
       enqueue(goAwayMsg(reply_to_peer_code.value()));
@@ -617,6 +651,13 @@ namespace libp2p::connection {
 
     if (closed_callback_) {
       closed_callback_(remote_peer_, shared_from_this());
+    }
+
+    new_stream_handler_ = nullptr;
+    closed_callback_ = nullptr;
+
+    if (!connection_->isClosed()) {
+      std::ignore = connection_->close();
     }
   }
 
@@ -664,9 +705,9 @@ namespace libp2p::connection {
       return;
     }
 
+    auto stream = it->second;
     enqueue(closeStreamMsg(stream_id));
 
-    auto &stream = it->second;
     assert(stream->isClosedForWrite());
 
     if (stream->isClosedForRead()) {
@@ -676,26 +717,38 @@ namespace libp2p::connection {
 
   void YamuxedConnection::enqueue(Buffer packet, StreamId stream_id,
                                   bool some) {
-    if (is_writing_) {
-      write_queue_.push_back(
-          WriteQueueItem{std::move(packet), stream_id, some});
-      
-      // Calculate total queued bytes for diagnostics
-      size_t total_queued = 0;
-      for (const auto& item : write_queue_) {
-        total_queued += item.packet.size();
+    const auto packet_size = packet.size();
+    auto item = WriteQueueItem{std::move(packet), stream_id, some};
+    {
+      std::lock_guard<std::mutex> lock(write_mutex_);
+      if (is_writing_) {
+        write_queue_.push_back(std::move(item));
+
+        // Calculate total queued bytes for diagnostics
+        size_t total_queued = 0;
+        for (const auto& queued_item : write_queue_) {
+          total_queued += queued_item.packet.size();
+        }
+        SL_TRACE(log_(), "yamux write queued: stream={}, size={}, queue_depth={}, total_queued={}",
+                 stream_id, packet_size, write_queue_.size(), total_queued);
+        return;
       }
-      SL_TRACE(log_(), "yamux write queued: stream={}, size={}, queue_depth={}, total_queued={}",
-               stream_id, packet.size(), write_queue_.size(), total_queued);
-    } else {
-      SL_TRACE(log_(), "yamux writing immediately: stream={}, size={}",
-               stream_id, packet.size());
-      doWrite(WriteQueueItem{std::move(packet), stream_id, some});
+
+      is_writing_ = true;
     }
+
+    SL_TRACE(log_(), "yamux writing immediately: stream={}, size={}",
+             stream_id, packet_size);
+    doWrite(std::move(item));
   }
 
   void YamuxedConnection::doWrite(WriteQueueItem packet) {
-    assert(!is_writing_);
+#ifndef NDEBUG
+    {
+      std::lock_guard<std::mutex> lock(write_mutex_);
+      assert(is_writing_);
+    }
+#endif
 
     auto write_func =
         packet.some ? &CapableConnection::writeSome : &CapableConnection::write;
@@ -710,7 +763,6 @@ namespace libp2p::connection {
         self->onDataWritten(res, packet.stream_id, packet.some);
     };
 
-    is_writing_ = true;
     ((connection_.get())->*write_func)(*write_buffer_, sz, std::move(cb));
   }
 
@@ -755,21 +807,31 @@ namespace libp2p::connection {
       return;
     }
 
-    is_writing_ = false;
+    boost::optional<WriteQueueItem> next_packet;
+    size_t remaining_queue_depth = 0;
+    size_t total_queued = 0;
 
-    if (started_ && !write_queue_.empty()) {
-      auto next_packet = std::move(write_queue_.front());
-      write_queue_.pop_front();
-      
-      // Calculate remaining queued bytes for diagnostics
-      size_t total_queued = 0;
-      for (const auto& item : write_queue_) {
-        total_queued += item.packet.size();
+    {
+      std::lock_guard<std::mutex> lock(write_mutex_);
+      if (started_ && !write_queue_.empty()) {
+        next_packet.emplace(std::move(write_queue_.front()));
+        write_queue_.pop_front();
+
+        // Calculate remaining queued bytes for diagnostics
+        for (const auto& item : write_queue_) {
+          total_queued += item.packet.size();
+        }
+        remaining_queue_depth = write_queue_.size();
+      } else {
+        is_writing_ = false;
       }
+    }
+
+    if (next_packet.has_value()) {
       SL_TRACE(log_(), "yamux dequeuing next write: stream={}, size={}, remaining_queue_depth={}, remaining_bytes={}",
-               next_packet.stream_id, next_packet.packet.size(), write_queue_.size(), total_queued);
+               next_packet->stream_id, next_packet->packet.size(), remaining_queue_depth, total_queued);
       
-      doWrite(std::move(next_packet));
+      doWrite(std::move(next_packet.value()));
     }
   }
 

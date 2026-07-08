@@ -48,7 +48,22 @@ namespace libp2p::transport {
   }
 
   void TcpConnection::close(std::error_code reason) {
- //     log().error("Closing connection");
+    // Socket operations belong on context_; posting the real close keeps it
+    // serialized with async handlers and keeps this connection alive until then.
+    if (context_.stopped()) {
+      doClose(reason);
+      return;
+    }
+
+    if (auto self = weak_from_this().lock()) {
+      boost::asio::post(context_, [self, reason] { self->doClose(reason); });
+      return;
+    }
+
+    doClose(reason);
+  }
+
+  void TcpConnection::doClose(std::error_code reason) {
     assert(reason);
 
     if (!close_reason_) {
@@ -95,12 +110,11 @@ namespace libp2p::transport {
     auto closeOnError(TcpConnection &conn, Callback cb) {
       return [cb{std::move(cb)}, wptr{conn.weak_from_this()}](auto ec,
                                                               auto result) {
-        if (!wptr.expired()) {
+        if (auto conn = wptr.lock()) {
           if (ec) {
-            wptr.lock()->close(convert(ec));
             return cb(std::forward<decltype(ec)>(ec));
           }
-          TRACE("{} {}", wptr.lock()->str(), result);
+          TRACE("{} {}", conn->str(), result);
           cb(result);
         } else {
           log().debug("connection wptr expired");
