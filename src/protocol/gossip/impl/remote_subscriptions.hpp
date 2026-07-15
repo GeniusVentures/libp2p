@@ -58,11 +58,11 @@ namespace libp2p::protocol::gossip {
     void onHeartbeat();
 
         /// Get Number of Peers in topic
-    size_t getPeerCount(TopicId& topic) const;
+    size_t getPeerCount(const TopicId& topic) const;
 
     /// Get PeerIDs subscribed to topic
-    std::vector<peer::PeerId> getAllPeers(TopicId& topic) const;
-    
+    std::vector<peer::PeerId> getAllPeers(const TopicId& topic) const;
+
    private:
     /// Returns table item, creates a new one if needed
     boost::optional<TopicSubscriptions &> getItem(const TopicId &topic,

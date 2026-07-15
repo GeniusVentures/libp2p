@@ -156,15 +156,15 @@ namespace libp2p::protocol::gossip {
     }
   }
 
-  size_t RemoteSubscriptions::getPeerCount(TopicId& topic) const {
+  size_t RemoteSubscriptions::getPeerCount(const TopicId& topic) const {
     auto it = table_.find(topic);
     if (it == table_.end()) {
       return 0;  // No subscribers for this topic
     }
     return it->second.getPeerCount();
   }
-  
-  std::vector<peer::PeerId> RemoteSubscriptions::getAllPeers(TopicId& topic) const {
+
+  std::vector<peer::PeerId> RemoteSubscriptions::getAllPeers(const TopicId& topic) const {
     auto it = table_.find(topic);
     if (it == table_.end()) {
       return {};  // Return empty vector if topic not found

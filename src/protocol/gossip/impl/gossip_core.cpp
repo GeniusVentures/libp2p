@@ -67,7 +67,7 @@ namespace libp2p::protocol::gossip {
         log_("gossip", "Gossip", local_peer_id_.toBase58().substr(46)) {}
   // clang-format on
 
-  size_t GossipCore::getPeerCount(TopicId& topic) const
+  size_t GossipCore::getPeerCount(const TopicId& topic) const
   {
     if(!remote_subscriptions_)
     {
@@ -76,7 +76,7 @@ namespace libp2p::protocol::gossip {
     return remote_subscriptions_->getPeerCount(topic);
   }
 
-  std::vector<peer::PeerId> GossipCore::getAllPeers(TopicId& topic) const
+  std::vector<peer::PeerId> GossipCore::getAllPeers(const TopicId& topic) const
   {
     if(!remote_subscriptions_)
     {
@@ -400,7 +400,7 @@ namespace libp2p::protocol::gossip {
 
     if (connected) {
       log_.debug("peer {} connected", ctx->str);
-      
+
       // Tag peer as gossip participant - they connected to our gossip network
       if (ctx) {
         auto& conn_mgr = host_->getNetwork().getConnectionManager();
