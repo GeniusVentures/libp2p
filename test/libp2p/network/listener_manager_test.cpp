@@ -128,3 +128,35 @@ TEST_F(ListenerManagerTest, StartStop) {
   ASSERT_NO_FATAL_FAILURE(listener->stop());
   ASSERT_FALSE(listener->isStarted());
 }
+
+TEST(ListenerManagerLifetimeTest, DestroysListenersBeforeTransportManager) {
+  auto proto_muxer = std::make_shared<ProtocolMuxerMock>();
+  auto router = std::make_shared<RouterMock>();
+  auto tmgr = std::make_shared<TransportManagerMock>();
+  auto cmgr = std::make_shared<ConnectionManagerMock>();
+  auto transport = std::make_shared<TransportMock>();
+
+  std::weak_ptr<TransportManagerMock> weak_tmgr = tmgr;
+  bool listener_destroyed_while_tmgr_alive = false;
+  auto transport_listener = std::shared_ptr<TransportListenerMock>(
+      new TransportListenerMock,
+      [&weak_tmgr, &listener_destroyed_while_tmgr_alive](
+          TransportListenerMock *listener) {
+        listener_destroyed_while_tmgr_alive = !weak_tmgr.expired();
+        delete listener;
+      });
+
+  EXPECT_CALL(*tmgr, findBest(_)).WillOnce(Return(transport));
+  EXPECT_CALL(*transport, createListener(_)).WillOnce(Return(transport_listener));
+
+  auto listener = std::make_shared<ListenerManagerImpl>(
+      proto_muxer, router, tmgr, cmgr);
+  EXPECT_OUTCOME_TRUE_1(
+      listener->listen("/ip4/127.0.0.1/tcp/0"_multiaddr));
+
+  transport_listener.reset();
+  tmgr.reset();
+  listener.reset();
+
+  EXPECT_TRUE(listener_destroyed_while_tmgr_alive);
+}

@@ -61,14 +61,14 @@ namespace libp2p::network {
         mutable std::mutex listeners_mutex_;
     bool started = false;
 
-    // clang-format off
-    std::unordered_map<multi::Multiaddress, std::shared_ptr<transport::TransportListener>> listeners_;
-    // clang-format on
-
     std::shared_ptr<protocol_muxer::ProtocolMuxer> multiselect_;
     std::shared_ptr<network::Router> router_;
     std::shared_ptr<TransportManager> tmgr_;
     std::shared_ptr<ConnectionManager> cmgr_;
+
+    // clang-format off
+    std::unordered_map<multi::Multiaddress, std::shared_ptr<transport::TransportListener>> listeners_;
+    // clang-format on
   };
 
 }  // namespace libp2p::network

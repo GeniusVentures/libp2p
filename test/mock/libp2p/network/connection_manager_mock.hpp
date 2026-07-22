@@ -28,6 +28,20 @@ namespace libp2p::network {
 
     MOCK_METHOD1(closeConnectionsToPeer, void(const peer::PeerId &p));
 
+    MOCK_METHOD1(removeRelayedConnections, void(const peer::PeerId &p));
+    MOCK_METHOD0(purgeIdleConnections, void());
+    MOCK_METHOD3(tagPeer,
+                 void(const peer::PeerId &p, const std::string &tag, int value));
+    MOCK_METHOD2(untagPeer,
+                 void(const peer::PeerId &p, const std::string &tag));
+    MOCK_METHOD2(protectPeer,
+                 void(const peer::PeerId &p, const std::string &tag));
+    MOCK_METHOD2(unprotectPeer,
+                 bool(const peer::PeerId &p, const std::string &tag));
+    MOCK_METHOD0(forceTrim, void());
+    MOCK_METHOD0(getConfig, Config &());
+    MOCK_CONST_METHOD0(getConfig, const Config &());
+
     MOCK_METHOD0(collectGarbage, void());
 
     MOCK_METHOD2(onConnectionClosed, void(

@@ -22,6 +22,14 @@ namespace libp2p::transport {
     MOCK_METHOD4(dial,
                  void(const peer::PeerId &, multi::Multiaddress, HandlerFunc,
                       std::chrono::milliseconds));
+    MOCK_METHOD7(dial,
+                 void(const peer::PeerId &, multi::Multiaddress, HandlerFunc,
+                      std::chrono::milliseconds, multi::Multiaddress, bool,
+                      bool));
+
+    MOCK_METHOD3(upgradeRelaySecure,
+                 void(const peer::PeerId &,
+                      std::shared_ptr<connection::Stream>, HandlerFunc));
 
     MOCK_METHOD1(
         createListener,

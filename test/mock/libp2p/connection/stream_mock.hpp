@@ -57,6 +57,12 @@ namespace libp2p::connection {
     MOCK_CONST_METHOD0(localMultiaddr, outcome::result<multi::Multiaddress>());
 
     MOCK_CONST_METHOD0(remoteMultiaddr, outcome::result<multi::Multiaddress>());
+
+    MOCK_METHOD1(setIncomingRelay, void(bool));
+
+    MOCK_CONST_METHOD0(
+        getRawConnection,
+        outcome::result<std::shared_ptr<RawConnection>>());
   };
 }  // namespace libp2p::connection
 
