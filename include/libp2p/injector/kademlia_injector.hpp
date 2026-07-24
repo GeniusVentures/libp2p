@@ -63,8 +63,11 @@ namespace libp2p::injector {
       typename T, typename C = std::decay_t<T>,
       typename = std::enable_if<std::is_same_v<C, protocol::kademlia::Config>>>
   inline auto useKademliaConfig(T &&c) {
-    return boost::di::bind<C>().TEMPLATE_TO(std::forward<T>(c))
-        [boost::di::override];
+    return boost::di::bind<C>().TEMPLATE_TO(
+        [c = std::forward<C>(c)](const auto &injector) mutable -> const C & {
+          static C instance = std::move(c);
+          return instance;
+        })[boost::di::override];
   }
 
   // clang-format off
