@@ -11,7 +11,10 @@
 
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
+#include <libp2p/basic/scheduler/asio_scheduler_backend.hpp>
+#include <libp2p/basic/scheduler/scheduler_impl.hpp>
 #include <libp2p/common/literals.hpp>
+#include <libp2p/network/impl/permissive_connection_gater.hpp>
 #include <libp2p/transport/tcp.hpp>
 #include "mock/libp2p/connection/capable_connection_mock.hpp"
 #include "mock/libp2p/transport/upgrader_mock.hpp"
@@ -72,6 +75,16 @@ namespace {
 
     return upgrader;
   }
+
+  auto makeGater() {
+    return std::make_shared<libp2p::network::PermissiveConnectionGater>();
+  }
+
+  auto makeScheduler(std::shared_ptr<boost::asio::io_context> context) {
+    return std::make_shared<libp2p::basic::SchedulerImpl>(
+        std::make_shared<libp2p::basic::AsioSchedulerBackend>(context),
+        libp2p::basic::Scheduler::Config{});
+  }
 }  // namespace
 
 /**
@@ -82,7 +95,7 @@ namespace {
 TEST(TCP, TwoListenersCantBindOnSamePort) {
   auto context = std::make_shared<boost::asio::io_context>(1);
   auto upgrader = makeUpgrader();
-  auto transport = std::make_shared<TcpTransport>(context, std::move(upgrader));
+  auto transport = std::make_shared<TcpTransport>(context, std::move(upgrader), makeGater(), makeScheduler(context));
   auto listener1 = transport->createListener([](auto &&c) { EXPECT_TRUE(c); });
 
   ASSERT_TRUE(listener1);
@@ -116,7 +129,7 @@ TEST(TCP, SingleListenerCanAcceptManyClients) {
 
   auto context = std::make_shared<boost::asio::io_context>();
   auto upgrader = makeUpgrader();
-  auto transport = std::make_shared<TcpTransport>(context, std::move(upgrader));
+  auto transport = std::make_shared<TcpTransport>(context, std::move(upgrader), makeGater(), makeScheduler(context));
   using libp2p::connection::RawConnection;
   auto listener = transport->createListener([&](auto &&rconn) {
     auto conn = expectConnectionValid(rconn);
@@ -148,7 +161,7 @@ TEST(TCP, SingleListenerCanAcceptManyClients) {
       auto context = std::make_shared<boost::asio::io_context>();
       auto upgrader = makeUpgrader();
       auto transport =
-          std::make_shared<TcpTransport>(context, std::move(upgrader));
+          std::make_shared<TcpTransport>(context, std::move(upgrader), makeGater(), makeScheduler(context));
       transport->dial(testutil::randomPeerId(), ma, [context](auto &&rconn) {
         auto conn = expectConnectionValid(rconn);
 
@@ -193,7 +206,7 @@ TEST(TCP, SingleListenerCanAcceptManyClients) {
 TEST(TCP, DialToNoServer) {
   auto context = std::make_shared<boost::asio::io_context>();
   auto upgrader = makeUpgrader();
-  auto transport = std::make_shared<TcpTransport>(context, std::move(upgrader));
+  auto transport = std::make_shared<TcpTransport>(context, std::move(upgrader), makeGater(), makeScheduler(context));
   auto ma = "/ip4/127.0.0.1/tcp/40003"_multiaddr;
 
   transport->dial(testutil::randomPeerId(), ma, [](auto &&rc) {
@@ -213,7 +226,7 @@ TEST(TCP, DialToNoServer) {
 TEST(TCP, ClientClosesConnection) {
   auto context = std::make_shared<boost::asio::io_context>(1);
   auto upgrader = makeUpgrader();
-  auto transport = std::make_shared<TcpTransport>(context, std::move(upgrader));
+  auto transport = std::make_shared<TcpTransport>(context, std::move(upgrader), makeGater(), makeScheduler(context));
   auto listener = transport->createListener([&](auto &&rconn) {
     auto conn = expectConnectionValid(rconn);
     EXPECT_FALSE(conn->isInitiator());
@@ -247,7 +260,7 @@ TEST(TCP, ClientClosesConnection) {
 TEST(TCP, ServerClosesConnection) {
   auto context = std::make_shared<boost::asio::io_context>(1);
   auto upgrader = makeUpgrader();
-  auto transport = std::make_shared<TcpTransport>(context, std::move(upgrader));
+  auto transport = std::make_shared<TcpTransport>(context, std::move(upgrader), makeGater(), makeScheduler(context));
   auto listener = transport->createListener([&](auto &&rconn) {
     auto conn = expectConnectionValid(rconn);
     EXPECT_FALSE(conn->isInitiator());
@@ -283,7 +296,7 @@ TEST(TCP, OneTransportServerHandlesManyClients) {
 
   auto context = std::make_shared<boost::asio::io_context>(1);
   auto upgrader = makeUpgrader();
-  auto transport = std::make_shared<TcpTransport>(context, std::move(upgrader));
+  auto transport = std::make_shared<TcpTransport>(context, std::move(upgrader), makeGater(), makeScheduler(context));
   auto listener = transport->createListener([&](auto &&rconn) {
     auto conn = expectConnectionValid(rconn);
     EXPECT_FALSE(conn->isInitiator());

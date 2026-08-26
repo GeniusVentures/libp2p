@@ -8,6 +8,8 @@ target_link_libraries(tcp_integration_test
     p2p_tcp
     p2p_testutil
     p2p_literals
+    p2p_basic_scheduler
+    p2p_asio_scheduler_backend
     )
 
 
