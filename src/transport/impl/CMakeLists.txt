@@ -25,4 +25,5 @@ libp2p_add_library(p2p_upgrader_session
 target_link_libraries(p2p_upgrader_session
     Boost::boost
     p2p_upgrader
+    p2p_connection_gater
     )
