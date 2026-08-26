@@ -192,6 +192,7 @@ namespace libp2p::network {
                   else {
                       if (auto gated = gater_->interceptAddrDial(peer_id, addr); !gated) {
                           SL_DEBUG(log_, "gater rejected addr dial to {} at {}: {}", peer_id.toBase58(), addr.getStringAddress(), gated.error().message());
+                          ctx.dialled = true;
                           ctx.result = outcome::failure(gated.error());
                           scheduler_->schedule([wp{ weak_from_this() }, peer_id] {
                               if (auto self = wp.lock()) {
@@ -227,6 +228,7 @@ namespace libp2p::network {
 
               if (auto gated = gater_->interceptAddrDial(peer_id, addr); !gated) {
                   SL_DEBUG(log_, "gater rejected addr dial to {} at {}: {}", peer_id.toBase58(), addr.getStringAddress(), gated.error().message());
+                  ctx.dialled = true;
                   ctx.result = outcome::failure(gated.error());
                   scheduler_->schedule([wp{ weak_from_this() }, peer_id] {
                       if (auto self = wp.lock()) {

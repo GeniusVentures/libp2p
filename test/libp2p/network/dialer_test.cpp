@@ -9,8 +9,10 @@
 #include <libp2p/basic/scheduler/manual_scheduler_backend.hpp>
 #include <libp2p/basic/scheduler/scheduler_impl.hpp>
 #include <libp2p/common/literals.hpp>
+#include <libp2p/network/connection_gater_error.hpp>
 #include "mock/libp2p/connection/capable_connection_mock.hpp"
 #include "mock/libp2p/connection/stream_mock.hpp"
+#include "mock/libp2p/network/connection_gater_mock.hpp"
 #include "mock/libp2p/network/connection_manager_mock.hpp"
 #include "mock/libp2p/network/listener_mock.hpp"
 #include "mock/libp2p/network/router_mock.hpp"
@@ -40,8 +42,12 @@ using ::testing::Return;
 struct DialerTest : public ::testing::Test {
   void SetUp() override {
     testutil::prepareLoggers();
+    ON_CALL(*gater, interceptPeerDial(_))
+        .WillByDefault(Return(outcome::success()));
+    ON_CALL(*gater, interceptAddrDial(_, _))
+        .WillByDefault(Return(outcome::success()));
     dialer = std::make_shared<DialerImpl>(proto_muxer, tmgr, cmgr, listener,
-                                          scheduler);
+                                          scheduler, gater);
   }
 
   std::shared_ptr<StreamMock> stream = std::make_shared<StreamMock>();
@@ -62,6 +68,9 @@ struct DialerTest : public ::testing::Test {
 
   std::shared_ptr<ListenerMock> listener = std::make_shared<ListenerMock>();
 
+  std::shared_ptr<ConnectionGaterMock> gater =
+      std::make_shared<ConnectionGaterMock>();
+
   std::shared_ptr<ManualSchedulerBackend> scheduler_backend =
       std::make_shared<ManualSchedulerBackend>();
 
@@ -75,8 +84,8 @@ struct DialerTest : public ::testing::Test {
   peer::PeerId pid = "1"_peerid;
   const StreamProtocols protocols = {"/protocol/1.0.0"};
 
-  peer::PeerInfo pinfo{.id = pid, .addresses = {ma1}};
-  peer::PeerInfo pinfo_two_addrs{.id = pid, .addresses = {ma1, ma2}};
+  peer::PeerInfo pinfo{pid, {ma1}};
+  peer::PeerInfo pinfo_two_addrs{pid, {ma1, ma2}};
 };
 
 /**
@@ -97,16 +106,16 @@ TEST_F(DialerTest, DialAllTheAddresses) {
   EXPECT_CALL(*tmgr, findBest(ma2)).WillOnce(Return(transport));
 
   // transport->dial returns an error for the first address
-  EXPECT_CALL(
-      *transport,
-      dial(pinfo_two_addrs.id, ma1, _, std::chrono::milliseconds::zero()))
+  EXPECT_CALL(*transport,
+              dial(pinfo_two_addrs.id, ma1, _,
+                   std::chrono::milliseconds::zero(), _, false, false))
       .WillOnce(
           Arg2CallbackWithArg(outcome::failure(std::errc::connection_refused)));
 
   // transport->dial returns valid connection for the second address
-  EXPECT_CALL(
-      *transport,
-      dial(pinfo_two_addrs.id, ma2, _, std::chrono::milliseconds::zero()))
+  EXPECT_CALL(*transport,
+              dial(pinfo_two_addrs.id, ma2, _,
+                   std::chrono::milliseconds::zero(), _, false, false))
       .WillOnce(Arg2CallbackWithArg(outcome::success(connection)));
 
   bool executed = false;
@@ -141,7 +150,8 @@ TEST_F(DialerTest, DialNewConnection) {
 
   // transport->dial returns valid connection
   EXPECT_CALL(*transport,
-              dial(pinfo.id, ma1, _, std::chrono::milliseconds::zero()))
+              dial(pinfo.id, ma1, _, std::chrono::milliseconds::zero(), _,
+                   false, false))
       .WillOnce(Arg2CallbackWithArg(outcome::success(connection)));
 
   bool executed = false;
@@ -323,6 +333,64 @@ TEST_F(DialerTest, NewStreamSuccess) {
   dialer->newStream(pinfo, protocols, [&](auto &&rstream) {
     EXPECT_OUTCOME_TRUE(s, rstream);
     (void)s;
+    executed = true;
+  });
+
+  while (!scheduler_backend->empty()) {
+    scheduler_backend->shift(std::chrono::milliseconds(1));
+  }
+
+  ASSERT_TRUE(executed);
+}
+
+/**
+ * @given a gater configured to reject interceptPeerDial for the target peer
+ * @when dial is executed
+ * @then the transport layer is never consulted and the callback receives
+ * GATER_REJECTED_PEER_DIAL
+ */
+TEST_F(DialerTest, DialRejectedByPeerDialGater) {
+  EXPECT_CALL(*gater, interceptPeerDial(pinfo.id))
+      .WillOnce(Return(ConnectionGaterError::GATER_REJECTED_PEER_DIAL));
+
+  EXPECT_CALL(*cmgr, getBestConnectionForPeer(pinfo.id)).Times(0);
+  EXPECT_CALL(*tmgr, findBest(_)).Times(0);
+
+  bool executed = false;
+  dialer->dial(pinfo, [&](auto &&rconn) {
+    EXPECT_OUTCOME_FALSE(e, rconn);
+    EXPECT_EQ(e.value(), (int)ConnectionGaterError::GATER_REJECTED_PEER_DIAL);
+    executed = true;
+  });
+
+  while (!scheduler_backend->empty()) {
+    scheduler_backend->shift(std::chrono::milliseconds(1));
+  }
+
+  ASSERT_TRUE(executed);
+}
+
+/**
+ * @given a gater configured to reject interceptAddrDial for the peer's only
+ * address
+ * @when dial is executed
+ * @then transport->dial is never invoked for that address and the callback
+ * eventually receives GATER_REJECTED_ADDR_DIAL once addresses are exhausted
+ */
+TEST_F(DialerTest, DialRejectedByAddrDialGater) {
+  EXPECT_CALL(*cmgr, getBestConnectionForPeer(pinfo.id))
+      .WillOnce(Return(nullptr));
+
+  EXPECT_CALL(*gater, interceptAddrDial(pinfo.id, ma1))
+      .WillOnce(Return(ConnectionGaterError::GATER_REJECTED_ADDR_DIAL));
+
+  EXPECT_CALL(*tmgr, findBest(ma1)).WillOnce(Return(transport));
+  EXPECT_CALL(*transport, dial(_, _, _, _)).Times(0);
+
+  bool executed = false;
+  dialer->dial(pinfo, [&](auto &&rconn) {
+    EXPECT_OUTCOME_FALSE(e, rconn);
+    EXPECT_EQ(e.value(), (int)ConnectionGaterError::GATER_REJECTED_ADDR_DIAL);
     executed = true;
   });
 
