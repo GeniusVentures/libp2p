@@ -9,6 +9,8 @@
 #define BOOST_ASIO_NO_DEPRECATED
 
 #include <boost/asio.hpp>
+#include <libp2p/basic/scheduler.hpp>
+#include <libp2p/network/connection_gater.hpp>
 #include <libp2p/transport/tcp/tcp_listener.hpp>
 #include <libp2p/transport/tcp/tcp_util.hpp>
 #include <libp2p/transport/transport_adaptor.hpp>
@@ -26,7 +28,9 @@ namespace libp2p::transport {
     ~TcpTransport() override = default;
 
     TcpTransport(std::shared_ptr<boost::asio::io_context> context,
-        std::shared_ptr<Upgrader> upgrader);
+        std::shared_ptr<Upgrader> upgrader,
+        std::shared_ptr<network::ConnectionGater> gater,
+        std::shared_ptr<basic::Scheduler> scheduler);
 
     void dial(const peer::PeerId &remoteId, multi::Multiaddress address,
               TransportAdaptor::HandlerFunc handler,
@@ -62,6 +66,8 @@ namespace libp2p::transport {
     void increase_open_file_limit();
     std::shared_ptr<boost::asio::io_context> context_;
     std::shared_ptr<Upgrader> upgrader_;
+    std::shared_ptr<network::ConnectionGater> gater_;
+    std::shared_ptr<basic::Scheduler> scheduler_;
 
   };  // namespace libp2p::transport
 

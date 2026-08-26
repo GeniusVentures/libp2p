@@ -68,7 +68,8 @@ namespace libp2p::transport {
             }
 
             auto session = std::make_shared<UpgraderSession>(
-                self->upgrader_, std::move(conn), handler);
+                self->upgrader_, std::move(conn), handler, self->gater_,
+                self->scheduler_);
             if (!holepunch || (holepunch && holepunchserver))
             {
                 session->secureOutbound(remoteId);
@@ -95,7 +96,8 @@ namespace libp2p::transport {
   std::shared_ptr<TransportListener> TcpTransport::createListener(
       TransportListener::HandlerFunc handler) {
     return std::make_shared<TcpListener>(*context_, upgrader_,
-                                         std::move(handler));
+                                         std::move(handler), gater_,
+                                         scheduler_);
   }
 
   bool TcpTransport::canDial(const multi::Multiaddress &ma) const {
@@ -130,14 +132,17 @@ namespace libp2p::transport {
   void TcpTransport::upgradeRelaySecure(const peer::PeerId& remoteId, std::shared_ptr<libp2p::connection::Stream> conn, TransportAdaptor::HandlerFunc handler)
   {
       auto session = std::make_shared<UpgraderSession>(
-          upgrader_, std::move(conn), handler);
+          upgrader_, std::move(conn), handler, gater_, scheduler_);
 
       session->secureOutboundRelay(remoteId);
   }
 
   TcpTransport::TcpTransport(std::shared_ptr<boost::asio::io_context> context,
-                             std::shared_ptr<Upgrader> upgrader)
-      : context_(std::move(context)), upgrader_(std::move(upgrader)) {
+                             std::shared_ptr<Upgrader> upgrader,
+                             std::shared_ptr<network::ConnectionGater> gater,
+                             std::shared_ptr<basic::Scheduler> scheduler)
+      : context_(std::move(context)), upgrader_(std::move(upgrader)),
+        gater_(std::move(gater)), scheduler_(std::move(scheduler)) {
       increase_open_file_limit();
   }
 
@@ -224,7 +229,8 @@ namespace libp2p::transport {
             }
 
             auto session = std::make_shared<UpgraderSession>(
-                self->upgrader_, std::move(conn), handler);
+                self->upgrader_, std::move(conn), handler, self->gater_,
+                self->scheduler_);
             if (!holepunch || (holepunch && holepunchserver))
             {
                 session->secureOutbound(remoteId);

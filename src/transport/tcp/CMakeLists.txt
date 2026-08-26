@@ -15,6 +15,7 @@ libp2p_add_library(p2p_tcp_listener tcp_listener.cpp)
 target_link_libraries(p2p_tcp_listener
     p2p_tcp_connection
     p2p_upgrader_session
+    p2p_connection_gater
     )
 
 libp2p_add_library(p2p_tcp tcp_transport.cpp)

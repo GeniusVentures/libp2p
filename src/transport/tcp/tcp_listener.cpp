@@ -5,7 +5,9 @@
 
 #include <libp2p/transport/tcp/tcp_listener.hpp>
 
+#include <boost/assert.hpp>
 #include <libp2p/log/logger.hpp>
+#include <libp2p/network/connection_gater_error.hpp>
 #include <libp2p/transport/impl/upgrader_session.hpp>
 
 #ifdef _WIN32
@@ -25,11 +27,16 @@ namespace libp2p::transport {
 
   TcpListener::TcpListener(boost::asio::io_context &context,
                            std::shared_ptr<Upgrader> upgrader,
-                           TransportListener::HandlerFunc handler)
+                           TransportListener::HandlerFunc handler,
+                           std::shared_ptr<network::ConnectionGater> gater,
+                           std::shared_ptr<basic::Scheduler> scheduler)
       : context_(context),
         acceptor_(context_),
         upgrader_(std::move(upgrader)),
-        handle_(std::move(handler)) {}
+        handle_(std::move(handler)),
+        gater_(std::move(gater)),
+        scheduler_(std::move(scheduler)),
+        log_(log::createLogger("TcpListener")) {}
 
   outcome::result<void> TcpListener::listen(
       const multi::Multiaddress &address) {
@@ -153,10 +160,44 @@ namespace libp2p::transport {
           auto conn =
               std::make_shared<TcpConnection>(self->context_, std::move(sock));
 
-          auto session = std::make_shared<UpgraderSession>(
-              self->upgrader_, std::move(conn), self->handle_);
+          self->scheduler_->schedule([self, conn] {
+            auto local_ma = conn->localMultiaddr();
+            auto remote_ma = conn->remoteMultiaddr();
+            if (!local_ma || !remote_ma) {
+              SL_DEBUG(self->log_,
+                       "failed to resolve local/remote multiaddr for "
+                       "accepted connection, rejecting: {}",
+                       !local_ma ? local_ma.error().message()
+                                 : remote_ma.error().message());
+              if (!conn->isClosed()) {
+                auto close_res = conn->close();
+                BOOST_ASSERT(close_res);
+              }
+              return;
+            }
 
-          session->secureInbound();
+            if (auto gated =
+                    self->gater_->interceptAccept(local_ma.value(),
+                                                  remote_ma.value());
+                !gated) {
+              SL_DEBUG(self->log_,
+                       "gater rejected accept from {} to {}: {}",
+                       remote_ma.value().getStringAddress(),
+                       local_ma.value().getStringAddress(),
+                       gated.error().message());
+              if (!conn->isClosed()) {
+                auto close_res = conn->close();
+                BOOST_ASSERT(close_res);
+              }
+              return;
+            }
+
+            auto session = std::make_shared<UpgraderSession>(
+                self->upgrader_, conn, self->handle_, self->gater_,
+                self->scheduler_);
+
+            session->secureInbound();
+          });
 
           self->doAccept();
         });
