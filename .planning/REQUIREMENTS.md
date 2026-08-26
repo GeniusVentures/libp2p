@@ -68,30 +68,30 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| GATE-01 | TBD | Pending |
-| GATE-02 | TBD | Pending |
-| GATE-03 | TBD | Pending |
-| GATE-04 | TBD | Pending |
-| GATE-05 | TBD | Pending |
-| PNET-01 | TBD | Pending |
-| PNET-02 | TBD | Pending |
-| PNET-03 | TBD | Pending |
-| PNET-04 | TBD | Pending |
-| PNET-05 | TBD | Pending |
-| BOOT-01 | TBD | Pending |
-| TEST-01 | TBD | Pending |
-| TEST-02 | TBD | Pending |
-| TEST-03 | TBD | Pending |
-| TEST-04 | TBD | Pending |
-| DOCS-01 | TBD | Pending |
-| DOCS-02 | TBD | Pending |
-| DOCS-03 | TBD | Pending |
+| GATE-01 | Phase 1 | Pending |
+| GATE-02 | Phase 1 | Pending |
+| GATE-03 | Phase 1 | Pending |
+| GATE-04 | Phase 1 | Pending |
+| GATE-05 | Phase 1 | Pending |
+| PNET-01 | Phase 2 | Pending |
+| PNET-02 | Phase 2 | Pending |
+| PNET-03 | Phase 2 | Pending |
+| PNET-04 | Phase 2 | Pending |
+| PNET-05 | Phase 2 | Pending |
+| BOOT-01 | Phase 2 | Pending |
+| TEST-01 | Phase 1 | Pending |
+| TEST-02 | Phase 2 | Pending |
+| TEST-03 | Phase 3 | Pending |
+| TEST-04 | Phase 3 | Pending |
+| DOCS-01 | Phase 3 | Pending |
+| DOCS-02 | Phase 3 | Pending |
+| DOCS-03 | Phase 3 | Pending |
 
 **Coverage:**
 - v1 requirements: 18 total
-- Mapped to phases: 0 (pending roadmap creation)
-- Unmapped: 18 ⚠️ (will be resolved by roadmapper)
+- Mapped to phases: 18 (100%)
+- Unmapped: 0 ✓
 
 ---
 *Requirements defined: 2026-08-26*
-*Last updated: 2026-08-26 after initial definition*
+*Last updated: 2026-08-26 after roadmap creation*
