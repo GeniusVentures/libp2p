@@ -398,14 +398,14 @@ From the spec [VERIFIED: `Private-Networks-PSK-V1.md` fetched this session]:
 
 ## Open Questions
 
-1. **Relay upgrade paths (`upgradeToSecureOutboundRelay` / `upgradeToSecureInboundRelay`) — wrap or pass through?**
+1. **Relay upgrade paths (`upgradeToSecureOutboundRelay` / `upgradeToSecureInboundRelay`) — wrap or pass through?** (RESOLVED — adopted by Plan 02-04, Task 1: pass through unchanged, documented as a header doc-comment limitation at the decorator; dynamic-cast/identity test coverage in `pnet_upgrader_decorator_test`)
    - What we know: they take `StrSPtr` (`Stream`), not `RawSPtr`; wrapping requires implementing the much larger `Stream` interface. Circuit-relay in a *private* network would relay between PSK-holding peers over already-PSK-wrapped relay connections.
    - What's unclear: whether GNUS deployments use circuit-relay at all inside private networks.
    - Recommendation: pass through unchanged in this phase, document the limitation at the decorator, revisit only if SuperGenius uses relay. Planner should record this as an explicit task-acceptance note (not silent scope-cut).
-2. **Does `host_injector_test`'s dependency set build on this MSVC setup?**
+2. **Does `host_injector_test`'s dependency set build on this MSVC setup?** (RESOLVED — adopted by Plan 02-04, Task 2: build-probe first; on the pre-existing soralog/MSVC block, fall back to the reduced-injector DI smoke test (`pnet_injector_test`) per Pitfall 6, with any substitution recorded in 02-04-SUMMARY.md and real-graph wiring carried to Phase 3 live validation)
    - What we know: `network_injector_test` is blocked pre-existing (soralog/MSVC 19.44); `host_injector_test` transitsively includes much of the graph.
    - Recommendation: plan's first task = build-probe the candidate test targets; if blocked, verify DI wiring via a minimal injector test linking only `p2p_pnet` + mocks (Pitfall 6).
-3. **Exact public-bootstrap peer-ID snapshot contents.**
+3. **Exact public-bootstrap peer-ID snapshot contents.** (RESOLVED — adopted by Plan 02-04, Task 3: transcribe the current set into a `constexpr` list at implementation time; dnsaddr containment is the primary guard, snapshot staleness accepted per A3)
    - What we know: it must come from the go-libp2p/ipfs public bootstrap set; IDs rotate over time.
    - Recommendation: transcribe the current set from `bootstrap.libp2p.io` dnsaddr records / ipfs docs at implementation time into a `constexpr` list next to the D-12 check; treat staleness as acceptable (A3).
 
