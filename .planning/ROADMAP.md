@@ -28,7 +28,12 @@ Decimal phases appear between their surrounding integers in numeric order.
   3. A gater configured to reject `InterceptAccept` causes `TcpListener` to close the accepted socket immediately, before any security handshake bytes are exchanged.
   4. A gater configured to reject at the secured or upgraded stage causes `UpgraderSession` to cleanly tear down the in-progress connection via the existing hardened close path (no leaked sockets/threads), and the connect/accept caller receives an explicit rejection error.
   5. Gater hook callbacks are always delivered via scheduler `post`/`dispatch` rather than invoked synchronously inline, and a custom `ConnectionGater` implementation can be registered purely through a Boost.DI binding, with no source changes required to `Dialer`, `TcpListener`, or `UpgraderSession`.
-**Plans**: TBD
+**Plans**: 4 plans
+Plans:
+- [ ] 01-01-PLAN.md — ConnectionGater interface, ConnectionGaterError enum, PermissiveConnectionGater default, DI wiring, test mock (wave 1)
+- [ ] 01-02-PLAN.md — Wire ConnectionGater into DialerImpl (peer dial, addr dial, holepunch loop) + tests (wave 2)
+- [ ] 01-03-PLAN.md — Wire ConnectionGater into UpgraderSession (secured, upgraded) + tests (wave 2)
+- [ ] 01-04-PLAN.md — Thread gater/scheduler through TcpTransport/TcpListener, gate accept, keep existing tests compiling (wave 3)
 
 ### Phase 2: Private network (pnet) PSK protector
 **Goal**: A PSK-protected private-network wrapper isolates raw connections before any protocol negotiation begins, so only peers holding the matching pre-shared key can establish a usable connection, private-network hosts fail loudly rather than silently falling back to public/plaintext operation, and private-network deployments don't leak toward the public DHT via bootstrap.
