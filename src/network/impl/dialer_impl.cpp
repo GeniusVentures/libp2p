@@ -24,7 +24,14 @@ namespace libp2p::network {
           SL_ERROR(log_, "Dialing contains no peer ID to dial");
           return;
       }
-    SL_TRACE(log_, "Dialing to {} from IPv4:{} IPv6:{} they have {} addresses", 
+      if (auto gated = gater_->interceptPeerDial(p.id); !gated) {
+          SL_DEBUG(log_, "gater rejected peer dial to {}: {}", p.id.toBase58(),
+                    gated.error().message());
+          scheduler_->schedule(
+              [cb{ std::move(cb) }, err{ gated.error() }] { cb(err); });
+          return;
+      }
+    SL_TRACE(log_, "Dialing to {} from IPv4:{} IPv6:{} they have {} addresses",
              p.id.toBase58(), 
              source_addresses.has_ipv4 ? source_addresses.ipv4_source.getStringAddress() : "none",
              source_addresses.has_ipv6 ? source_addresses.ipv6_source.getStringAddress() : "none",
@@ -176,17 +183,28 @@ namespace libp2p::network {
               auto peer_id_actual = peer::PeerId::fromBase58(addr_peer_id.value());
               if (auto tr = tmgr_->findBest(addr); nullptr != tr && peer_id_actual) {
 
-                  ctx.dialled = true;
                   SL_TRACE(log_, "Dial to {} via {}", peer_id.toBase58(), addr.getStringAddress());
                   if (auto c = cmgr_->getBestConnectionForPeer(peer_id_actual.value()); c != nullptr) {
+                      ctx.dialled = true;
                       SL_TRACE(log_, "We already have a connection to relay node {} but have not established a connection to target node {}", peer_id_actual.value().toBase58(), peer_id.toBase58());
                       upgradeDialRelay(peer_id, c);
                   }
                   else {
+                      if (auto gated = gater_->interceptAddrDial(peer_id, addr); !gated) {
+                          SL_DEBUG(log_, "gater rejected addr dial to {} at {}: {}", peer_id.toBase58(), addr.getStringAddress(), gated.error().message());
+                          ctx.result = outcome::failure(gated.error());
+                          scheduler_->schedule([wp{ weak_from_this() }, peer_id] {
+                              if (auto self = wp.lock()) {
+                                  self->rotate(peer_id);
+                              }
+                              });
+                          return;
+                      }
+                      ctx.dialled = true;
                       SL_TRACE(log_, "Dialing relay to {} using dual source addresses", addr.getStringAddress());
                       tr->dial(peer_id_actual.value(), addr, dial_handler, ctx.timeout, ctx.source_addresses, ctx.holepunch, ctx.holepunchserver);
                   }
-                  
+
               }
               else {
                   scheduler_->schedule([wp{ weak_from_this() }, peer_id] {
@@ -206,6 +224,17 @@ namespace libp2p::network {
       }
       else {
           if (auto tr = tmgr_->findBest(addr); nullptr != tr) {
+
+              if (auto gated = gater_->interceptAddrDial(peer_id, addr); !gated) {
+                  SL_DEBUG(log_, "gater rejected addr dial to {} at {}: {}", peer_id.toBase58(), addr.getStringAddress(), gated.error().message());
+                  ctx.result = outcome::failure(gated.error());
+                  scheduler_->schedule([wp{ weak_from_this() }, peer_id] {
+                      if (auto self = wp.lock()) {
+                          self->rotate(peer_id);
+                      }
+                      });
+                  return;
+              }
 
               ctx.dialled = true;
               SL_TRACE(log_, "Dial to non-relay {} using dual source addresses to outgoing address {}", peer_id.toBase58(), addr.getStringAddress());
@@ -274,9 +303,14 @@ namespace libp2p::network {
                   it = indctx.addresses.erase(it);
                   if (auto tr = tmgr_->findBest(addr); nullptr != tr) {
 
+                      if (auto gated = gater_->interceptAddrDial(peer_id, addr); !gated) {
+                          SL_DEBUG(log_, "gater rejected holepunch addr dial to {} at {}: {}", peer_id.toBase58(), addr.getStringAddress(), gated.error().message());
+                          continue;
+                      }
+
                       indctx.dialled = true;
                       SL_TRACE(log_, "Holepunch dial to {} using dual source addresses", peer_id.toBase58());
-                      
+
                       // Use dual address approach for holepunch as well
                       tr->dial(peer_id, addr, dial_handler, indctx.timeout, indctx.source_addresses);
 
@@ -457,18 +491,21 @@ namespace libp2p::network {
       std::shared_ptr<TransportManager> tmgr,
       std::shared_ptr<ConnectionManager> cmgr,
       std::shared_ptr<ListenerManager> listener,
-      std::shared_ptr<basic::Scheduler> scheduler)
+      std::shared_ptr<basic::Scheduler> scheduler,
+      std::shared_ptr<ConnectionGater> gater)
       : multiselect_(std::move(multiselect)),
         tmgr_(std::move(tmgr)),
         cmgr_(std::move(cmgr)),
         listener_(std::move(listener)),
         scheduler_(std::move(scheduler)),
+        gater_(std::move(gater)),
         log_(log::createLogger("DialerImpl")) {
     BOOST_ASSERT(multiselect_ != nullptr);
     BOOST_ASSERT(tmgr_ != nullptr);
     BOOST_ASSERT(cmgr_ != nullptr);
     BOOST_ASSERT(listener_ != nullptr);
     BOOST_ASSERT(scheduler_ != nullptr);
+    BOOST_ASSERT(gater_ != nullptr);
     BOOST_ASSERT(log_ != nullptr);
   }
 

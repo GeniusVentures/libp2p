@@ -10,6 +10,7 @@
 #include <unordered_map>
 
 #include <libp2p/basic/scheduler.hpp>
+#include <libp2p/network/connection_gater.hpp>
 #include <libp2p/network/connection_manager.hpp>
 #include <libp2p/network/dialer.hpp>
 #include <libp2p/network/listener_manager.hpp>
@@ -29,7 +30,8 @@ namespace libp2p::network {
                std::shared_ptr<TransportManager> tmgr,
                std::shared_ptr<ConnectionManager> cmgr,
                std::shared_ptr<ListenerManager> listener,
-               std::shared_ptr<basic::Scheduler> scheduler);
+               std::shared_ptr<basic::Scheduler> scheduler,
+               std::shared_ptr<ConnectionGater> gater);
 
     // Establishes a connection to a given peer
     void dial(
@@ -106,6 +108,7 @@ namespace libp2p::network {
     std::shared_ptr<ConnectionManager> cmgr_;
     std::shared_ptr<ListenerManager> listener_;
     std::shared_ptr<basic::Scheduler> scheduler_;
+    std::shared_ptr<ConnectionGater> gater_;
     log::Logger log_;
 
     // peers we are currently dialing to
