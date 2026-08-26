@@ -6,6 +6,9 @@
 #include <cstdlib>
 #include <iosfwd>
 
+#include <fmt/format.h>
+#include <fmt/ostream.h>
+
 #include <gtest/gtest.h>
 #include <boost/di/extension/scopes/shared.hpp>
 
@@ -61,6 +64,15 @@ namespace libp2p::regression {
     return os;
   }
 
+}  // namespace libp2p::regression
+
+// fmt v10 dropped implicit ostream-based formatting; give Stats::Event an
+// explicit formatter so TRACE("{}") keeps working.
+template <typename Char>
+struct fmt::formatter<libp2p::regression::Stats::Event, Char>
+    : fmt::ostream_formatter {};
+
+namespace libp2p::regression {
   class Node : public std::enable_shared_from_this<Node> {
    public:
     using Behavior = std::function<void(Node &node)>;
