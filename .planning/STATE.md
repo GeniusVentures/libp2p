@@ -5,15 +5,15 @@ milestone_name: milestone
 current_phase: 1
 current_phase_name: Connection Gater interface + wiring
 status: executing
-stopped_at: Phase 1 context gathered
-last_updated: "2026-08-26T18:52:20.684Z"
+stopped_at: Completed 01-01-PLAN.md
+last_updated: "2026-08-26T19:28:06.226Z"
 last_activity: 2026-08-26
 last_activity_desc: ROADMAP.md and STATE.md created; 18/18 v1 requirements mapped across 3 phases
 progress:
   total_phases: 3
   completed_phases: 0
-  total_plans: 0
-  completed_plans: 0
+  total_plans: 4
+  completed_plans: 1
   percent: 0
 ---
 
@@ -29,7 +29,7 @@ See: .planning/PROJECT.md (updated 2026-08-26)
 ## Current Position
 
 Phase: 1 of 3 (Connection Gater interface + wiring)
-Plan: 0 of TBD in current phase
+Plan: 1 of 4 in current phase
 Status: Ready to execute
 Last activity: 2026-08-26 — ROADMAP.md and STATE.md created; 18/18 v1 requirements mapped across 3 phases
 
@@ -55,6 +55,7 @@ Progress: [░░░░░░░░░░] 0%
 - Trend: -
 
 *Updated after each plan completion*
+| Phase 01 P01 | 35min | 3 tasks | 7 files |
 
 ## Accumulated Context
 
@@ -66,6 +67,8 @@ Recent decisions affecting current work:
 - Roadmap: Gater wiring (Phase 1) sequenced before pnet (Phase 2) — lower-risk, mechanical, establishes the reentrancy-safe (scheduler post/dispatch) callback pattern pnet reuses.
 - Roadmap: No standalone "reference policy" phase — v2 POLICY-01 (allow-list gater) stays deferred; PNET-05 (force-pnet fail-safe) and BOOT-01 (bootstrap scoping) folded into Phase 2 since they're core v1 pnet requirements, not the deferred policy implementation.
 - Roadmap: TEST-01/TEST-02 (unit tests) live in the phase that produces the corresponding code; TEST-03 (live two-node) and TEST-04 (reentrancy regression) deferred to Phase 3 given this codebase's history of concurrency/teardown bugs surfacing only under integration-level and reentrant conditions.
+- [Phase 1]: ConnectionGaterError enumerators start at =1 (RawConnection::Error convention), not PeerError's =0 style, per CLAUDE.md error-code convention
+- [Phase 1]: useConnectionGater<GaterImpl>() binds a single scalar type via boost::di::bind<...>().template to<GaterImpl>(), distinct from the array-bind pattern used by useTransportAdaptors/useSecurityAdaptors/useMuxerAdaptors, since D-05 specifies a single-implementation rebind
 
 ### Pending Todos
 
@@ -75,6 +78,7 @@ None yet.
 
 - Phase 2 will need to resolve the libsodium (via Hunter) crypto dependency for XSalsa20 early, since OpenSSL doesn't implement it — flagged by research as needing dedicated attention during planning.
 - Codebase has a documented history of concurrency bugs (races/deadlocks/reentrancy) in exactly the areas this project touches (TCP transport, Upgrader, Scheduler) — see .planning/codebase/CONCERNS.md. New gater/pnet code must defer callbacks via scheduler post/dispatch from the start, not bolt it on later.
+- Pre-existing (not caused by this plan) MSVC 19.44 / soralog header incompatibility in src/muxer/yamux/yamux_frame.cpp (soralog/util.hpp memcpy/template errors) blocks building network_injector_test and any target transitively depending on p2p_yamuxed_connection. Confirmed pre-existing via git stash test. Will affect full-build verification for Plans 01-02/01-03/01-04 until resolved.
 
 ## Deferred Items
 
@@ -86,6 +90,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-08-26T18:12:07.211Z
-Stopped at: Phase 1 context gathered
-Resume file: .planning/phases/01-connection-gater-interface-wiring/01-CONTEXT.md
+Last session: 2026-08-26T19:28:06.221Z
+Stopped at: Completed 01-01-PLAN.md
+Resume file: None

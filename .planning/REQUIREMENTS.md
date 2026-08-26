@@ -9,10 +9,10 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Connection Gater
 
-- [ ] **GATE-01**: Library exposes a `ConnectionGater` interface with 5 intercept hooks: peer dial, address dial, accept, secured, upgraded
-- [ ] **GATE-02**: Default (unconfigured) behavior is fully permissive — existing hosts behave identically to today when no gater is set
+- [x] **GATE-01**: Library exposes a `ConnectionGater` interface with 5 intercept hooks: peer dial, address dial, accept, secured, upgraded
+- [x] **GATE-02**: Default (unconfigured) behavior is fully permissive — existing hosts behave identically to today when no gater is set
 - [ ] **GATE-03**: Gater hooks are wired into the actual dial, accept, and upgrade code paths (`Dialer`, `TcpListener`/`ListenerManager`, `Upgrader`/`UpgraderSession`) so a configured gater can reject a connection at each of the 5 stages
-- [ ] **GATE-04**: Integrators can bind a custom `ConnectionGater` implementation via the existing Boost.DI injector pattern
+- [x] **GATE-04**: Integrators can bind a custom `ConnectionGater` implementation via the existing Boost.DI injector pattern
 - [ ] **GATE-05**: A gater rejection at any stage cleanly tears down the in-progress connection (socket closed, no leaked fds/threads) using the existing hardened connection-close paths
 
 ### Private Networks (pnet)
@@ -68,10 +68,10 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| GATE-01 | Phase 1 | Pending |
-| GATE-02 | Phase 1 | Pending |
+| GATE-01 | Phase 1 | Complete |
+| GATE-02 | Phase 1 | Complete |
 | GATE-03 | Phase 1 | Pending |
-| GATE-04 | Phase 1 | Pending |
+| GATE-04 | Phase 1 | Complete |
 | GATE-05 | Phase 1 | Pending |
 | PNET-01 | Phase 2 | Pending |
 | PNET-02 | Phase 2 | Pending |
@@ -88,6 +88,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | DOCS-03 | Phase 3 | Pending |
 
 **Coverage:**
+
 - v1 requirements: 18 total
 - Mapped to phases: 18 (100%)
 - Unmapped: 0 ✓
