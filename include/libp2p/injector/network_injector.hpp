@@ -24,8 +24,10 @@
 #include <libp2p/muxer/yamux.hpp>
 #include <libp2p/basic/scheduler/asio_scheduler_backend.hpp>
 #include <libp2p/basic/scheduler/scheduler_impl.hpp>
+#include <libp2p/network/connection_gater.hpp>
 #include <libp2p/network/impl/connection_manager_impl.hpp>
 #include <libp2p/network/impl/dialer_impl.hpp>
+#include <libp2p/network/impl/permissive_connection_gater.hpp>
 #include <libp2p/network/impl/dnsaddr_resolver_impl.hpp>
 #include <libp2p/network/impl/listener_manager_impl.hpp>
 #include <libp2p/network/impl/network_impl.hpp>
@@ -92,7 +94,8 @@
  * auto injector = makeNetworkInjector(
  *   useTransportAdaptors<NewTransport>(),
  *   useMuxerAdaptors<NewMuxer>(),
- *   useSecurityAdaptors<NewSecurity>()
+ *   useSecurityAdaptors<NewSecurity>(),
+ *   useConnectionGater<MyCustomGater>()
  * );
  *
  * std::shared_ptr<Network> network = injector.create<std::shared_ptr<Network>>();
@@ -230,6 +233,26 @@ namespace libp2p::injector {
   }
 
   /**
+   * @brief Instruct injector to use this ConnectionGater implementation
+   * instead of the default PermissiveConnectionGater. Can be used once.
+   * @tparam GaterImpl the ConnectionGater implementation to be used
+   * @return injector binding
+   *
+   * @code
+   * struct MyGaterImpl : public ConnectionGater {...};
+   *
+   * auto injector = makeNetworkInjector(
+   *   useConnectionGater<MyGaterImpl>()
+   * );
+   * @endcode
+   */
+  template <typename GaterImpl>
+  inline auto useConnectionGater() {
+    return boost::di::bind<network::ConnectionGater>()
+        .template to<GaterImpl>()[boost::di::override];
+  }
+
+  /**
    * @brief Main function that creates Network Injector.
    * @tparam Ts types of injector bindings
    * @param args injector bindings that override default bindings.
@@ -286,6 +309,7 @@ namespace libp2p::injector {
         di::bind<network::ConnectionManager>().TEMPLATE_TO<network::ConnectionManagerImpl>(),
         di::bind<network::ListenerManager>().TEMPLATE_TO<network::ListenerManagerImpl>(),
         di::bind<network::Dialer>().TEMPLATE_TO<network::DialerImpl>(),
+        di::bind<network::ConnectionGater>().TEMPLATE_TO<network::PermissiveConnectionGater>(),
         di::bind<network::Network>().TEMPLATE_TO<network::NetworkImpl>(),
         di::bind<network::TransportManager>().TEMPLATE_TO<network::TransportManagerImpl>(),
         di::bind<transport::Upgrader>().TEMPLATE_TO<transport::UpgraderImpl>(),
