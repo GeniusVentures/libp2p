@@ -60,7 +60,20 @@ Plans:
   4. Configuring private-network mode without a valid 256-bit PSK causes host construction to fail explicitly (an error is raised), rather than silently continuing in public/plaintext mode.
   5. In a private-network deployment, Kademlia bootstrap is scoped to the configured private-network seed peers and does not attempt to dial the default public go-libp2p bootstrap addresses.
 
-**Plans**: TBD
+**Plans**: 4 plans
+Plans:
+**Wave 1** *(parallel — file-disjoint)*
+
+- [ ] 02-01-PLAN.md — Vendored XSalsa20 primitive + KAT vector tests (D-01–D-04)
+- [ ] 02-02-PLAN.md — Psk value type + PnetError + parse-matrix tests (D-05/D-06)
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
+- [ ] 02-03-PLAN.md — PnetProtectedConnection (raw-connection PSK wrap) + round-trip/wire-leak tests
+
+**Wave 3** *(blocked on Wave 2 completion)*
+
+- [ ] 02-04-PLAN.md — PnetUpgraderDecorator + usePrivateNetwork DI module + DialerImpl bootstrap-refusal
 
 ### Phase 3: Hardening, live validation & documentation
 
@@ -85,5 +98,5 @@ Phases execute in numeric order: 1 → 2 → 3
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Connection Gater interface + wiring | 4/4 | Complete   | 2026-08-26 |
-| 2. Private network (pnet) PSK protector | 0/TBD | Not started | - |
+| 2. Private network (pnet) PSK protector | 0/4 | Not started | - |
 | 3. Hardening, live validation & documentation | 0/TBD | Not started | - |
