@@ -7,6 +7,16 @@ if (TESTING)
   # https://docs.hunter.sh/en/latest/packages/pkg/GTest.html
   hunter_add_package(GTest)
   find_package(GTest CONFIG REQUIRED)
+  # Hunter's GTest package exports a GTest::main target; a vanilla/upstream GTest CMake
+  # config (as consumed when HUNTER_ENABLED=OFF and GTest is supplied via GTest_DIR) only
+  # exports GTest::gtest_main. Bridge the naming gap so cmake/functions.cmake's addtest()
+  # links unchanged under either provider.
+  if (NOT TARGET GTest::main AND TARGET GTest::gtest_main)
+    add_library(GTest::main ALIAS GTest::gtest_main)
+  endif()
+  if (NOT TARGET GMock::main AND TARGET GTest::gmock_main)
+    add_library(GMock::main ALIAS GTest::gmock_main)
+  endif()
 endif()
 
 # https://docs.hunter.sh/en/latest/packages/pkg/Boost.html
