@@ -13,7 +13,7 @@ This milestone adds two complementary, network-layer access-control primitives t
 
 Decimal phases appear between their surrounding integers in numeric order.
 
-- [ ] **Phase 1: Connection Gater interface + wiring** - Pluggable 5-stage accept/reject hooks wired into Dialer, TcpListener, and UpgraderSession, defaulting to fully permissive behavior
+- [x] **Phase 1: Connection Gater interface + wiring** - Pluggable 5-stage accept/reject hooks wired into Dialer, TcpListener, and UpgraderSession, defaulting to fully permissive behavior (completed 2026-08-26)
 - [ ] **Phase 2: Private network (pnet) PSK protector** - XSalsa20 PSK wrapper applied to raw connections before security negotiation, DI-configured, with a force-pnet fail-safe and private-network-scoped Kademlia bootstrap
 - [ ] **Phase 3: Hardening, live validation & documentation** - Live two-node PSK test, reentrant-callback regression test, and integrator documentation for both layers
 
@@ -32,7 +32,7 @@ Decimal phases appear between their surrounding integers in numeric order.
   4. A gater configured to reject at the secured or upgraded stage causes `UpgraderSession` to cleanly tear down the in-progress connection via the existing hardened close path (no leaked sockets/threads), and the connect/accept caller receives an explicit rejection error.
   5. Gater hook callbacks are always delivered via scheduler `post`/`dispatch` rather than invoked synchronously inline, and a custom `ConnectionGater` implementation can be registered purely through a Boost.DI binding, with no source changes required to `Dialer`, `TcpListener`, or `UpgraderSession`.
 
-**Plans**: 3/4 plans executed
+**Plans**: 4/4 plans complete
 Plans:
 **Wave 1**
 
@@ -45,7 +45,7 @@ Plans:
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
-- [ ] 01-04-PLAN.md — Thread gater/scheduler through TcpTransport/TcpListener, gate accept, keep existing tests compiling (wave 3)
+- [x] 01-04-PLAN.md — Thread gater/scheduler through TcpTransport/TcpListener, gate accept, keep existing tests compiling (wave 3)
 
 ### Phase 2: Private network (pnet) PSK protector
 
@@ -84,6 +84,6 @@ Phases execute in numeric order: 1 → 2 → 3
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Connection Gater interface + wiring | 3/4 | In Progress|  |
+| 1. Connection Gater interface + wiring | 4/4 | Complete   | 2026-08-26 |
 | 2. Private network (pnet) PSK protector | 0/TBD | Not started | - |
 | 3. Hardening, live validation & documentation | 0/TBD | Not started | - |
