@@ -2,18 +2,18 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-current_phase: 1
-current_phase_name: Connection Gater interface + wiring
+current_phase: 01
+current_phase_name: connection-gater-interface-wiring
 status: executing
 stopped_at: Completed 01-01-PLAN.md
-last_updated: "2026-08-26T19:28:06.226Z"
+last_updated: "2026-08-26T20:24:52.711Z"
 last_activity: 2026-08-26
-last_activity_desc: ROADMAP.md and STATE.md created; 18/18 v1 requirements mapped across 3 phases
+last_activity_desc: Phase 01 execution started
 progress:
   total_phases: 3
   completed_phases: 0
   total_plans: 4
-  completed_plans: 1
+  completed_plans: 2
   percent: 0
 ---
 
@@ -24,14 +24,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-08-26)
 
 **Core value:** A node without the correct network credentials (matching PSK, or passing gater policy) must be unable to join or communicate on a private SuperGenius network — access control is enforced at the network layer, not left to the application layer.
-**Current focus:** Phase 1 — Connection Gater interface + wiring
+**Current focus:** Phase 01 — connection-gater-interface-wiring
 
 ## Current Position
 
-Phase: 1 of 3 (Connection Gater interface + wiring)
-Plan: 1 of 4 in current phase
+Phase: 01 (connection-gater-interface-wiring) — EXECUTING
+Plan: 2 of 4
 Status: Ready to execute
-Last activity: 2026-08-26 — ROADMAP.md and STATE.md created; 18/18 v1 requirements mapped across 3 phases
+Last activity: 2026-08-26 — Phase 01 execution started
 
 Progress: [░░░░░░░░░░] 0%
 
@@ -56,6 +56,7 @@ Progress: [░░░░░░░░░░] 0%
 
 *Updated after each plan completion*
 | Phase 01 P01 | 35min | 3 tasks | 7 files |
+| Phase 01 P02 | 55min | 2 tasks | 6 files |
 
 ## Accumulated Context
 
@@ -69,6 +70,8 @@ Recent decisions affecting current work:
 - Roadmap: TEST-01/TEST-02 (unit tests) live in the phase that produces the corresponding code; TEST-03 (live two-node) and TEST-04 (reentrancy regression) deferred to Phase 3 given this codebase's history of concurrency/teardown bugs surfacing only under integration-level and reentrant conditions.
 - [Phase 1]: ConnectionGaterError enumerators start at =1 (RawConnection::Error convention), not PeerError's =0 style, per CLAUDE.md error-code convention
 - [Phase 1]: useConnectionGater<GaterImpl>() binds a single scalar type via boost::di::bind<...>().template to<GaterImpl>(), distinct from the array-bind pattern used by useTransportAdaptors/useSecurityAdaptors/useMuxerAdaptors, since D-05 specifies a single-implementation rebind
+- [Phase 1]: ctx.dialled is set true (not left false) on interceptAddrDial rejection in both rotate() branches, required for completeDial() to surface GATER_REJECTED_ADDR_DIAL instead of the generic address_family_not_supported fallback
+- [Phase 1]: rotateHolepunch()'s rejected-address path uses continue without touching indctx.dialled, matching the existing no-transport-found idiom since there is no per-holepunch result-propagation field (pre-existing tracking gap, out of scope)
 
 ### Pending Todos
 
@@ -90,6 +93,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-08-26T19:28:06.221Z
+Last session: 2026-08-26T20:23:37.919Z
 Stopped at: Completed 01-01-PLAN.md
 Resume file: None

@@ -11,7 +11,7 @@ Requirements for initial release. Each maps to roadmap phases.
 
 - [x] **GATE-01**: Library exposes a `ConnectionGater` interface with 5 intercept hooks: peer dial, address dial, accept, secured, upgraded
 - [x] **GATE-02**: Default (unconfigured) behavior is fully permissive — existing hosts behave identically to today when no gater is set
-- [ ] **GATE-03**: Gater hooks are wired into the actual dial, accept, and upgrade code paths (`Dialer`, `TcpListener`/`ListenerManager`, `Upgrader`/`UpgraderSession`) so a configured gater can reject a connection at each of the 5 stages
+- [x] **GATE-03**: Gater hooks are wired into the actual dial, accept, and upgrade code paths (`Dialer`, `TcpListener`/`ListenerManager`, `Upgrader`/`UpgraderSession`) so a configured gater can reject a connection at each of the 5 stages
 - [x] **GATE-04**: Integrators can bind a custom `ConnectionGater` implementation via the existing Boost.DI injector pattern
 - [ ] **GATE-05**: A gater rejection at any stage cleanly tears down the in-progress connection (socket closed, no leaked fds/threads) using the existing hardened connection-close paths
 
@@ -29,7 +29,7 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Testing
 
-- [ ] **TEST-01**: Unit tests validate accept and reject behavior at each of the 5 gater hooks
+- [x] **TEST-01**: Unit tests validate accept and reject behavior at each of the 5 gater hooks
 - [ ] **TEST-02**: Unit tests validate PSK accept/reject behavior at the pnet boundary
 - [ ] **TEST-03**: A live two-node test confirms peers sharing a PSK connect successfully, and a peer with a missing/mismatched PSK is rejected
 - [ ] **TEST-04**: New gater/pnet code delivers callbacks via the scheduler (`post`/`dispatch`) rather than invoking inline, with a regression test guarding against reentrant invocation
@@ -70,7 +70,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 |-------------|-------|--------|
 | GATE-01 | Phase 1 | Complete |
 | GATE-02 | Phase 1 | Complete |
-| GATE-03 | Phase 1 | Pending |
+| GATE-03 | Phase 1 | Complete |
 | GATE-04 | Phase 1 | Complete |
 | GATE-05 | Phase 1 | Pending |
 | PNET-01 | Phase 2 | Pending |
@@ -79,7 +79,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | PNET-04 | Phase 2 | Pending |
 | PNET-05 | Phase 2 | Pending |
 | BOOT-01 | Phase 2 | Pending |
-| TEST-01 | Phase 1 | Pending |
+| TEST-01 | Phase 1 | Complete |
 | TEST-02 | Phase 2 | Pending |
 | TEST-03 | Phase 3 | Pending |
 | TEST-04 | Phase 3 | Pending |
