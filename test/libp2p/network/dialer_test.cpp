@@ -10,6 +10,8 @@
 #include <libp2p/basic/scheduler/scheduler_impl.hpp>
 #include <libp2p/common/literals.hpp>
 #include <libp2p/network/connection_gater_error.hpp>
+#include <libp2p/security/pnet/pnet_error.hpp>
+#include <libp2p/security/pnet/psk.hpp>
 #include "mock/libp2p/connection/capable_connection_mock.hpp"
 #include "mock/libp2p/connection/stream_mock.hpp"
 #include "mock/libp2p/network/connection_gater_mock.hpp"
@@ -86,6 +88,32 @@ struct DialerTest : public ::testing::Test {
 
   peer::PeerInfo pinfo{pid, {ma1}};
   peer::PeerInfo pinfo_two_addrs{pid, {ma1, ma2}};
+
+  // static fixture PSK for the private-network refusal cases (01..1f)
+  static std::shared_ptr<const security::pnet::Psk> testPsk() {
+    static const std::vector<uint8_t> bytes = {
+        0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07,
+        0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f,
+        0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17,
+        0x18, 0x19, 0x1a, 0x1b, 0x1c, 0x1d, 0x1e, 0x1f};
+    auto res = security::pnet::Psk::fromRawBytes(bytes);
+    assert(res);
+    return std::shared_ptr<const security::pnet::Psk>(
+        new security::pnet::Psk(std::move(res.value())));
+  }
+
+  /// builds a dialer WITH a psk configured (private-network mode);
+  /// typed as the Dialer base so convenience dial() overloads resolve
+  std::shared_ptr<Dialer> makePskDialer() {
+    return std::make_shared<DialerImpl>(proto_muxer, tmgr, cmgr, listener,
+                                        scheduler, gater, testPsk());
+  }
+
+  void drainScheduler() {
+    while (!scheduler_backend->empty()) {
+      scheduler_backend->shift(std::chrono::milliseconds(1));
+    }
+  }
 };
 
 /**
@@ -398,5 +426,119 @@ TEST_F(DialerTest, DialRejectedByAddrDialGater) {
     scheduler_backend->shift(std::chrono::milliseconds(1));
   }
 
+  ASSERT_TRUE(executed);
+}
+
+/**
+ * @given a private-network dialer (PSK configured)
+ * @when dialing a peer whose address is /dnsaddr/bootstrap.libp2p.io
+ * @then the callback receives PNET_PUBLIC_BOOTSTRAP_REFUSED after the
+ *        scheduler drains and the transport is NEVER dialed (BOOT-01)
+ */
+TEST_F(DialerTest, PskRefusesBootstrapAddressDial) {
+  auto psk_dialer = makePskDialer();
+
+  multi::Multiaddress bootstrap_ma = "/dnsaddr/bootstrap.libp2p.io"_multiaddr;
+  peer::PeerInfo bootstrap_peer{pid, {bootstrap_ma}};
+
+  // transport must NEVER be dialed for a refused bootstrap target
+  EXPECT_CALL(*transport, dial(_, _, _, _)).Times(0);
+
+  bool executed = false;
+  psk_dialer->dial(bootstrap_peer, [&](auto &&rconn) {
+    EXPECT_OUTCOME_FALSE(e, rconn);
+    EXPECT_EQ(e.value(),
+              (int)security::pnet::PnetError::PNET_PUBLIC_BOOTSTRAP_REFUSED);
+    executed = true;
+  });
+
+  drainScheduler();
+  ASSERT_TRUE(executed);
+}
+
+/**
+ * @given a private-network dialer (PSK configured)
+ * @when dialing a peer whose ID is in the bootstrap peer-ID snapshot
+ * @then the dial is refused with PNET_PUBLIC_BOOTSTRAP_REFUSED even though
+ *        its address is an ordinary one (advisory snapshot guard)
+ */
+TEST_F(DialerTest, PskRefusesBootstrapPeerIdDial) {
+  auto psk_dialer = makePskDialer();
+
+  // from the transcribed live dnsaddr snapshot (QmbLHAnMoJPWSCR5...)
+  auto bootstrap_pid_res = peer::PeerId::fromBase58(
+      "QmbLHAnMoJPWSCR5Zhtx6BHJX9KiKNN6tpvbUcqanj75Nb");
+  ASSERT_TRUE(bootstrap_pid_res);
+  peer::PeerInfo snapshot_peer{bootstrap_pid_res.value(), {ma1}};
+
+  EXPECT_CALL(*transport, dial(_, _, _, _)).Times(0);
+
+  bool executed = false;
+  psk_dialer->dial(snapshot_peer, [&](auto &&rconn) {
+    EXPECT_OUTCOME_FALSE(e, rconn);
+    EXPECT_EQ(e.value(),
+              (int)security::pnet::PnetError::PNET_PUBLIC_BOOTSTRAP_REFUSED);
+    executed = true;
+  });
+
+  drainScheduler();
+  ASSERT_TRUE(executed);
+}
+
+/**
+ * @given a private-network dialer (PSK configured)
+ * @when dialing an ordinary private peer
+ * @then the dial proceeds exactly as in public mode (address resolution and
+ *        transport dial still happen)
+ */
+TEST_F(DialerTest, PskAllowsOrdinaryPeerDial) {
+  auto psk_dialer = makePskDialer();
+
+  EXPECT_CALL(*cmgr, getBestConnectionForPeer(pinfo.id))
+      .WillOnce(Return(nullptr));
+  EXPECT_CALL(*listener, onConnection(_)).Times(1);
+  EXPECT_CALL(*tmgr, findBest(ma1)).WillOnce(Return(transport));
+  EXPECT_CALL(*transport,
+              dial(pinfo.id, ma1, _,
+                   std::chrono::milliseconds::zero(), _, false, false))
+      .WillOnce(Arg2CallbackWithArg(outcome::success(connection)));
+
+  bool executed = false;
+  psk_dialer->dial(pinfo, [&](auto &&rconn) {
+    EXPECT_OUTCOME_TRUE(conn, rconn);
+    (void)conn;
+    executed = true;
+  });
+
+  drainScheduler();
+  ASSERT_TRUE(executed);
+}
+
+/**
+ * @given a PUBLIC-mode dialer (no PSK)
+ * @when dialing the bootstrap address
+ * @then the dial proceeds as today — transport is dialed (D-08: absence of
+ *        a PSK leaves public behavior untouched)
+ */
+TEST_F(DialerTest, NoPskAllowsBootstrapDial) {
+  multi::Multiaddress bootstrap_ma = "/dnsaddr/bootstrap.libp2p.io"_multiaddr;
+  peer::PeerInfo bootstrap_peer{pid, {bootstrap_ma}};
+
+  EXPECT_CALL(*cmgr, getBestConnectionForPeer(pid)).WillOnce(Return(nullptr));
+  EXPECT_CALL(*listener, onConnection(_)).Times(1);
+  EXPECT_CALL(*tmgr, findBest(bootstrap_ma)).WillOnce(Return(transport));
+  EXPECT_CALL(*transport,
+              dial(pid, bootstrap_ma, _,
+                   std::chrono::milliseconds::zero(), _, false, false))
+      .WillOnce(Arg2CallbackWithArg(outcome::success(connection)));
+
+  bool executed = false;
+  dialer->dial(bootstrap_peer, [&](auto &&rconn) {
+    EXPECT_OUTCOME_TRUE(conn, rconn);
+    (void)conn;
+    executed = true;
+  });
+
+  drainScheduler();
   ASSERT_TRUE(executed);
 }
