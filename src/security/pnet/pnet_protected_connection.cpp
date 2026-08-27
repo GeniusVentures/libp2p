@@ -55,8 +55,13 @@ namespace libp2p::security::pnet {
     auto nonce_buf = std::make_shared<std::vector<uint8_t>>(
         nonce_res.value().begin(), nonce_res.value().end());
     auto self = shared_from_this();
+    // NB: build the span view in its OWN statement before the call —
+    // argument evaluation order (view vs lambda-construction moves) is
+    // indeterminate; the statement boundary sequences the view first and the
+    // lambda capture keeps nonce_buf alive for the async lifetime
+    const gsl::span<const uint8_t> nonce_view(*nonce_buf);
     inner_->writeSome(
-        *nonce_buf, nonce_buf->size(),
+        nonce_view, nonce_view.size(),
         [self, nonce_buf{std::move(nonce_buf)}, payload{std::move(payload)},
          cb{std::move(cb)}](outcome::result<size_t> r) mutable {
           if (!r) {
@@ -80,6 +85,8 @@ namespace libp2p::security::pnet {
       write_stream_->crypt(*payload);
     }
     auto self = shared_from_this();
+    // statement boundary: sequence the remainder view before any lambda
+    // capture moves (same indeterminate-evaluation-order hazard as above)
     const auto remainder = gsl::span<const uint8_t>(*payload).subspan(offset);
     inner_->writeSome(
         remainder, remainder.size(),

@@ -9,3 +9,13 @@ addtest(psk_test
 target_link_libraries(psk_test
     p2p_pnet
     )
+
+addtest(pnet_protected_connection_test
+    pnet_protected_connection_test.cpp
+    )
+target_link_libraries(pnet_protected_connection_test
+    p2p_pnet
+    p2p_crypto_xsalsa20
+    p2p_manual_scheduler_backend
+    p2p_testutil
+    )
