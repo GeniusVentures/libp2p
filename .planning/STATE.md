@@ -2,19 +2,19 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-current_phase: 02
+current_phase: 03
+current_phase_name: hardening-live-validation-documentation
 status: executing
-stopped_at: Phase 3 context gathered
-last_updated: "2026-08-27T02:18:20.703Z"
+stopped_at: Completed 03-01-PLAN.md
+last_updated: "2026-08-27T03:01:03.424Z"
 last_activity: 2026-08-27
-last_activity_desc: Phase 02 marked complete
+last_activity_desc: Phase 03 execution started
 progress:
   total_phases: 3
   completed_phases: 2
-  total_plans: 8
-  completed_plans: 8
+  total_plans: 11
+  completed_plans: 9
   percent: 67
-current_phase_name: private-network-pnet-psk-protector
 ---
 
 # Project State
@@ -24,14 +24,14 @@ current_phase_name: private-network-pnet-psk-protector
 See: .planning/PROJECT.md (updated 2026-08-26)
 
 **Core value:** A node without the correct network credentials (matching PSK, or passing gater policy) must be unable to join or communicate on a private SuperGenius network — access control is enforced at the network layer, not left to the application layer.
-**Current focus:** Phase 02 — private-network-pnet-psk-protector
+**Current focus:** Phase 03 — hardening-live-validation-documentation
 
 ## Current Position
 
-Phase: 02 — COMPLETE
-Plan: 1 of 4
+Phase: 03 (hardening-live-validation-documentation) — EXECUTING
+Plan: 2 of 3
 Status: Ready to execute
-Last activity: 2026-08-27 — Phase 02 marked complete
+Last activity: 2026-08-27 — Phase 03 execution started
 
 Progress: [░░░░░░░░░░] 0%
 
@@ -59,6 +59,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 01 P02 | 55min | 2 tasks | 6 files |
 | Phase 01 P03 | 40min | 2 tasks | 9 files |
 | Phase 01 P04 | 70min | 3 tasks | 9 files |
+| Phase 03 P01 | 40min | 2 tasks | 11 files |
 
 ## Accumulated Context
 
@@ -79,6 +80,11 @@ Recent decisions affecting current work:
 - [Phase ?]: [Phase 1]: TcpListener's doAccept() defers the interceptAccept decision itself via scheduler_->schedule(...), calling self->doAccept() synchronously right after so the accept loop never stalls on one pending gater decision
 - [Phase ?]: [Phase 1]: local/remoteMultiaddr() resolution failure on an accepted connection is treated identically to a gater rejection (guarded close, no UpgraderSession/handle_ call)
 - [Phase ?]: [Phase 1]: 6 pre-existing TransportAdaptor::dial() call sites (5 in tcp_integration_test.cpp, 1 in muxer.cpp) calling dial() with only 3 args are deferred, not fixed, per scope-boundary rule; confirmed via git history to predate Phase 01 entirely and unrelated to gater wiring; logged to deferred-items.md
+- [Phase ?]: PskHandle indirection extended to DialerImpl (matching PnetUpgraderDecorator) with an explicit baseline binding in makeNetworkInjector -- fixes a Boost.DI/MSVC link trap and closes the BOOT-01 DI-wiring gap
+- [Phase ?]: TcpTransport's unconditional loopback-dial rejection removed -- contradicted the project's own TCP-loopback test convention
+- [Phase ?]: RouteHelper now falls back to a node's own loopback listener for source-address selection when no specific/unspecified address exists
+- [Phase ?]: PnetProtectedConnection write-success now reported via deferReadCallback(outcome::success(written), cb), not deferWriteCallback({}, cb), which always wraps its argument as a failure
+- [Phase ?]: Boost.DI aliases structurally-identical makeHostInjector(...) call sites to the same Host/io_context instance -- test nodes bind a distinct marker type per construction site; flagged as an investigation item for future multi-Host-in-process usage
 
 ### Pending Todos
 
@@ -91,6 +97,7 @@ None yet.
 - Pre-existing (not caused by this plan) MSVC 19.44 / soralog header incompatibility in src/muxer/yamux/yamux_frame.cpp (soralog/util.hpp memcpy/template errors) blocks building network_injector_test and any target transitively depending on p2p_yamuxed_connection. Confirmed pre-existing via git stash test. Will affect full-build verification for Plans 01-02/01-03/01-04 until resolved.
 - Plan verification commands using 'ctest -R <GTestSuiteName>' (e.g. UpgraderSessionTest) don't match — CTest registers tests under their CMake target name (e.g. upgrader_session_test), not the GTest suite name. Use the CMake target name (or -C Debug on this multi-config MSVC build) when writing future plans' ctest verify commands.
 - Pre-existing (not caused by Phase 1): on native Windows/MSVC builds, TcpListenerTest's ListenCloseListen/DoubleClose assert ec.value() == std::errc::operation_canceled (105) but boost::asio's cancellation surfaces as system_category 995 (ERROR_OPERATION_ABORTED); confirmed unmodified since before Phase 01 and unrelated to gater wiring
+- Boost.DI instance-aliasing: multiple makeHostInjector(...) calls with identical static call signatures return aliased Host/io_context instances within one process -- confirmed empirically, workaround applied at test level only, no production fix yet (see 03-01-SUMMARY.md Threat Flags)
 
 ## Deferred Items
 
@@ -102,6 +109,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-08-27T01:45:57.073Z
-Stopped at: Phase 3 context gathered
-Resume file: .planning/phases/03-hardening-live-validation-documentation/03-CONTEXT.md
+Last session: 2026-08-27T03:01:03.419Z
+Stopped at: Completed 03-01-PLAN.md
+Resume file: None

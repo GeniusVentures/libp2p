@@ -88,11 +88,11 @@ Plans:
   4. Integrator documentation walks through a complete, working example of registering a custom `ConnectionGater` implementation via DI.
   5. Documentation explicitly explains that pnet (proves network membership) and the gater (proves peer-level authorization) are complementary, non-redundant layers, illustrated with a worked "valid PSK, gater-denied peer" example.
 
-**Plans**: 3 plans
+**Plans**: 1/3 plans executed
 Plans:
 **Wave 1** *(parallel — file-disjoint)*
 
-- [ ] 03-01-PLAN.md — Live two-node PSK acceptance test: matched-PSK connects, mismatched-PSK never establishes a usable stream (TEST-03)
+- [x] 03-01-PLAN.md — Live two-node PSK acceptance test: matched-PSK connects, mismatched-PSK never establishes a usable stream (TEST-03)
 - [ ] 03-02-PLAN.md — Reentrancy regression tests extending dialer_test/tcp_listener_test/upgrader_session_test/pnet_protected_connection_test (TEST-04)
 - [ ] 03-03-PLAN.md — Three example directories: PSK config, custom gater, and combined complementary-layers demo (DOCS-01, DOCS-02, DOCS-03)
 
@@ -105,4 +105,4 @@ Phases execute in numeric order: 1 → 2 → 3
 |-------|----------------|--------|-----------|
 | 1. Connection Gater interface + wiring | 4/4 | Complete   | 2026-08-26 |
 | 2. Private network (pnet) PSK protector | 0/4 | Not started | - |
-| 3. Hardening, live validation & documentation | 0/TBD | Not started | - |
+| 3. Hardening, live validation & documentation | 1/3 | In Progress|  |
