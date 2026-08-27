@@ -185,6 +185,27 @@ namespace {
     }
     return v;
   }
+
+  /// Re-entry guard scaffolding (verbatim per 03-PATTERNS.md's "Re-entry
+  /// guard scaffolding" section, same struct used in dialer_test.cpp and
+  /// upgrader_session_test.cpp) -- proves a deferred callback never fires
+  /// while still inside the call stack that scheduled it
+  /// (TEST-04/D-05..D-07). EXPECT_FALSE (not ASSERT_FALSE) is used in the
+  /// constructor: gtest's fatal-assert macros expand to `return <value>;`,
+  /// which does not compile inside a constructor (MSVC C2534).
+  struct ReentrancyGuard {
+    bool inside = false;
+    struct Scope {
+      ReentrancyGuard &g;
+      explicit Scope(ReentrancyGuard &g) : g(g) {
+        EXPECT_FALSE(g.inside);
+        g.inside = true;
+      }
+      ~Scope() {
+        g.inside = false;
+      }
+    };
+  };
 }  // namespace
 
 /**
@@ -434,4 +455,89 @@ TEST(PnetProtectedConnectionTest, NonceReadFailurePath) {
   ASSERT_TRUE(fired);
   ASSERT_FALSE(result.value());
   ASSERT_EQ(result.value().error(), PnetError::PNET_NONCE_READ_FAILED);
+}
+
+/**
+ * @given a PnetProtectedConnection whose inner PipeEnd completes writes
+ * synchronously, inline
+ * @when a write is issued
+ * @then the caller's callback is proven never to fire while still inside
+ * write()'s own call stack -- it only fires after the scheduler backend is
+ * explicitly drained (reentrancy regression, TEST-04/D-05..D-07). Targets
+ * deferWriteCallback's unconditional scheduler_->schedule(...) call.
+ * PipeEnd::writeSome already completes its inner callback synchronously
+ * inline (`cb(n);`) -- this is already the D-06 synchronous-completion
+ * technique, no new mock needed.
+ */
+TEST(PnetProtectedConnectionTest, WriteCompletionNeverReentersSynchronously) {
+  Fixture fx;
+  auto end_a = std::make_shared<PipeEnd>(true);
+  auto end_b = std::make_shared<PipeEnd>(false);
+  end_a->setPeer(end_b.get());
+  end_b->setPeer(end_a.get());
+
+  auto prot_a = std::make_shared<PnetProtectedConnection>(
+      end_a, makePsk(kPskABytes), fx.scheduler);
+
+  ReentrancyGuard guard;
+  bool fired_reentrant = false;
+  bool fired = false;
+  const auto payload = makePattern(50);
+  {
+    ReentrancyGuard::Scope scope(guard);
+    prot_a->write(payload, payload.size(), [&](auto) {
+      fired_reentrant = guard.inside;
+      fired = true;
+    });
+  }
+  // scope destructs here -> guard.inside=false BEFORE the deferred
+  // completion can ever fire.
+  ASSERT_FALSE(fired_reentrant);
+  ASSERT_FALSE(fired);
+
+  fx.drain();
+  ASSERT_TRUE(fired);
+}
+
+/**
+ * @given two PnetProtectedConnections over a byte pipe whose inner PipeEnds
+ * complete reads/writes synchronously, inline
+ * @when a read is primed and then a write on the peer delivers the bytes
+ * @then the caller's callback is proven never to fire while still inside
+ * read()'s own call stack -- it only fires after the scheduler backend is
+ * explicitly drained (reentrancy regression, TEST-04/D-05..D-07). Targets
+ * deferReadCallback's unconditional scheduler_->schedule(...) call.
+ */
+TEST(PnetProtectedConnectionTest, ReadCompletionNeverReentersSynchronously) {
+  Fixture fx;
+  auto end_a = std::make_shared<PipeEnd>(true);
+  auto end_b = std::make_shared<PipeEnd>(false);
+  end_a->setPeer(end_b.get());
+  end_b->setPeer(end_a.get());
+  auto psk = makePsk(kPskABytes);
+
+  auto prot_a = std::make_shared<PnetProtectedConnection>(end_a, psk, fx.scheduler);
+  auto prot_b = std::make_shared<PnetProtectedConnection>(end_b, psk, fx.scheduler);
+
+  ReentrancyGuard guard;
+  bool fired_reentrant = false;
+  bool fired = false;
+  const auto payload = makePattern(50);
+  std::vector<uint8_t> got(50, 0);
+  {
+    ReentrancyGuard::Scope scope(guard);
+    prot_b->read(got, 50, [&](auto) {
+      fired_reentrant = guard.inside;
+      fired = true;
+    });
+    prot_a->write(payload, payload.size(), [](auto) {});
+  }
+  // scope destructs here -> guard.inside=false BEFORE the deferred
+  // completion can ever fire.
+  ASSERT_FALSE(fired_reentrant);
+  ASSERT_FALSE(fired);
+
+  fx.drain();
+  ASSERT_TRUE(fired);
+  ASSERT_EQ(got, payload);
 }
