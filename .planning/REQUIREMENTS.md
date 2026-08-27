@@ -32,7 +32,7 @@ Requirements for initial release. Each maps to roadmap phases.
 - [x] **TEST-01**: Unit tests validate accept and reject behavior at each of the 5 gater hooks
 - [ ] **TEST-02**: Unit tests validate PSK accept/reject behavior at the pnet boundary
 - [x] **TEST-03**: A live two-node test confirms peers sharing a PSK connect successfully, and a peer with a missing/mismatched PSK is rejected
-- [ ] **TEST-04**: New gater/pnet code delivers callbacks via the scheduler (`post`/`dispatch`) rather than invoking inline, with a regression test guarding against reentrant invocation
+- [x] **TEST-04**: New gater/pnet code delivers callbacks via the scheduler (`post`/`dispatch`) rather than invoking inline, with a regression test guarding against reentrant invocation
 
 ### Documentation
 
@@ -82,7 +82,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | TEST-01 | Phase 1 | Complete |
 | TEST-02 | Phase 2 | Pending |
 | TEST-03 | Phase 3 | Complete |
-| TEST-04 | Phase 3 | Pending |
+| TEST-04 | Phase 3 | Complete |
 | DOCS-01 | Phase 3 | Pending |
 | DOCS-02 | Phase 3 | Pending |
 | DOCS-03 | Phase 3 | Pending |

@@ -5,15 +5,15 @@ milestone_name: milestone
 current_phase: 03
 current_phase_name: hardening-live-validation-documentation
 status: executing
-stopped_at: Completed 03-01-PLAN.md
-last_updated: "2026-08-27T03:01:03.424Z"
+stopped_at: Completed 03-02-PLAN.md
+last_updated: "2026-08-27T03:09:37.249Z"
 last_activity: 2026-08-27
 last_activity_desc: Phase 03 execution started
 progress:
   total_phases: 3
   completed_phases: 2
   total_plans: 11
-  completed_plans: 9
+  completed_plans: 10
   percent: 67
 ---
 
@@ -29,7 +29,7 @@ See: .planning/PROJECT.md (updated 2026-08-26)
 ## Current Position
 
 Phase: 03 (hardening-live-validation-documentation) — EXECUTING
-Plan: 2 of 3
+Plan: 3 of 3
 Status: Ready to execute
 Last activity: 2026-08-27 — Phase 03 execution started
 
@@ -60,6 +60,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 01 P03 | 40min | 2 tasks | 9 files |
 | Phase 01 P04 | 70min | 3 tasks | 9 files |
 | Phase 03 P01 | 40min | 2 tasks | 11 files |
+| Phase 03 P02 | 45min | 3 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -85,6 +86,8 @@ Recent decisions affecting current work:
 - [Phase ?]: RouteHelper now falls back to a node's own loopback listener for source-address selection when no specific/unspecified address exists
 - [Phase ?]: PnetProtectedConnection write-success now reported via deferReadCallback(outcome::success(written), cb), not deferWriteCallback({}, cb), which always wraps its argument as a failure
 - [Phase ?]: Boost.DI aliases structurally-identical makeHostInjector(...) call sites to the same Host/io_context instance -- test nodes bind a distinct marker type per construction site; flagged as an investigation item for future multi-Host-in-process usage
+- [Phase 03]: ASSERT_FALSE cannot be used inside a C++ constructor (gtest fatal-assert macros expand to return <value>;, invalid per MSVC C2534); ReentrancyGuard::Scope's constructor uses EXPECT_FALSE instead, across all 3 files defining the struct — compile-fix required for the verbatim scaffolding specified in 03-PATTERNS.md/03-RESEARCH.md
+- [Phase 03]: interceptAccept's reentrancy test uses before/after observation (io_context run_for vs scheduler_backend drain) instead of the ReentrancyGuard::Scope idiom, since it has no callback-taking collaborator and the entire accept-handling block is already the deferred body of one scheduler_->schedule(...) call
 
 ### Pending Todos
 
@@ -109,6 +112,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-08-27T03:01:03.419Z
-Stopped at: Completed 03-01-PLAN.md
+Last session: 2026-08-27T03:09:37.244Z
+Stopped at: Completed 03-02-PLAN.md
 Resume file: None
