@@ -47,6 +47,7 @@
 #include <libp2p/security/tls.hpp>
 #include <libp2p/transport/impl/upgrader_impl.hpp>
 #include <libp2p/transport/tcp.hpp>
+#include <libp2p/transport/tcp/allow_loopback_dial.hpp>
 
 // clang-format off
 /**
@@ -256,6 +257,27 @@ namespace libp2p::injector {
   }
 
   /**
+   * @brief Instruct injector to allow TcpTransport::dial() to dial loopback
+   * (127.0.0.0/8, ::1) destinations. Without this override, TcpTransport
+   * rejects loopback dial destinations by default (secure by default --
+   * prevents a malicious/compromised peer's advertised PeerInfo from
+   * inducing this node to dial its own loopback-bound services). Call
+   * once, opting a specific injector composition into live loopback
+   * dialing -- e.g. test fixtures or local-development tooling that
+   * legitimately dial 127.0.0.1/::1.
+   *
+   * @code
+   * auto injector = makeNetworkInjector(
+   *   useAllowLoopbackDial()
+   * );
+   * @endcode
+   */
+  inline auto useAllowLoopbackDial(bool allow = true) {
+    return boost::di::bind<transport::AllowLoopbackDial>().TEMPLATE_TO(
+        transport::AllowLoopbackDial{allow})[boost::di::override];
+  }
+
+  /**
    * @brief Thrown eagerly by usePrivateNetwork when the key material is
    * invalid — BEFORE any injector (and therefore any Host) can be assembled.
    * Carries the pnet error code; the message never embeds key bytes (D-06).
@@ -403,6 +425,13 @@ namespace libp2p::injector {
         di::bind<security::SecurityAdaptor *[]>().TEMPLATE_TO<security::Plaintext, security::Noise>(),  // NOLINT
         //di::bind<security::SecurityAdaptor* []>().TEMPLATE_TO<security::Noise>(),  // NOLINT
         di::bind<muxer::MuxerAdaptor *[]>().TEMPLATE_TO<muxer::Yamux>(),  // NOLINT
+        // Baseline (reject-loopback) AllowLoopbackDial: an explicit instance
+        // binding, never left to Boost.DI's own constructor-injection --
+        // TcpTransport's allow_loopback_dial ctor param must always resolve
+        // to *some* AllowLoopbackDial value (default-constructed here =
+        // allow=false, secure-by-default). useAllowLoopbackDial() overrides
+        // this binding via [boost::di::override].
+        di::bind<transport::AllowLoopbackDial>().TEMPLATE_TO(transport::AllowLoopbackDial{}),
         di::bind<transport::TransportAdaptor *[]>().TEMPLATE_TO<transport::TcpTransport>(),  // NOLINT
 
         // user-defined overrides...

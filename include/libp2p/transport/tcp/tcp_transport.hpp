@@ -11,6 +11,7 @@
 #include <boost/asio.hpp>
 #include <libp2p/basic/scheduler.hpp>
 #include <libp2p/network/connection_gater.hpp>
+#include <libp2p/transport/tcp/allow_loopback_dial.hpp>
 #include <libp2p/transport/tcp/tcp_listener.hpp>
 #include <libp2p/transport/tcp/tcp_util.hpp>
 #include <libp2p/transport/transport_adaptor.hpp>
@@ -30,7 +31,8 @@ namespace libp2p::transport {
     TcpTransport(std::shared_ptr<boost::asio::io_context> context,
         std::shared_ptr<Upgrader> upgrader,
         std::shared_ptr<network::ConnectionGater> gater,
-        std::shared_ptr<basic::Scheduler> scheduler);
+        std::shared_ptr<basic::Scheduler> scheduler,
+        AllowLoopbackDial allow_loopback_dial = AllowLoopbackDial{});
 
     void dial(const peer::PeerId &remoteId, multi::Multiaddress address,
               TransportAdaptor::HandlerFunc handler,
@@ -68,6 +70,7 @@ namespace libp2p::transport {
     std::shared_ptr<Upgrader> upgrader_;
     std::shared_ptr<network::ConnectionGater> gater_;
     std::shared_ptr<basic::Scheduler> scheduler_;
+    AllowLoopbackDial allow_loopback_dial_;
 
   };  // namespace libp2p::transport
 
