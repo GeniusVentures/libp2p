@@ -101,6 +101,7 @@ struct PnetTwoNodeTest : public ::testing::Test {
   static std::shared_ptr<Node> makeNode(std::string_view swarm_key_text) {
     auto injector =
         injector::makeHostInjector(injector::usePrivateNetwork(swarm_key_text),
+                                   injector::useAllowLoopbackDial(),
                                    boost::di::bind<Marker>().to(Marker{}));
 
     auto node = std::make_shared<Node>();
