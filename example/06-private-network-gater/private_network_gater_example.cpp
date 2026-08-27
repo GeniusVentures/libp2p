@@ -17,6 +17,13 @@
 #include <libp2p/network/connection_gater.hpp>
 #include <libp2p/protocol/echo.hpp>
 
+// This example is a standalone copy of example/07-connection-gater's
+// DenylistGater (example directories don't share a library target -- see
+// D-09/D-10's one-topic-per-example-dir convention), combined with the
+// usePrivateNetwork(...) PSK layer from example/05-private-network. It is
+// DOCS-03's primary artifact: proving PSK and the gater are complementary,
+// non-redundant layers.
+
 namespace {
   const std::string logger_config(R"(
 # ----------------
@@ -33,14 +40,24 @@ groups:
 # ----------------
   )");
 
+  // Publicly-known test vector -- byte-identical to
+  // test/libp2p/security/pnet/pnet_injector_test.cpp's kValidSwarmKey and to
+  // example/05-private-network's swarm key. This is NEVER a real secret:
+  // generate and substitute your own swarm.key text before real use.
+  const std::string kSwarmKeyText =
+      "/key/swarm/psk/1.0.0/\n"
+      "/base16/"
+      "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f\n";
+
   // Reused from test/libp2p/network/dialer_test.cpp's bootstrap-peer-ID
-  // test -- any well-formed base58 peer-id string works here, this one is
-  // simply an already-exercised literal in this repo.
+  // test -- any well-formed base58 peer-id string works here.
   const std::string kDeniedPeerIdText =
       "QmbLHAnMoJPWSCR5Zhtx6BHJX9KiKNN6tpvbUcqanj75Nb";
 
   /// Hardcoded denylisted peer id, decoded once and reused by both the
-  /// gater and the self-dial demonstration below.
+  /// gater and the self-dial demonstration below. This peer is assumed, for
+  /// the sake of the demonstration, to also hold the correct swarm key --
+  /// i.e. it would pass the pnet layer but is still denied by the gater.
   const libp2p::peer::PeerId &deniedPeerId() {
     static const libp2p::peer::PeerId kDeniedPeerId =
         libp2p::peer::PeerId::fromBase58(kDeniedPeerIdText).value();
@@ -49,9 +66,8 @@ groups:
 }  // namespace
 
 /**
- * @brief A ConnectionGater that denies one hardcoded peer at the earliest
- * hook (interceptPeerDial) and is otherwise fully permissive -- matching
- * PermissiveConnectionGater's default behavior everywhere else.
+ * @brief Same shape as example/07-connection-gater's DenylistGater: denies
+ * one hardcoded peer at interceptPeerDial, permissive everywhere else.
  */
 struct DenylistGater : public libp2p::network::ConnectionGater {
   libp2p::outcome::result<void> interceptPeerDial(
@@ -111,10 +127,13 @@ int main() {
     libp2p::log::setLevelOfGroup("main", soralog::Level::ERROR_);
   }
 
-  // create a default Host, replacing the default PermissiveConnectionGater
-  // with our custom DenylistGater -- one DI binding, zero changes to
-  // Dialer/TcpListener/UpgraderSession.
+  // Compose BOTH DI modules: usePrivateNetwork wraps the Upgrader in
+  // PnetUpgraderDecorator (network-membership boundary), and
+  // useConnectionGater<DenylistGater> replaces the default permissive
+  // gater (peer-level authorization boundary). Both attach independently
+  // at the makeHostInjector(...) call site.
   auto injector = libp2p::injector::makeHostInjector(
+      libp2p::injector::usePrivateNetwork(kSwarmKeyText),
       libp2p::injector::useConnectionGater<DenylistGater>());
   auto host = injector.create<std::shared_ptr<libp2p::Host>>();
   auto io_context =
@@ -133,7 +152,7 @@ int main() {
 
   io_context->post([host, &echo] {
     auto ma =
-        libp2p::multi::Multiaddress::create("/ip4/127.0.0.1/tcp/40531")
+        libp2p::multi::Multiaddress::create("/ip4/127.0.0.1/tcp/40532")
             .value();
     auto listen_res = host->listen(ma);
     if (!listen_res) {
@@ -143,15 +162,15 @@ int main() {
     }
 
     host->start();
-    std::cout << "Connection-gater server started\nListening on: "
+    std::cout << "Private-network + gater server started\nListening on: "
               << ma.getStringAddress()
               << "\nPeer id: " << host->getPeerInfo().id.toBase58()
               << std::endl;
 
-    // demonstrate the custom gater's effect: dial our own denylisted
-    // peer id at a throwaway loopback address and observe the rejection.
-    // The observation lines are flushed with std::endl (not left in the
-    // buffer) so the demonstration is visible even on a bounded/timed run.
+    // demonstrate the complementary-layers point: dial our own denylisted
+    // peer id (which, for this demonstration, is assumed to hold the
+    // correct PSK -- it is still denied, because the gater is a separate,
+    // independent authorization check).
     auto denied_ma =
         libp2p::multi::Multiaddress::create("/ip4/127.0.0.1/tcp/1").value();
     libp2p::peer::PeerInfo denied_info{deniedPeerId(), {denied_ma}};
@@ -162,7 +181,11 @@ int main() {
             std::cout << "UNEXPECTED: stream opened" << std::endl;
           } else {
             std::cout
-                << "denylisted peer correctly rejected by the custom gater"
+                << "peer holds the correct PSK for this private network "
+                   "but is still denied by the gater -- PSK proves "
+                   "network membership, the gater proves peer-level "
+                   "authorization; they are independent, non-redundant "
+                   "checks."
                 << std::endl;
           }
         });
