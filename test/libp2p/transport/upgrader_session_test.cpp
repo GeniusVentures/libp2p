@@ -33,6 +33,27 @@ using ::testing::MockFunction;
 using ::testing::Return;
 using ::testing::StrictMock;
 
+/// Re-entry guard scaffolding (verbatim per 03-PATTERNS.md's "Re-entry guard
+/// scaffolding" section, same struct used in dialer_test.cpp) -- proves a
+/// deferred callback never fires while still inside the call stack that
+/// scheduled it (TEST-04/D-05..D-07). EXPECT_FALSE (not ASSERT_FALSE) is
+/// used in the constructor: gtest's fatal-assert macros expand to
+/// `return <value>;`, which does not compile inside a constructor
+/// (MSVC C2534).
+struct ReentrancyGuard {
+  bool inside = false;
+  struct Scope {
+    ReentrancyGuard &g;
+    explicit Scope(ReentrancyGuard &g) : g(g) {
+      EXPECT_FALSE(g.inside);
+      g.inside = true;
+    }
+    ~Scope() {
+      g.inside = false;
+    }
+  };
+};
+
 struct UpgraderSessionTest : public ::testing::Test {
   void SetUp() override {
     testutil::prepareLoggers();
@@ -161,6 +182,60 @@ TEST_F(UpgraderSessionTest, SecuredRejectedClosesAndDefersHandler) {
 }
 
 /**
+ * @given a gater configured to reject interceptSecured
+ * @when a raw connection is secured
+ * @then the handler is proven never to fire while still inside
+ * secureInbound()'s own call stack -- it only fires after the scheduler
+ * backend is explicitly drained (reentrancy regression, TEST-04/D-05..D-07).
+ * Targets the scheduler_->schedule([self, err]{ self->handler_(err); })
+ * call at upgrader_session.cpp's interceptSecured rejection branch.
+ *
+ * NOTE: the SUCCESS-path tests (SecuredAcceptedProceedsToMux,
+ * UpgradedAcceptedInvokesHandler above) are intentionally NOT extended with
+ * this guard: onSecured's success chain calls handler_ directly with no
+ * scheduler_->schedule hop (verified at upgrader_session.cpp:98-118) --
+ * asserting non-reentrancy there would assert something false about the
+ * current, unmodified production code (RESEARCH.md "Anti-Patterns to
+ * Avoid").
+ */
+TEST_F(UpgraderSessionTest, InterceptSecuredRejectionNeverReentersSynchronously) {
+  auto secure = std::make_shared<SecureConnectionMock>();
+  std::shared_ptr<SecureConnection> secure_base = secure;
+
+  EXPECT_CALL(*upgrader, upgradeToSecureInbound(raw_base, _))
+      .WillOnce(UpgradeToSecureInbound(
+          [&](auto &&) { return outcome::success(secure_base); }));
+
+  EXPECT_CALL(*secure, remotePeer()).WillOnce(Return(pid));
+  EXPECT_CALL(*secure, remoteMultiaddr()).WillOnce(Return(ma));
+  EXPECT_CALL(*secure, isInitiatorMock()).WillOnce(Return(true));
+  EXPECT_CALL(*gater, interceptSecured(true, pid, ma))
+      .WillOnce(Return(ConnectionGaterError::GATER_REJECTED_SECURED));
+
+  EXPECT_CALL(*secure, isClosed()).WillOnce(Return(false));
+  EXPECT_CALL(*secure, close()).WillOnce(Return(outcome::success()));
+
+  EXPECT_CALL(*upgrader, upgradeToMuxed(_, _)).Times(0);
+
+  ReentrancyGuard guard;
+  bool handler_fired_reentrant = false;
+  EXPECT_CALL(handler_cb, Call(_)).WillOnce(Invoke([&](auto &&r) {
+    handler_fired_reentrant = guard.inside;
+    EXPECT_OUTCOME_FALSE(e, r);
+    EXPECT_EQ(e.value(), (int)ConnectionGaterError::GATER_REJECTED_SECURED);
+  }));
+
+  {
+    ReentrancyGuard::Scope scope(guard);
+    session->secureInbound();
+  }
+  ASSERT_FALSE(handler_fired_reentrant)
+      << "handler_ must not fire before scheduler defers it";
+
+  pump();
+}
+
+/**
  * @given a gater that accepts interceptSecured and interceptUpgraded
  * @when a secured connection is upgraded to a muxed one
  * @then the handler receives the capable connection produced by
@@ -250,4 +325,58 @@ TEST_F(UpgraderSessionTest, UpgradedRejectedClosesAndDefersHandler) {
   pump();
 
   ASSERT_TRUE(executed);
+}
+
+/**
+ * @given a gater that accepts interceptSecured but rejects interceptUpgraded
+ * @when a secured connection is upgraded to a muxed one
+ * @then the handler is proven never to fire while still inside
+ * secureInbound()'s own call stack -- it only fires after the scheduler
+ * backend is explicitly drained (reentrancy regression, TEST-04/D-05..D-07).
+ * Targets the self->scheduler_->schedule([self, err]{ self->handler_(err); })
+ * call inside upgradeToMuxed's completion lambda's rejection branch at
+ * upgrader_session.cpp's interceptUpgraded rejection branch.
+ */
+TEST_F(UpgraderSessionTest, InterceptUpgradedRejectionNeverReentersSynchronously) {
+  auto secure = std::make_shared<SecureConnectionMock>();
+  std::shared_ptr<SecureConnection> secure_base = secure;
+  auto capable = std::make_shared<CapableConnectionMock>();
+  std::shared_ptr<CapableConnection> capable_base = capable;
+
+  EXPECT_CALL(*upgrader, upgradeToSecureInbound(raw_base, _))
+      .WillOnce(UpgradeToSecureInbound(
+          [&](auto &&) { return outcome::success(secure_base); }));
+
+  EXPECT_CALL(*secure, remotePeer()).WillOnce(Return(pid));
+  EXPECT_CALL(*secure, remoteMultiaddr()).WillOnce(Return(ma));
+  EXPECT_CALL(*secure, isInitiatorMock()).WillOnce(Return(true));
+  EXPECT_CALL(*gater, interceptSecured(true, pid, ma))
+      .WillOnce(Return(outcome::success()));
+
+  EXPECT_CALL(*upgrader, upgradeToMuxed(secure_base, _))
+      .WillOnce(UpgradeToMuxed(
+          [&](auto &&) { return outcome::success(capable_base); }));
+  EXPECT_CALL(*gater, interceptUpgraded(capable_base))
+      .WillOnce(Return(ConnectionGaterError::GATER_REJECTED_UPGRADED));
+
+  EXPECT_CALL(*capable, remotePeer()).WillOnce(Return(pid));
+  EXPECT_CALL(*capable, isClosed()).WillOnce(Return(false));
+  EXPECT_CALL(*capable, close()).WillOnce(Return(outcome::success()));
+
+  ReentrancyGuard guard;
+  bool handler_fired_reentrant = false;
+  EXPECT_CALL(handler_cb, Call(_)).WillOnce(Invoke([&](auto &&r) {
+    handler_fired_reentrant = guard.inside;
+    EXPECT_OUTCOME_FALSE(e, r);
+    EXPECT_EQ(e.value(), (int)ConnectionGaterError::GATER_REJECTED_UPGRADED);
+  }));
+
+  {
+    ReentrancyGuard::Scope scope(guard);
+    session->secureInbound();
+  }
+  ASSERT_FALSE(handler_fired_reentrant)
+      << "handler_ must not fire before scheduler defers it";
+
+  pump();
 }
