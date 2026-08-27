@@ -22,6 +22,8 @@ A node without the correct network credentials (matching PSK, or passing gater p
 - ✓ Boost.DI-based dependency injection wiring the full host/network object graph — existing
 - ✓ Protocol suite: kademlia, gossipsub, identify, autonat, relay, holepunch, ping — existing
 - ✓ Kademlia bootstrap interop with go-libp2p peers (used for public network discovery) — existing
+- ✓ Live two-node test: nodes sharing a PSK connect successfully; a peer with a missing/mismatched PSK is rejected — Validated in Phase 3 (`test/acceptance/p2p/pnet/pnet_two_node_test.cpp`, TEST-03)
+- ✓ Integrator documentation: how to configure a PSK and register a custom `ConnectionGater` — Validated in Phase 3 (`example/05-private-network/`, `example/06-private-network-gater/`, `example/07-connection-gater/`, DOCS-01/02/03)
 
 ### Active
 
@@ -33,8 +35,6 @@ A node without the correct network credentials (matching PSK, or passing gater p
 - [ ] Pnet rejects connections from peers without the matching PSK
 - [ ] PSK configuration via DI
 - [ ] Unit tests validating accept/reject logic at each gater hook and at the pnet boundary
-- [ ] Live two-node test: nodes sharing a PSK connect successfully; a peer with a missing/mismatched PSK is rejected
-- [ ] Integrator documentation: how to configure a PSK and register a custom `ConnectionGater`
 
 ### Out of Scope
 
@@ -85,4 +85,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-08-26 after initialization*
+*Last updated: 2026-08-27 after Phase 3 completion*
