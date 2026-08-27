@@ -105,8 +105,9 @@ struct DialerTest : public ::testing::Test {
   /// builds a dialer WITH a psk configured (private-network mode);
   /// typed as the Dialer base so convenience dial() overloads resolve
   std::shared_ptr<Dialer> makePskDialer() {
-    return std::make_shared<DialerImpl>(proto_muxer, tmgr, cmgr, listener,
-                                        scheduler, gater, testPsk());
+    return std::make_shared<DialerImpl>(
+        proto_muxer, tmgr, cmgr, listener, scheduler, gater,
+        security::pnet::PskHandle{testPsk()});
   }
 
   void drainScheduler() {

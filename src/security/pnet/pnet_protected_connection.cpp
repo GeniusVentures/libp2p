@@ -101,7 +101,20 @@ namespace libp2p::security::pnet {
             return self->doWriteProtected(std::move(cb), std::move(payload),
                                           written);
           }
-          self->deferWriteCallback({}, std::move(cb));
+          // Success: report the byte count via deferReadCallback (matching
+          // LoopbackStream::write's established convention), NOT
+          // deferWriteCallback — the latter's contract (see writer.hpp) is
+          // error-only ("if (!ec) then this function does nothing" — the
+          // interface's default semantics for a no-op on success). Both
+          // ReadCallbackFunc and WriteCallbackFunc are the exact same
+          // std::function<void(outcome::result<size_t>)> type, so passing
+          // `cb` through is valid without conversion. Passing an empty
+          // std::error_code{} here instead (Rule 1 bug, Phase 3 discovery
+          // — see 03-01-SUMMARY.md deviations) constructed a FAILURE
+          // outcome::result with the "success" error_code (value 0,
+          // message "The operation completed successfully"), which the
+          // caller then treated as a genuine write failure.
+          self->deferReadCallback(outcome::success(written), std::move(cb));
         });
   }
 

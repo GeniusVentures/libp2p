@@ -554,14 +554,14 @@ namespace libp2p::network {
       std::shared_ptr<ListenerManager> listener,
       std::shared_ptr<basic::Scheduler> scheduler,
       std::shared_ptr<ConnectionGater> gater,
-      std::shared_ptr<const security::pnet::Psk> psk)
+      security::pnet::PskHandle psk_handle)
       : multiselect_(std::move(multiselect)),
         tmgr_(std::move(tmgr)),
         cmgr_(std::move(cmgr)),
         listener_(std::move(listener)),
         scheduler_(std::move(scheduler)),
         gater_(std::move(gater)),
-        psk_(std::move(psk)),
+        psk_(std::move(psk_handle.psk)),
         log_(log::createLogger("DialerImpl")) {
     BOOST_ASSERT(multiselect_ != nullptr);
     BOOST_ASSERT(tmgr_ != nullptr);

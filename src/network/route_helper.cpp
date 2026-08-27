@@ -128,9 +128,19 @@ namespace libp2p::network {
         result.has_ipv4 = true;
         log().debug("Selected unspecified IPv4 source: {}", result.ipv4_source.getStringAddress());
       }
+    } else if (!ipv4_loopback.empty()) {
+      // Loopback-only listener (e.g. "/ip4/127.0.0.1/tcp/<port>") is a
+      // legitimate source for loopback destinations — same-host TCP
+      // dialing is a standard, expected topology (see
+      // host_integration_test.cpp / pnet_two_node_test.cpp). Previously
+      // this bucket was computed but never consulted, so a node listening
+      // ONLY on loopback could never select a source address at all.
+      result.ipv4_source = *ipv4_loopback[0];
+      result.has_ipv4 = true;
+      log().debug("Selected loopback IPv4 source: {}", result.ipv4_source.getStringAddress());
     }
-    
-    // Get IPv6 source address  
+
+    // Get IPv6 source address
     if (!ipv6_specific.empty()) {
       // Use first specific IPv6 address
       result.ipv6_source = *ipv6_specific[0];
@@ -158,9 +168,14 @@ namespace libp2p::network {
         result.has_ipv6 = true;
         log().debug("Selected unspecified IPv6 source: {}", result.ipv6_source.getStringAddress());
       }
+    } else if (!ipv6_loopback.empty()) {
+      // See the matching IPv4 loopback-fallback note above.
+      result.ipv6_source = *ipv6_loopback[0];
+      result.has_ipv6 = true;
+      log().debug("Selected loopback IPv6 source: {}", result.ipv6_source.getStringAddress());
     }
-    
-    log().info("Source addresses selected - IPv4: {}, IPv6: {}", 
+
+    log().info("Source addresses selected - IPv4: {}, IPv6: {}",
               result.has_ipv4 ? result.ipv4_source.getStringAddress() : "none",
               result.has_ipv6 ? result.ipv6_source.getStringAddress() : "none");
     

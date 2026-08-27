@@ -73,8 +73,20 @@ namespace libp2p::security::pnet {
    * constant and never null once constructed. Injectable via Boost.DI
    * instance binding (which requires copyable types); absence of a binding
    * (nullptr) is the public-mode signal.
+   *
+   * User-declared constructors (even the defaulted one) are REQUIRED here so
+   * this type is not a C++ aggregate: Boost.DI applies aggregate-member
+   * auto-injection to plain-data aggregates, which would otherwise try to
+   * auto-construct the `psk` member's pointee (Psk, whose constructors are
+   * all private/deleted except move) whenever a PskHandle is needed but not
+   * explicitly bound (e.g. a default-valued PskHandle ctor parameter in
+   * public mode) — a compile error, not the intended "null = public mode"
+   * fallback.
    */
   struct PskHandle {
+    PskHandle() = default;
+    explicit PskHandle(std::shared_ptr<const Psk> psk) : psk(std::move(psk)) {}
+
     std::shared_ptr<const Psk> psk;
   };
 

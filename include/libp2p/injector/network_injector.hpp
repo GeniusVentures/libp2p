@@ -309,7 +309,7 @@ namespace libp2p::injector {
     security::pnet::PskHandle handle{
         std::make_shared<const security::pnet::Psk>(std::move(psk.value()))};
     return boost::di::make_injector(
-        boost::di::bind<security::pnet::PskHandle>().to(std::move(handle)),
+        boost::di::bind<security::pnet::PskHandle>().to(std::move(handle))[boost::di::override],
         boost::di::bind<transport::Upgrader>()
             .template to<transport::PnetUpgraderDecorator>()
             [boost::di::override]);
@@ -320,7 +320,7 @@ namespace libp2p::injector {
     security::pnet::PskHandle handle{
         std::make_shared<const security::pnet::Psk>(std::move(validated_psk))};
     return boost::di::make_injector(
-        boost::di::bind<security::pnet::PskHandle>().to(std::move(handle)),
+        boost::di::bind<security::pnet::PskHandle>().to(std::move(handle))[boost::di::override],
         boost::di::bind<transport::Upgrader>()
             .template to<transport::PnetUpgraderDecorator>()
             [boost::di::override]);
@@ -383,6 +383,15 @@ namespace libp2p::injector {
         di::bind<network::ConnectionManager>().TEMPLATE_TO<network::ConnectionManagerImpl>(),
         di::bind<network::ListenerManager>().TEMPLATE_TO<network::ListenerManagerImpl>(),
         di::bind<network::Dialer>().TEMPLATE_TO<network::DialerImpl>(),
+        // Baseline (public-mode) PskHandle: an explicit instance binding,
+        // never left to Boost.DI's own constructor-injection — DialerImpl's
+        // psk_handle ctor param must always resolve to *some* PskHandle
+        // value (default-constructed here = null Psk, D-08's public-mode
+        // signal). Left to auto-injection instead, Boost.DI would try to
+        // construct the pointee Psk (whose ctors are all private/deleted
+        // except move), which does not compile. usePrivateNetwork(...)
+        // overrides this binding with the real validated key.
+        di::bind<security::pnet::PskHandle>().TEMPLATE_TO(security::pnet::PskHandle{}),
         di::bind<network::ConnectionGater>().TEMPLATE_TO<network::PermissiveConnectionGater>(),
         di::bind<network::Network>().TEMPLATE_TO<network::NetworkImpl>(),
         di::bind<network::TransportManager>().TEMPLATE_TO<network::TransportManagerImpl>(),

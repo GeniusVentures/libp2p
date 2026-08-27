@@ -27,15 +27,19 @@ namespace libp2p::network {
    public:
     ~DialerImpl() override = default;
 
-    /// @param psk private-network pre-shared key; nullptr = public mode
-    /// (absence is the meaningful signal — D-08)
+    /// @param psk_handle private-network pre-shared key, wrapped in the
+    /// copyable PskHandle (Psk itself is move-only and not publicly
+    /// constructible, so it cannot be auto-injected by Boost.DI directly —
+    /// same rationale as PnetUpgraderDecorator's ctor, see psk.hpp);
+    /// default-constructed (null) PskHandle = public mode (absence is the
+    /// meaningful signal — D-08)
     DialerImpl(std::shared_ptr<protocol_muxer::ProtocolMuxer> multiselect,
                std::shared_ptr<TransportManager> tmgr,
                std::shared_ptr<ConnectionManager> cmgr,
                std::shared_ptr<ListenerManager> listener,
                std::shared_ptr<basic::Scheduler> scheduler,
                std::shared_ptr<ConnectionGater> gater,
-               std::shared_ptr<const security::pnet::Psk> psk = nullptr);
+               security::pnet::PskHandle psk_handle = {});
 
     // Establishes a connection to a given peer
     void dial(

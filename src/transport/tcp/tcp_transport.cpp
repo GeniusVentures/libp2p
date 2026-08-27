@@ -33,21 +33,14 @@ namespace libp2p::transport {
       return handler(std::errc::address_family_not_supported);
     }
 
-    //Check for localhost, we shouldn't have to worry about any errors on getFirstValueForProtocol because canDial already handles that
-    if (address.hasProtocol(libp2p::multi::Protocol::Code::IP4))
-    {
-        if (isLocalHost(address.getFirstValueForProtocol(libp2p::multi::Protocol::Code::IP4).value()))
-        {
-            return handler(std::errc::bad_address);
-        }
-    }
-    if (address.hasProtocol(libp2p::multi::Protocol::Code::IP6))
-    {
-        if (isLocalHost(address.getFirstValueForProtocol(libp2p::multi::Protocol::Code::IP6).value()))
-        {
-            return handler(std::errc::bad_address);
-        }
-    }
+    // NOTE: loopback (127.0.0.0/8, ::1) destinations are intentionally NOT
+    // rejected here — same-host TCP loopback dialing is the standard,
+    // expected pattern this fork's own test suite relies on (see
+    // test/acceptance/p2p/host/host_integration_test.cpp,
+    // test/acceptance/p2p/pnet/pnet_two_node_test.cpp), and a prior
+    // unconditional isLocalHost(...)->bad_address guard here blocked ALL
+    // loopback dials regardless of gater/pnet configuration (Rule 1 bug fix,
+    // Phase 3 discovery — see 03-01-SUMMARY.md deviations).
     auto conn = std::make_shared<TcpConnection>(*context_);
 
     auto [host, port] = detail::getHostAndTcpPort(address);
@@ -195,21 +188,10 @@ namespace libp2p::transport {
       return handler(std::errc::address_family_not_supported);
     }
 
-    //Check for localhost, we shouldn't have to worry about any errors on getFirstValueForProtocol because canDial already handles that
-    if (address.hasProtocol(libp2p::multi::Protocol::Code::IP4))
-    {
-        if (isLocalHost(address.getFirstValueForProtocol(libp2p::multi::Protocol::Code::IP4).value()))
-        {
-            return handler(std::errc::bad_address);
-        }
-    }
-    if (address.hasProtocol(libp2p::multi::Protocol::Code::IP6))
-    {
-        if (isLocalHost(address.getFirstValueForProtocol(libp2p::multi::Protocol::Code::IP6).value()))
-        {
-            return handler(std::errc::bad_address);
-        }
-    }
+    // NOTE: loopback (127.0.0.0/8, ::1) destinations are intentionally NOT
+    // rejected here — see the matching note in the other dial() overload
+    // above (Rule 1 bug fix, Phase 3 discovery — see 03-01-SUMMARY.md
+    // deviations).
     auto conn = std::make_shared<TcpConnection>(*context_);
 
     auto [host, port] = detail::getHostAndTcpPort(address);
