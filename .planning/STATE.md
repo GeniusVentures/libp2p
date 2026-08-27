@@ -31,7 +31,7 @@ See: .planning/PROJECT.md (updated 2026-08-26)
 Phase: 03 (hardening-live-validation-documentation) — EXECUTING
 Plan: 3 of 3
 Status: Phase complete — ready for verification
-Last activity: 2026-08-27 — Phase 03 execution started
+Last activity: 2026-08-27 - Completed quick task 260827-2w7: Add a DI-configurable "allow localhost dial" option to TcpTransport
 
 Progress: [░░░░░░░░░░] 0%
 
@@ -106,6 +106,12 @@ None yet.
 - Pre-existing (not caused by Phase 1): on native Windows/MSVC builds, TcpListenerTest's ListenCloseListen/DoubleClose assert ec.value() == std::errc::operation_canceled (105) but boost::asio's cancellation surfaces as system_category 995 (ERROR_OPERATION_ABORTED); confirmed unmodified since before Phase 01 and unrelated to gater wiring
 - Boost.DI instance-aliasing: multiple makeHostInjector(...) calls with identical static call signatures return aliased Host/io_context instances within one process -- confirmed empirically, workaround applied at test level only, no production fix yet (see 03-01-SUMMARY.md Threat Flags)
 - Pre-existing, unrelated full-build (TESTING=ON) test-target failures discovered during 03-03's full-build verification (Host-interface-vs-mock gaps in HostMock/DialerMock/LoopbackStream, missing includes, the already-documented Phase 1 muxer.cpp dial() 3-arg item) -- logged to .planning/phases/03-hardening-live-validation-documentation/deferred-items.md, out of scope for a documentation-only plan, not blocking DOCS-01/02/03
+
+### Quick Tasks Completed
+
+| # | Description | Date | Commit | Directory |
+|---|-------------|------|--------|-----------|
+| 260827-2w7 | Add a DI-configurable "allow localhost dial" option to TcpTransport, to resolve the open 03-UAT.md human-verification item for Phase 3 | 2026-08-27 | aa595c3 | [260827-2w7-add-a-di-configurable-allow-localhost-di](./quick/260827-2w7-add-a-di-configurable-allow-localhost-di/) |
 
 ## Deferred Items
 
