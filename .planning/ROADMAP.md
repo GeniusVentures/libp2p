@@ -15,7 +15,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] **Phase 1: Connection Gater interface + wiring** - Pluggable 5-stage accept/reject hooks wired into Dialer, TcpListener, and UpgraderSession, defaulting to fully permissive behavior (completed 2026-08-26)
 - [ ] **Phase 2: Private network (pnet) PSK protector** - XSalsa20 PSK wrapper applied to raw connections before security negotiation, DI-configured, with a force-pnet fail-safe and private-network-scoped Kademlia bootstrap
-- [x] **Phase 3: Hardening, live validation & documentation** - Live two-node PSK test, reentrant-callback regression test, and integrator documentation for both layers (completed 2026-08-27)
+- [ ] **Phase 3: Hardening, live validation & documentation** - Live two-node PSK test, reentrant-callback regression test, and integrator documentation for both layers (executed 2026-08-27, needs review — see 03-UAT.md)
 
 ## Phase Details
 
@@ -105,4 +105,4 @@ Phases execute in numeric order: 1 → 2 → 3
 |-------|----------------|--------|-----------|
 | 1. Connection Gater interface + wiring | 4/4 | Complete   | 2026-08-26 |
 | 2. Private network (pnet) PSK protector | 0/4 | Not started | - |
-| 3. Hardening, live validation & documentation | 3/3 | Complete   | 2026-08-27 |
+| 3. Hardening, live validation & documentation | 3/3 | Needs Review | 2026-08-27 |
