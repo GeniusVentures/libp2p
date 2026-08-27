@@ -4,6 +4,7 @@
 #
 
 add_subdirectory(host)
+add_subdirectory(pnet)
 
 addtest(all_muxers_acceptance_test
     muxer.cpp
