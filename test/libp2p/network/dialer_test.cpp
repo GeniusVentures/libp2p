@@ -41,6 +41,26 @@ using ::testing::Eq;
 using ::testing::InvokeArgument;
 using ::testing::Return;
 
+/// Re-entry guard scaffolding (verbatim per 03-PATTERNS.md's "Re-entry guard
+/// scaffolding" section) -- proves a deferred callback never fires while
+/// still inside the call stack that scheduled it (TEST-04/D-05..D-07).
+struct ReentrancyGuard {
+  bool inside = false;
+  struct Scope {
+    ReentrancyGuard &g;
+    explicit Scope(ReentrancyGuard &g) : g(g) {
+      // Note: ASSERT_FALSE cannot be used here -- gtest's fatal-assert
+      // macros expand to `return <value>;`, which does not compile inside a
+      // constructor (MSVC C2534). EXPECT_FALSE is the non-fatal equivalent.
+      EXPECT_FALSE(g.inside);
+      g.inside = true;
+    }
+    ~Scope() {
+      g.inside = false;
+    }
+  };
+};
+
 struct DialerTest : public ::testing::Test {
   void SetUp() override {
     testutil::prepareLoggers();
@@ -542,4 +562,69 @@ TEST_F(DialerTest, NoPskAllowsBootstrapDial) {
 
   drainScheduler();
   ASSERT_TRUE(executed);
+}
+
+/**
+ * @given a gater configured to reject interceptPeerDial for the target peer
+ * @when dial is executed
+ * @then the rejection callback is proven never to fire while still inside
+ * dial()'s own call stack -- it only fires after the scheduler backend is
+ * explicitly drained (reentrancy regression, TEST-04/D-05..D-07)
+ */
+TEST_F(DialerTest, PeerDialRejectionNeverReentersSynchronously) {
+  EXPECT_CALL(*gater, interceptPeerDial(pinfo.id))
+      .WillOnce(Return(ConnectionGaterError::GATER_REJECTED_PEER_DIAL));
+
+  EXPECT_CALL(*cmgr, getBestConnectionForPeer(pinfo.id)).Times(0);
+  EXPECT_CALL(*tmgr, findBest(_)).Times(0);
+
+  ReentrancyGuard guard;
+  bool captured_reentrant = false;
+  {
+    ReentrancyGuard::Scope scope(guard);
+    dialer->dial(pinfo, [&](auto &&rconn) {
+      captured_reentrant = guard.inside;
+      EXPECT_OUTCOME_FALSE(e, rconn);
+      EXPECT_EQ(e.value(), (int)ConnectionGaterError::GATER_REJECTED_PEER_DIAL);
+    });
+  }
+  // scope destructs here -> guard.inside=false BEFORE dial()'s deferred
+  // callback can ever fire, since dial() only enqueues via
+  // scheduler_->schedule and returns immediately.
+
+  drainScheduler();
+  ASSERT_FALSE(captured_reentrant);
+}
+
+/**
+ * @given a gater configured to reject interceptAddrDial for the peer's only
+ * address
+ * @when dial is executed
+ * @then the rejection callback is proven never to fire while still inside
+ * dial()'s own call stack -- it only fires after the scheduler backend is
+ * explicitly drained (reentrancy regression, TEST-04/D-05..D-07)
+ */
+TEST_F(DialerTest, AddrDialRejectionNeverReentersSynchronously) {
+  EXPECT_CALL(*cmgr, getBestConnectionForPeer(pinfo.id))
+      .WillOnce(Return(nullptr));
+
+  EXPECT_CALL(*gater, interceptAddrDial(pinfo.id, ma1))
+      .WillOnce(Return(ConnectionGaterError::GATER_REJECTED_ADDR_DIAL));
+
+  EXPECT_CALL(*tmgr, findBest(ma1)).WillOnce(Return(transport));
+  EXPECT_CALL(*transport, dial(_, _, _, _)).Times(0);
+
+  ReentrancyGuard guard;
+  bool captured_reentrant = false;
+  {
+    ReentrancyGuard::Scope scope(guard);
+    dialer->dial(pinfo, [&](auto &&rconn) {
+      captured_reentrant = guard.inside;
+      EXPECT_OUTCOME_FALSE(e, rconn);
+      EXPECT_EQ(e.value(), (int)ConnectionGaterError::GATER_REJECTED_ADDR_DIAL);
+    });
+  }
+
+  drainScheduler();
+  ASSERT_FALSE(captured_reentrant);
 }

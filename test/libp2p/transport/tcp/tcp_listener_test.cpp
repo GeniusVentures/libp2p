@@ -157,3 +157,64 @@ TEST_F(TcpListenerTest, AcceptRejectedByGaterClosesConnectionWithoutUpgrading) {
   boost::asio::read(client_sock, boost::asio::buffer(buf), read_ec);
   EXPECT_TRUE(read_ec);
 }
+
+/**
+ * @given a listener with a gater configured to reject interceptAccept
+ * @when a real client connects
+ * @then interceptAccept is proven to run only from within the
+ * scheduler-deferred accept block, never synchronously from async_accept's
+ * own completion frame (reentrancy regression, TEST-04/D-05, T-03-05).
+ * interceptAccept is a synchronous, direct-return method with no
+ * callback-taking collaborator that can be forced into synchronous
+ * completion (D-06's technique does not apply to this specific call site --
+ * see 03-RESEARCH.md's "Key nuance" paragraph), and the ENTIRE
+ * accept-handling block, interceptAccept call included, is already the
+ * deferred body of one scheduler_->schedule(...) call -- there is no further
+ * nested scheduling to guard around at this exact site. This test therefore
+ * uses a before/after observation instead of the ReentrancyGuard::Scope
+ * idiom used in dialer_test.cpp/upgrader_session_test.cpp.
+ */
+TEST_F(TcpListenerTest, AcceptGaterRejectionDeferredUntilSchedulerDrains) {
+  bool intercept_called = false;
+  EXPECT_CALL(*gater, interceptAccept(_, _))
+      .WillOnce(Invoke([&](const multi::Multiaddress &,
+                           const multi::Multiaddress &) {
+        intercept_called = true;
+        return outcome::result<void>(ConnectionGaterError::GATER_REJECTED_ACCEPT);
+      }));
+  EXPECT_CALL(*upgrader, upgradeToSecureInbound(_, _)).Times(0);
+
+  EXPECT_OUTCOME_TRUE_1(listener->listen(ma));
+
+  boost::asio::ip::tcp::socket client_sock(*context);
+  boost::asio::ip::tcp::endpoint endpoint(
+      boost::asio::ip::make_address("127.0.0.1"), 40005);
+
+  bool connected = false;
+  client_sock.async_connect(
+      endpoint, [&connected](const boost::system::error_code &ec) {
+        connected = !ec;
+      });
+
+  context->run_for(100ms);
+  ASSERT_TRUE(connected);
+
+  // interceptAccept must not have run purely from async_accept's own
+  // completion (the io_context run loop) -- the entire accept-handling
+  // block, interceptAccept call included, lives inside
+  // scheduler_->schedule(...), which the ManualSchedulerBackend (a queue
+  // entirely separate from context's own run loop) has not yet drained.
+  ASSERT_FALSE(intercept_called);
+
+  // Pump the manual scheduler so the deferred accept-handling block (and the
+  // interceptAccept call within it) actually runs.
+  while (!scheduler_backend->empty()) {
+    scheduler_backend->shift(std::chrono::milliseconds(1));
+  }
+
+  ASSERT_TRUE(intercept_called);
+
+  // Run the io_context again so the posted close (from the rejected accept)
+  // actually executes.
+  context->run_for(100ms);
+}
