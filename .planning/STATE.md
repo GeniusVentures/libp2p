@@ -4,17 +4,17 @@ milestone: v1.0
 milestone_name: milestone
 current_phase: 03
 current_phase_name: hardening-live-validation-documentation
-status: executing
-stopped_at: Completed 03-02-PLAN.md
-last_updated: "2026-08-27T03:09:37.249Z"
+status: verifying
+stopped_at: Completed 03-03-PLAN.md
+last_updated: "2026-08-27T03:28:29.272Z"
 last_activity: 2026-08-27
 last_activity_desc: Phase 03 execution started
 progress:
   total_phases: 3
-  completed_phases: 2
+  completed_phases: 3
   total_plans: 11
-  completed_plans: 10
-  percent: 67
+  completed_plans: 11
+  percent: 100
 ---
 
 # Project State
@@ -30,7 +30,7 @@ See: .planning/PROJECT.md (updated 2026-08-26)
 
 Phase: 03 (hardening-live-validation-documentation) — EXECUTING
 Plan: 3 of 3
-Status: Ready to execute
+Status: Phase complete — ready for verification
 Last activity: 2026-08-27 — Phase 03 execution started
 
 Progress: [░░░░░░░░░░] 0%
@@ -61,6 +61,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 01 P04 | 70min | 3 tasks | 9 files |
 | Phase 03 P01 | 40min | 2 tasks | 11 files |
 | Phase 03 P02 | 45min | 3 tasks | 4 files |
+| Phase 03 P03 | 55min | 3 tasks | 13 files |
 
 ## Accumulated Context
 
@@ -88,6 +89,9 @@ Recent decisions affecting current work:
 - [Phase ?]: Boost.DI aliases structurally-identical makeHostInjector(...) call sites to the same Host/io_context instance -- test nodes bind a distinct marker type per construction site; flagged as an investigation item for future multi-Host-in-process usage
 - [Phase 03]: ASSERT_FALSE cannot be used inside a C++ constructor (gtest fatal-assert macros expand to return <value>;, invalid per MSVC C2534); ReentrancyGuard::Scope's constructor uses EXPECT_FALSE instead, across all 3 files defining the struct — compile-fix required for the verbatim scaffolding specified in 03-PATTERNS.md/03-RESEARCH.md
 - [Phase 03]: interceptAccept's reentrancy test uses before/after observation (io_context run_for vs scheduler_backend drain) instead of the ReentrancyGuard::Scope idiom, since it has no callback-taking collaborator and the entire accept-handling block is already the deferred body of one scheduler_->schedule(...) call
+- [Phase ?]: [Phase 3-03]: cmake/dependencies.cmake now fetches Boost date_time/regex components -- EXAMPLES=ON had never successfully configured in this environment before this plan (blocked all 4 pre-existing examples too)
+- [Phase ?]: [Phase 3-03]: p2p_dialer now links p2p_pnet -- dialer_impl.cpp's PSK-bootstrap-refusal path (03-01/03-02) referenced pnet::make_error_code without the CMake dependency ever being declared, causing LNK2019 for any pnet-free consumer
+- [Phase ?]: [Phase 3-03]: example directories don't share a library target -- 06-private-network-gater's DenylistGater is a standalone copy of 07-connection-gater's, per D-09/D-10's one-topic-per-example-dir convention
 
 ### Pending Todos
 
@@ -101,6 +105,7 @@ None yet.
 - Plan verification commands using 'ctest -R <GTestSuiteName>' (e.g. UpgraderSessionTest) don't match — CTest registers tests under their CMake target name (e.g. upgrader_session_test), not the GTest suite name. Use the CMake target name (or -C Debug on this multi-config MSVC build) when writing future plans' ctest verify commands.
 - Pre-existing (not caused by Phase 1): on native Windows/MSVC builds, TcpListenerTest's ListenCloseListen/DoubleClose assert ec.value() == std::errc::operation_canceled (105) but boost::asio's cancellation surfaces as system_category 995 (ERROR_OPERATION_ABORTED); confirmed unmodified since before Phase 01 and unrelated to gater wiring
 - Boost.DI instance-aliasing: multiple makeHostInjector(...) calls with identical static call signatures return aliased Host/io_context instances within one process -- confirmed empirically, workaround applied at test level only, no production fix yet (see 03-01-SUMMARY.md Threat Flags)
+- Pre-existing, unrelated full-build (TESTING=ON) test-target failures discovered during 03-03's full-build verification (Host-interface-vs-mock gaps in HostMock/DialerMock/LoopbackStream, missing includes, the already-documented Phase 1 muxer.cpp dial() 3-arg item) -- logged to .planning/phases/03-hardening-live-validation-documentation/deferred-items.md, out of scope for a documentation-only plan, not blocking DOCS-01/02/03
 
 ## Deferred Items
 
@@ -112,6 +117,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-08-27T03:09:37.244Z
-Stopped at: Completed 03-02-PLAN.md
+Last session: 2026-08-27T03:28:29.265Z
+Stopped at: Completed 03-03-PLAN.md
 Resume file: None

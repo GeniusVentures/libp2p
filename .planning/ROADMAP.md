@@ -15,7 +15,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] **Phase 1: Connection Gater interface + wiring** - Pluggable 5-stage accept/reject hooks wired into Dialer, TcpListener, and UpgraderSession, defaulting to fully permissive behavior (completed 2026-08-26)
 - [ ] **Phase 2: Private network (pnet) PSK protector** - XSalsa20 PSK wrapper applied to raw connections before security negotiation, DI-configured, with a force-pnet fail-safe and private-network-scoped Kademlia bootstrap
-- [ ] **Phase 3: Hardening, live validation & documentation** - Live two-node PSK test, reentrant-callback regression test, and integrator documentation for both layers
+- [x] **Phase 3: Hardening, live validation & documentation** - Live two-node PSK test, reentrant-callback regression test, and integrator documentation for both layers (completed 2026-08-27)
 
 ## Phase Details
 
@@ -88,13 +88,13 @@ Plans:
   4. Integrator documentation walks through a complete, working example of registering a custom `ConnectionGater` implementation via DI.
   5. Documentation explicitly explains that pnet (proves network membership) and the gater (proves peer-level authorization) are complementary, non-redundant layers, illustrated with a worked "valid PSK, gater-denied peer" example.
 
-**Plans**: 2/3 plans executed
+**Plans**: 3/3 plans complete
 Plans:
 **Wave 1** *(parallel — file-disjoint)*
 
 - [x] 03-01-PLAN.md — Live two-node PSK acceptance test: matched-PSK connects, mismatched-PSK never establishes a usable stream (TEST-03)
 - [x] 03-02-PLAN.md — Reentrancy regression tests extending dialer_test/tcp_listener_test/upgrader_session_test/pnet_protected_connection_test (TEST-04)
-- [ ] 03-03-PLAN.md — Three example directories: PSK config, custom gater, and combined complementary-layers demo (DOCS-01, DOCS-02, DOCS-03)
+- [x] 03-03-PLAN.md — Three example directories: PSK config, custom gater, and combined complementary-layers demo (DOCS-01, DOCS-02, DOCS-03)
 
 ## Progress
 
@@ -105,4 +105,4 @@ Phases execute in numeric order: 1 → 2 → 3
 |-------|----------------|--------|-----------|
 | 1. Connection Gater interface + wiring | 4/4 | Complete   | 2026-08-26 |
 | 2. Private network (pnet) PSK protector | 0/4 | Not started | - |
-| 3. Hardening, live validation & documentation | 2/3 | In Progress|  |
+| 3. Hardening, live validation & documentation | 3/3 | Complete   | 2026-08-27 |

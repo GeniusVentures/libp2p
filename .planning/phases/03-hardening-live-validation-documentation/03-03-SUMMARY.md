@@ -193,3 +193,7 @@ None - no external service configuration required.
 ---
 *Phase: 03-hardening-live-validation-documentation*
 *Completed: 2026-08-27*
+
+## Self-Check: PASSED
+
+All 9 example files, `deferred-items.md`, and this SUMMARY were verified present on disk. All 4 task/plan commits (`b9d14ba`, `ae75ae5`, `a2918e9`, `3f3a138`) were verified present in `git log`.

@@ -36,9 +36,9 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Documentation
 
-- [ ] **DOCS-01**: Integrator documentation explains how to configure a PSK for a private network
-- [ ] **DOCS-02**: Integrator documentation explains how to register a custom `ConnectionGater` implementation
-- [ ] **DOCS-03**: Documentation clarifies that pnet and the gater are complementary layers (PSK proves network membership, gater proves peer-level authorization) — not redundant
+- [x] **DOCS-01**: Integrator documentation explains how to configure a PSK for a private network
+- [x] **DOCS-02**: Integrator documentation explains how to register a custom `ConnectionGater` implementation
+- [x] **DOCS-03**: Documentation clarifies that pnet and the gater are complementary layers (PSK proves network membership, gater proves peer-level authorization) — not redundant
 
 ## v2 Requirements
 
@@ -83,9 +83,9 @@ Which phases cover which requirements. Updated during roadmap creation.
 | TEST-02 | Phase 2 | Pending |
 | TEST-03 | Phase 3 | Complete |
 | TEST-04 | Phase 3 | Complete |
-| DOCS-01 | Phase 3 | Pending |
-| DOCS-02 | Phase 3 | Pending |
-| DOCS-03 | Phase 3 | Pending |
+| DOCS-01 | Phase 3 | Complete |
+| DOCS-02 | Phase 3 | Complete |
+| DOCS-03 | Phase 3 | Complete |
 
 **Coverage:**
 
