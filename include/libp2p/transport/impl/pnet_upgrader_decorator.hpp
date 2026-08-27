@@ -32,9 +32,11 @@ namespace libp2p::transport {
                                     PnetUpgraderDecorator> {
    public:
     /// NOTE: takes the CONCRETE UpgraderImpl — requesting the Upgrader
-    /// interface it replaces would make Boost.DI resolve itself recursively
+    /// interface it replaces would make Boost.DI resolve itself recursively.
+    /// The PSK travels in a copyable PskHandle so Boost.DI can instance-bind
+    /// it (Psk itself is move-only).
     PnetUpgraderDecorator(std::shared_ptr<UpgraderImpl> inner,
-                          std::shared_ptr<const security::pnet::Psk> psk,
+                          security::pnet::PskHandle psk_handle,
                           std::shared_ptr<basic::Scheduler> scheduler);
 
     ~PnetUpgraderDecorator() override = default;

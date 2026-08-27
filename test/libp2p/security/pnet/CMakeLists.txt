@@ -29,3 +29,13 @@ target_link_libraries(pnet_upgrader_decorator_test
     p2p_testutil
     p2p_literals
     )
+
+addtest(pnet_injector_test
+    pnet_injector_test.cpp
+    )
+target_link_libraries(pnet_injector_test
+    Boost::Boost.DI
+    p2p_default_network
+    p2p_cares
+    p2p_pnet_upgrader
+    )

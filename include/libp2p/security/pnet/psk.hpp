@@ -68,6 +68,16 @@ namespace libp2p::security::pnet {
     std::array<uint8_t, kPskSize> key_{};
   };
 
+  /**
+   * Copyable DI-friendly holder for the move-only Psk: the shared_ptr is
+   * constant and never null once constructed. Injectable via Boost.DI
+   * instance binding (which requires copyable types); absence of a binding
+   * (nullptr) is the public-mode signal.
+   */
+  struct PskHandle {
+    std::shared_ptr<const Psk> psk;
+  };
+
 }  // namespace libp2p::security::pnet
 
 #endif  // LIBP2P_SECURITY_PNET_PSK_HPP

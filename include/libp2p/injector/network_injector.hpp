@@ -36,6 +36,9 @@
 #include <libp2p/peer/impl/identity_manager_impl.hpp>
 #include <libp2p/protocol_muxer/multiselect.hpp>
 #include <libp2p/security/noise.hpp>
+#include <libp2p/security/pnet/psk.hpp>
+#include <libp2p/security/pnet/pnet_error.hpp>
+#include <libp2p/transport/impl/pnet_upgrader_decorator.hpp>
 #include <libp2p/security/plaintext.hpp>
 #include <libp2p/security/plaintext/exchange_message_marshaller_impl.hpp>
 #include <libp2p/security/secio.hpp>
@@ -250,6 +253,77 @@ namespace libp2p::injector {
   inline auto useConnectionGater() {
     return boost::di::bind<network::ConnectionGater>()
         .template to<GaterImpl>()[boost::di::override];
+  }
+
+  /**
+   * @brief Thrown eagerly by usePrivateNetwork when the key material is
+   * invalid — BEFORE any injector (and therefore any Host) can be assembled.
+   * Carries the pnet error code; the message never embeds key bytes (D-06).
+   */
+  struct PskValidationError : std::runtime_error {
+    explicit PskValidationError(security::pnet::PnetError e)
+        : std::runtime_error(make_error_code(e).message()), error(e) {}
+
+    security::pnet::PnetError error;
+  };
+
+  /**
+   * @brief One-line activation of private-network mode (D-07 combined
+   * module): binds the validated PSK and rebinds the Upgrader to a
+   * PnetUpgraderDecorator, so every upgraded raw connection passes through
+   * the pnet PSK boundary on BOTH dial and accept paths.
+   *
+   * Fails fast: any invalid key throws PskValidationError from THIS call,
+   * before di::make_injector assembles anything — a half-configured
+   * private/public Host can never exist (PNET-05, D-09/D-10).
+   *
+   * @code
+   * auto injector = makeNetworkInjector(
+   *   usePrivateNetwork("/key/swarm/psk/1.0.0/\n/base16/<64 hex chars>\n")
+   * );
+   * @endcode
+   */
+  inline auto usePrivateNetwork(std::string_view key_text) {
+    // dispatch by shape: swarm-key framing → base16 → base64 (D-05 formats)
+    // psk holds the value on success; err holds the FIRST factory's error
+    // code (kept as the reporting error if every shape fails)
+    auto psk = security::pnet::Psk::fromSwarmKeyText(key_text);
+    auto err = security::pnet::PnetError::PNET_INVALID_PSK_FORMAT;
+    if (!psk) {
+      auto as_b16 = security::pnet::Psk::fromBase16String(key_text);
+      if (as_b16) {
+        psk = std::move(as_b16);
+      } else {
+        auto as_b64 = security::pnet::Psk::fromBase64String(key_text);
+        if (as_b64) {
+          psk = std::move(as_b64);
+        }
+      }
+    }
+    if (!psk) {
+      throw PskValidationError(err);
+    }
+    // Psk is move-only; Boost.DI instance scope needs copyable types, so
+    // the validated key travels inside a copyable PskHandle (constant
+    // shared_ptr — never null once constructed)
+    security::pnet::PskHandle handle{
+        std::make_shared<const security::pnet::Psk>(std::move(psk.value()))};
+    return boost::di::make_injector(
+        boost::di::bind<security::pnet::PskHandle>().to(std::move(handle)),
+        boost::di::bind<transport::Upgrader>()
+            .template to<transport::PnetUpgraderDecorator>()
+            [boost::di::override]);
+  }
+
+  /** Exception-free overload for integrators holding a validated Psk */
+  inline auto usePrivateNetwork(security::pnet::Psk validated_psk) {
+    security::pnet::PskHandle handle{
+        std::make_shared<const security::pnet::Psk>(std::move(validated_psk))};
+    return boost::di::make_injector(
+        boost::di::bind<security::pnet::PskHandle>().to(std::move(handle)),
+        boost::di::bind<transport::Upgrader>()
+            .template to<transport::PnetUpgraderDecorator>()
+            [boost::di::override]);
   }
 
   /**

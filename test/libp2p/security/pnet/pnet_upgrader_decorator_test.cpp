@@ -66,8 +66,9 @@ struct PnetUpgraderDecoratorTest : public ::testing::Test {
   void SetUp() override {
     auto psk_res = libp2p::security::pnet::Psk::fromRawBytes(kKeyBytes);
     ASSERT_TRUE(psk_res);
-    psk = std::shared_ptr<const libp2p::security::pnet::Psk>(
-        new libp2p::security::pnet::Psk(std::move(psk_res.value())));
+    psk_handle = libp2p::security::pnet::PskHandle{
+        std::shared_ptr<const libp2p::security::pnet::Psk>(
+            new libp2p::security::pnet::Psk(std::move(psk_res.value())))};
 
     adaptor = std::make_shared<libp2p::security::SecurityAdaptorMockFull>();
     muxer = std::make_shared<libp2p::muxer::MuxerAdaptorMock>();
@@ -91,7 +92,8 @@ struct PnetUpgraderDecoratorTest : public ::testing::Test {
         std::vector<std::shared_ptr<libp2p::security::SecurityAdaptor>>{
             adaptor},
         std::vector<std::shared_ptr<libp2p::muxer::MuxerAdaptor>>{muxer});
-    decorator = std::make_shared<PnetUpgraderDecorator>(inner, psk, scheduler);
+    decorator =
+        std::make_shared<PnetUpgraderDecorator>(inner, psk_handle, scheduler);
   }
 
   std::shared_ptr<libp2p::protocol_muxer::ProtocolMuxerMock> proto_muxer =
@@ -107,7 +109,7 @@ struct PnetUpgraderDecoratorTest : public ::testing::Test {
       std::make_shared<libp2p::basic::SchedulerImpl>(
           backend, libp2p::basic::Scheduler::Config{});
 
-  std::shared_ptr<const libp2p::security::pnet::Psk> psk;
+  libp2p::security::pnet::PskHandle psk_handle;
   std::shared_ptr<UpgraderImpl> inner;
   std::shared_ptr<PnetUpgraderDecorator> decorator;
 

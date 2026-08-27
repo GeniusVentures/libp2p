@@ -11,10 +11,10 @@ namespace libp2p::transport {
 
   PnetUpgraderDecorator::PnetUpgraderDecorator(
       std::shared_ptr<UpgraderImpl> inner,
-      std::shared_ptr<const security::pnet::Psk> psk,
+      security::pnet::PskHandle psk_handle,
       std::shared_ptr<basic::Scheduler> scheduler)
       : inner_(std::move(inner)),
-        psk_(std::move(psk)),
+        psk_(std::move(psk_handle.psk)),
         scheduler_(std::move(scheduler)) {}
 
   void PnetUpgraderDecorator::upgradeToSecureOutbound(
