@@ -19,3 +19,13 @@ target_link_libraries(pnet_protected_connection_test
     p2p_manual_scheduler_backend
     p2p_testutil
     )
+
+addtest(pnet_upgrader_decorator_test
+    pnet_upgrader_decorator_test.cpp
+    )
+target_link_libraries(pnet_upgrader_decorator_test
+    p2p_pnet_upgrader
+    p2p_manual_scheduler_backend
+    p2p_testutil
+    p2p_literals
+    )
