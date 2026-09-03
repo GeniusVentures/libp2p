@@ -42,29 +42,35 @@ namespace libp2p::protocol {
 
       // Create a detached thread that resets requestautonat_ to true after 3
       // minutes
-      std::thread([this]() {
-        // Sleep in smaller intervals to allow quick exit
-        for (int i = 0; i < 180 && !should_stop_; ++i) {
+      // Detached thread: hold only a weak_ptr so it cannot touch a destroyed
+      // Autonat (the host may be torn down while it sleeps).
+      std::thread([wp = weak_from_this()]() {
+        for (int i = 0; i < 180; ++i) {
           std::this_thread::sleep_for(std::chrono::seconds(1));
+          auto self = wp.lock();
+          if (!self || self->should_stop_)
+            return;
         }
 
-        if (should_stop_)
+        auto self = wp.lock();
+        if (!self || self->should_stop_)
           return;
+        auto *this_ = self.get();
 
         // Check if we still have valid observed addresses
-        if (!hasValidObservedAddresses()) {
-          log_->warn(
+        if (!this_->hasValidObservedAddresses()) {
+          this_->log_->warn(
               "All observed addresses have expired. AutoNAT cannot function "
               "without observed addresses. Stopping AutoNAT operations.");
           // Reset NAT status to unknown state
-          natstatus_ = false;
+          this_->natstatus_ = false;
           // Don't restart requests until we get new observed addresses
-          requestautonat_ = false;
+          this_->requestautonat_ = false;
           return;
         }
 
-        requestautonat_ = true;
-        msg_processor_->clearAutoNatTrackers();
+        this_->requestautonat_ = true;
+        this_->msg_processor_->clearAutoNatTrackers();
       }).detach();
     });
   }
@@ -72,8 +78,6 @@ namespace libp2p::protocol {
   Autonat::~Autonat() {
     should_stop_ = true;
     started_ = false;
-    // Give threads a moment to exit gracefully
-    std::this_thread::sleep_for(std::chrono::seconds(1));
   }
 
   boost::signals2::connection Autonat::onAutonatReceived(
@@ -143,27 +147,31 @@ namespace libp2p::protocol {
 
   void Autonat::startObservedAddressMonitoring() {
     // Start a thread that periodically checks observed addresses
-    std::thread([this]() {
-      while (started_ && !should_stop_) {
-        // Sleep in smaller intervals to allow quick exit
-        for (int i = 0; i < 60 && !should_stop_; ++i) {
+    // Detached thread: hold only a weak_ptr so it cannot touch a destroyed
+    // Autonat (the host may be torn down while it sleeps).
+    std::thread([wp = weak_from_this()]() {
+      while (true) {
+        for (int i = 0; i < 60; ++i) {
           std::this_thread::sleep_for(std::chrono::seconds(1));
+          auto self = wp.lock();
+          if (!self || !self->started_ || self->should_stop_)
+            return;
         }
 
-        if (!started_ || should_stop_) {
-          break;  // Exit if stopped
-        }
+        auto self = wp.lock();
+        if (!self || !self->started_ || self->should_stop_)
+          return;
         // Note: We rely on the host's getObservedAddressesReal() method to
         // handle garbage collection since the message processor's
         // getObservedAddresses() returns a const reference
 
         // Check if we have any valid observed addresses left
-        if (!hasValidObservedAddresses() && requestautonat_) {
-          log_->warn(
+        if (!self->hasValidObservedAddresses() && self->requestautonat_) {
+          self->log_->warn(
               "No valid observed addresses available. Stopping AutoNAT "
               "requests until addresses are restored.");
-          requestautonat_ = false;
-          natstatus_ = false;
+          self->requestautonat_ = false;
+          self->natstatus_ = false;
         }
       }
     }).detach();
