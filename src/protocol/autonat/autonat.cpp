@@ -42,42 +42,59 @@ namespace libp2p::protocol {
 
       // Create a detached thread that resets requestautonat_ to true after 3
       // minutes
-      // Detached thread: hold only a weak_ptr so it cannot touch a destroyed
-      // Autonat (the host may be torn down while it sleeps).
-      std::thread([wp = weak_from_this()]() {
-        for (int i = 0; i < 180; ++i) {
-          std::this_thread::sleep_for(std::chrono::seconds(1));
-          auto self = wp.lock();
-          if (!self || self->should_stop_)
-            return;
-        }
-
-        auto self = wp.lock();
-        if (!self || self->should_stop_)
+      spawnThread([this]() {
+        if (waitStopFor(std::chrono::seconds(180)))
           return;
-        auto *this_ = self.get();
 
         // Check if we still have valid observed addresses
-        if (!this_->hasValidObservedAddresses()) {
-          this_->log_->warn(
+        if (!hasValidObservedAddresses()) {
+          log_->warn(
               "All observed addresses have expired. AutoNAT cannot function "
               "without observed addresses. Stopping AutoNAT operations.");
           // Reset NAT status to unknown state
-          this_->natstatus_ = false;
+          natstatus_ = false;
           // Don't restart requests until we get new observed addresses
-          this_->requestautonat_ = false;
+          requestautonat_ = false;
           return;
         }
 
-        this_->requestautonat_ = true;
-        this_->msg_processor_->clearAutoNatTrackers();
-      }).detach();
+        requestautonat_ = true;
+        msg_processor_->clearAutoNatTrackers();
+      });
     });
   }
 
   Autonat::~Autonat() {
-    should_stop_ = true;
-    started_ = false;
+    {
+      std::lock_guard<std::mutex> lock(threads_mutex_);
+      should_stop_ = true;
+      started_ = false;
+    }
+    stop_cv_.notify_all();
+    std::vector<std::thread> threads;
+    {
+      std::lock_guard<std::mutex> lock(threads_mutex_);
+      threads.swap(threads_);
+    }
+    for (auto &t : threads) {
+      if (t.joinable()) {
+        t.join();
+      }
+    }
+  }
+
+  void Autonat::spawnThread(std::function<void()> body) {
+    std::lock_guard<std::mutex> lock(threads_mutex_);
+    if (should_stop_) {
+      return;
+    }
+    threads_.emplace_back(std::move(body));
+  }
+
+  bool Autonat::waitStopFor(std::chrono::seconds timeout) {
+    std::unique_lock<std::mutex> lock(threads_mutex_);
+    return stop_cv_.wait_for(lock, timeout,
+                             [this] { return should_stop_.load(); });
   }
 
   boost::signals2::connection Autonat::onAutonatReceived(
@@ -147,34 +164,22 @@ namespace libp2p::protocol {
 
   void Autonat::startObservedAddressMonitoring() {
     // Start a thread that periodically checks observed addresses
-    // Detached thread: hold only a weak_ptr so it cannot touch a destroyed
-    // Autonat (the host may be torn down while it sleeps).
-    std::thread([wp = weak_from_this()]() {
-      while (true) {
-        for (int i = 0; i < 60; ++i) {
-          std::this_thread::sleep_for(std::chrono::seconds(1));
-          auto self = wp.lock();
-          if (!self || !self->started_ || self->should_stop_)
-            return;
-        }
-
-        auto self = wp.lock();
-        if (!self || !self->started_ || self->should_stop_)
-          return;
+    spawnThread([this]() {
+      while (!waitStopFor(std::chrono::seconds(60))) {
         // Note: We rely on the host's getObservedAddressesReal() method to
         // handle garbage collection since the message processor's
         // getObservedAddresses() returns a const reference
 
         // Check if we have any valid observed addresses left
-        if (!self->hasValidObservedAddresses() && self->requestautonat_) {
-          self->log_->warn(
+        if (!hasValidObservedAddresses() && requestautonat_) {
+          log_->warn(
               "No valid observed addresses available. Stopping AutoNAT "
               "requests until addresses are restored.");
-          self->requestautonat_ = false;
-          self->natstatus_ = false;
+          requestautonat_ = false;
+          natstatus_ = false;
         }
       }
-    }).detach();
+    });
   }
 
   void Autonat::onNewConnection(

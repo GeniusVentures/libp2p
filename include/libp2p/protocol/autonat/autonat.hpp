@@ -1,6 +1,13 @@
 #ifndef LIBP2P_AUTONAT_HPP
 #define LIBP2P_AUTONAT_HPP
+#include <atomic>
+#include <chrono>
+#include <condition_variable>
+#include <functional>
 #include <iostream>
+#include <mutex>
+#include <thread>
+#include <vector>
 #include <libp2p/event/bus.hpp>
 #include <libp2p/protocol/autonat/autonat_msg_processor.hpp>
 #include <libp2p/protocol/base_protocol.hpp>
@@ -107,6 +114,14 @@ namespace libp2p::protocol {
     bool requestautonat_ = true;
     std::atomic<bool> should_stop_{false};
     CompletionCallback callback_;
+
+    // Background threads are joined in the destructor, so they may hold a raw
+    // `this`. stop_cv_ wakes them early on shutdown.
+    std::mutex threads_mutex_;
+    std::condition_variable stop_cv_;
+    std::vector<std::thread> threads_;
+    void spawnThread(std::function<void()> body);
+    bool waitStopFor(std::chrono::seconds timeout);
   };
 }  // namespace libp2p::protocol
 
