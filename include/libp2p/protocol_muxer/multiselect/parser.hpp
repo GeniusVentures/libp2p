@@ -5,6 +5,8 @@
 
 #ifndef LIBP2P_MULTISELECT_PARSER_HPP
 #define LIBP2P_MULTISELECT_PARSER_HPP
+#include <cstdint>
+
 
 #include <libp2p/basic/read_buffer.hpp>
 #include <libp2p/basic/varint_prefix_reader.hpp>

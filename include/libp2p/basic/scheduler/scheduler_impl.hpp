@@ -5,6 +5,8 @@
 
 #ifndef LIBP2P_BASIC_SCHEDULER_IMPL_HPP
 #define LIBP2P_BASIC_SCHEDULER_IMPL_HPP
+#include <cstdint>
+
 
 #include <map>
 #include <mutex>

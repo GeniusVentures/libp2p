@@ -5,6 +5,8 @@
 
 #ifndef LIBP2P_CRYPTO_SECP256K1_TYPES_HPP
 #define LIBP2P_CRYPTO_SECP256K1_TYPES_HPP
+#include <cstdint>
+
 
 #include <vector>
 #include <array>

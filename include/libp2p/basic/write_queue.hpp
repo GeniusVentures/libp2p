@@ -5,6 +5,8 @@
 
 #ifndef LIBP2P_BASIC_WRITE_QUEUE_HPP
 #define LIBP2P_BASIC_WRITE_QUEUE_HPP
+#include <cstdint>
+
 
 #include <deque>
 #include <vector>

@@ -5,6 +5,8 @@
 
 #ifndef LIBP2P_READER_HPP
 #define LIBP2P_READER_HPP
+#include <cstdint>
+
 
 #include <functional>
 #include <vector>

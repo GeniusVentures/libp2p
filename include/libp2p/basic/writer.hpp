@@ -5,6 +5,8 @@
 
 #ifndef LIBP2P_WRITER_HPP
 #define LIBP2P_WRITER_HPP
+#include <cstdint>
+
 
 #include <functional>
 
