@@ -18,6 +18,15 @@ target_link_libraries(p2p_upgrader
     Boost::boost
     )
 
+libp2p_add_library(p2p_pnet_upgrader
+    pnet_upgrader_decorator.cpp
+    )
+target_link_libraries(p2p_pnet_upgrader
+    Boost::boost
+    p2p_upgrader
+    p2p_pnet
+    )
+
 
 libp2p_add_library(p2p_upgrader_session
     upgrader_session.cpp
@@ -25,4 +34,5 @@ libp2p_add_library(p2p_upgrader_session
 target_link_libraries(p2p_upgrader_session
     Boost::boost
     p2p_upgrader
+    p2p_connection_gater
     )

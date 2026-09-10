@@ -33,21 +33,33 @@ namespace libp2p::transport {
       return handler(std::errc::address_family_not_supported);
     }
 
-    //Check for localhost, we shouldn't have to worry about any errors on getFirstValueForProtocol because canDial already handles that
-    if (address.hasProtocol(libp2p::multi::Protocol::Code::IP4))
-    {
-        if (isLocalHost(address.getFirstValueForProtocol(libp2p::multi::Protocol::Code::IP4).value()))
-        {
-            return handler(std::errc::bad_address);
-        }
+    // Loopback (127.0.0.0/8, ::1) destinations are rejected by default --
+    // an SSRF-style safety control (restored, matching the pre-78de11e
+    // shape) preventing a malicious/compromised peer's advertised PeerInfo
+    // from inducing this node to dial its own loopback-bound services.
+    // Opt-out-by-default: gated behind the DI-injectable AllowLoopbackDial
+    // flag (see include/libp2p/transport/tcp/allow_loopback_dial.hpp),
+    // which integrators enable per-composition via
+    // injector::useAllowLoopbackDial() (network_injector.hpp) -- e.g.
+    // test/acceptance/p2p/pnet/pnet_two_node_test.cpp, which legitimately
+    // needs live loopback dialing between its DI-assembled nodes. See
+    // .planning/phases/03-hardening-live-validation-documentation/03-UAT.md
+    // test 1 for the resolution history.
+    if (!allow_loopback_dial_.allow) {
+      if (address.hasProtocol(libp2p::multi::Protocol::Code::IP4)
+          && isLocalHost(address.getFirstValueForProtocol(
+                 libp2p::multi::Protocol::Code::IP4)
+                             .value())) {
+        return handler(std::errc::bad_address);
+      }
+      if (address.hasProtocol(libp2p::multi::Protocol::Code::IP6)
+          && isLocalHost(address.getFirstValueForProtocol(
+                 libp2p::multi::Protocol::Code::IP6)
+                             .value())) {
+        return handler(std::errc::bad_address);
+      }
     }
-    if (address.hasProtocol(libp2p::multi::Protocol::Code::IP6))
-    {
-        if (isLocalHost(address.getFirstValueForProtocol(libp2p::multi::Protocol::Code::IP6).value()))
-        {
-            return handler(std::errc::bad_address);
-        }
-    }
+
     auto conn = std::make_shared<TcpConnection>(*context_);
 
     auto [host, port] = detail::getHostAndTcpPort(address);
@@ -68,7 +80,8 @@ namespace libp2p::transport {
             }
 
             auto session = std::make_shared<UpgraderSession>(
-                self->upgrader_, std::move(conn), handler);
+                self->upgrader_, std::move(conn), handler, self->gater_,
+                self->scheduler_);
             if (!holepunch || (holepunch && holepunchserver))
             {
                 session->secureOutbound(remoteId);
@@ -95,7 +108,8 @@ namespace libp2p::transport {
   std::shared_ptr<TransportListener> TcpTransport::createListener(
       TransportListener::HandlerFunc handler) {
     return std::make_shared<TcpListener>(*context_, upgrader_,
-                                         std::move(handler));
+                                         std::move(handler), gater_,
+                                         scheduler_);
   }
 
   bool TcpTransport::canDial(const multi::Multiaddress &ma) const {
@@ -130,14 +144,19 @@ namespace libp2p::transport {
   void TcpTransport::upgradeRelaySecure(const peer::PeerId& remoteId, std::shared_ptr<libp2p::connection::Stream> conn, TransportAdaptor::HandlerFunc handler)
   {
       auto session = std::make_shared<UpgraderSession>(
-          upgrader_, std::move(conn), handler);
+          upgrader_, std::move(conn), handler, gater_, scheduler_);
 
       session->secureOutboundRelay(remoteId);
   }
 
   TcpTransport::TcpTransport(std::shared_ptr<boost::asio::io_context> context,
-                             std::shared_ptr<Upgrader> upgrader)
-      : context_(std::move(context)), upgrader_(std::move(upgrader)) {
+                             std::shared_ptr<Upgrader> upgrader,
+                             std::shared_ptr<network::ConnectionGater> gater,
+                             std::shared_ptr<basic::Scheduler> scheduler,
+                             AllowLoopbackDial allow_loopback_dial)
+      : context_(std::move(context)), upgrader_(std::move(upgrader)),
+        gater_(std::move(gater)), scheduler_(std::move(scheduler)),
+        allow_loopback_dial_(std::move(allow_loopback_dial)) {
       increase_open_file_limit();
   }
 
@@ -190,21 +209,24 @@ namespace libp2p::transport {
       return handler(std::errc::address_family_not_supported);
     }
 
-    //Check for localhost, we shouldn't have to worry about any errors on getFirstValueForProtocol because canDial already handles that
-    if (address.hasProtocol(libp2p::multi::Protocol::Code::IP4))
-    {
-        if (isLocalHost(address.getFirstValueForProtocol(libp2p::multi::Protocol::Code::IP4).value()))
-        {
-            return handler(std::errc::bad_address);
-        }
+    // Loopback (127.0.0.0/8, ::1) destinations are rejected by default --
+    // see the matching note in the other dial() overload above; gated
+    // behind the same AllowLoopbackDial flag.
+    if (!allow_loopback_dial_.allow) {
+      if (address.hasProtocol(libp2p::multi::Protocol::Code::IP4)
+          && isLocalHost(address.getFirstValueForProtocol(
+                 libp2p::multi::Protocol::Code::IP4)
+                             .value())) {
+        return handler(std::errc::bad_address);
+      }
+      if (address.hasProtocol(libp2p::multi::Protocol::Code::IP6)
+          && isLocalHost(address.getFirstValueForProtocol(
+                 libp2p::multi::Protocol::Code::IP6)
+                             .value())) {
+        return handler(std::errc::bad_address);
+      }
     }
-    if (address.hasProtocol(libp2p::multi::Protocol::Code::IP6))
-    {
-        if (isLocalHost(address.getFirstValueForProtocol(libp2p::multi::Protocol::Code::IP6).value()))
-        {
-            return handler(std::errc::bad_address);
-        }
-    }
+
     auto conn = std::make_shared<TcpConnection>(*context_);
 
     auto [host, port] = detail::getHostAndTcpPort(address);
@@ -224,7 +246,8 @@ namespace libp2p::transport {
             }
 
             auto session = std::make_shared<UpgraderSession>(
-                self->upgrader_, std::move(conn), handler);
+                self->upgrader_, std::move(conn), handler, self->gater_,
+                self->scheduler_);
             if (!holepunch || (holepunch && holepunchserver))
             {
                 session->secureOutbound(remoteId);

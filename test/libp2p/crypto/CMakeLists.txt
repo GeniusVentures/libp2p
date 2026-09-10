@@ -48,6 +48,13 @@ target_link_libraries(random_test
     p2p_random_generator
     )
 
+addtest(xsalsa20_test
+    xsalsa20_test.cpp
+    )
+target_link_libraries(xsalsa20_test
+    p2p_crypto_xsalsa20
+    )
+
 addtest(marshaller_test
     marshaller_test.cpp
     )

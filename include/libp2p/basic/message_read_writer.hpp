@@ -5,6 +5,8 @@
 
 #ifndef LIBP2P_MESSAGE_READ_WRITER_HPP
 #define LIBP2P_MESSAGE_READ_WRITER_HPP
+#include <cstdint>
+
 
 #include <memory>
 #include <vector>

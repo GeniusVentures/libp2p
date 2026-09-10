@@ -6,6 +6,15 @@
 add_subdirectory(impl)
 add_subdirectory(cares)
 
+libp2p_add_library(p2p_connection_gater
+    connection_gater_error.cpp
+    )
+target_link_libraries(p2p_connection_gater
+    Boost::boost
+    p2p_peer_id
+    p2p_multiaddress
+    )
+
 libp2p_add_library(p2p_route_helper
     route_helper.cpp
     )

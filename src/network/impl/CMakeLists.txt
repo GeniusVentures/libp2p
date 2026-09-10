@@ -34,6 +34,8 @@ target_link_libraries(p2p_dialer
     p2p_peer_id
     p2p_logger
 	p2p_relay_upgrader
+    p2p_connection_gater
+    p2p_pnet
     )
 
 

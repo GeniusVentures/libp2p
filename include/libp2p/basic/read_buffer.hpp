@@ -5,6 +5,8 @@
 
 #ifndef LIBP2P_BASIC_READ_BUFFER_HPP
 #define LIBP2P_BASIC_READ_BUFFER_HPP
+#include <cstdint>
+
 
 #include <deque>
 #include <vector>

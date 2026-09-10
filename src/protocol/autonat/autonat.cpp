@@ -42,13 +42,8 @@ namespace libp2p::protocol {
 
       // Create a detached thread that resets requestautonat_ to true after 3
       // minutes
-      std::thread([this]() {
-        // Sleep in smaller intervals to allow quick exit
-        for (int i = 0; i < 180 && !should_stop_; ++i) {
-          std::this_thread::sleep_for(std::chrono::seconds(1));
-        }
-
-        if (should_stop_)
+      spawnThread([this]() {
+        if (waitStopFor(std::chrono::seconds(180)))
           return;
 
         // Check if we still have valid observed addresses
@@ -65,15 +60,41 @@ namespace libp2p::protocol {
 
         requestautonat_ = true;
         msg_processor_->clearAutoNatTrackers();
-      }).detach();
+      });
     });
   }
 
   Autonat::~Autonat() {
-    should_stop_ = true;
-    started_ = false;
-    // Give threads a moment to exit gracefully
-    std::this_thread::sleep_for(std::chrono::seconds(1));
+    {
+      std::lock_guard<std::mutex> lock(threads_mutex_);
+      should_stop_ = true;
+      started_ = false;
+    }
+    stop_cv_.notify_all();
+    std::vector<std::thread> threads;
+    {
+      std::lock_guard<std::mutex> lock(threads_mutex_);
+      threads.swap(threads_);
+    }
+    for (auto &t : threads) {
+      if (t.joinable()) {
+        t.join();
+      }
+    }
+  }
+
+  void Autonat::spawnThread(std::function<void()> body) {
+    std::lock_guard<std::mutex> lock(threads_mutex_);
+    if (should_stop_) {
+      return;
+    }
+    threads_.emplace_back(std::move(body));
+  }
+
+  bool Autonat::waitStopFor(std::chrono::seconds timeout) {
+    std::unique_lock<std::mutex> lock(threads_mutex_);
+    return stop_cv_.wait_for(lock, timeout,
+                             [this] { return should_stop_.load(); });
   }
 
   boost::signals2::connection Autonat::onAutonatReceived(
@@ -143,16 +164,8 @@ namespace libp2p::protocol {
 
   void Autonat::startObservedAddressMonitoring() {
     // Start a thread that periodically checks observed addresses
-    std::thread([this]() {
-      while (started_ && !should_stop_) {
-        // Sleep in smaller intervals to allow quick exit
-        for (int i = 0; i < 60 && !should_stop_; ++i) {
-          std::this_thread::sleep_for(std::chrono::seconds(1));
-        }
-
-        if (!started_ || should_stop_) {
-          break;  // Exit if stopped
-        }
+    spawnThread([this]() {
+      while (!waitStopFor(std::chrono::seconds(60))) {
         // Note: We rely on the host's getObservedAddressesReal() method to
         // handle garbage collection since the message processor's
         // getObservedAddresses() returns a const reference
@@ -166,7 +179,7 @@ namespace libp2p::protocol {
           natstatus_ = false;
         }
       }
-    }).detach();
+    });
   }
 
   void Autonat::onNewConnection(

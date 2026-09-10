@@ -31,6 +31,11 @@ namespace libp2p::connection {
 
     MOCK_CONST_METHOD0(isClosed, bool(void));
     MOCK_METHOD0(close, outcome::result<void>());
+    MOCK_CONST_METHOD0(getRawConnection,
+                        outcome::result<std::shared_ptr<RawConnection>>());
+    MOCK_METHOD1(setRelay, void(bool));
+    MOCK_METHOD0(isRelay, bool());
+    MOCK_CONST_METHOD0(getStreams, std::vector<std::shared_ptr<Stream>>());
     MOCK_METHOD3(read,
                  void(gsl::span<uint8_t>, size_t, Reader::ReadCallbackFunc));
     MOCK_METHOD3(readSome,

@@ -5,6 +5,8 @@
 
 #ifndef LIBP2P_CRYPTO_SECP256K1_PROVIDER_IMPL_HPP
 #define LIBP2P_CRYPTO_SECP256K1_PROVIDER_IMPL_HPP
+#include <cstdint>
+
 
 #include <memory>
 

@@ -5,6 +5,8 @@
 
 #ifndef LIBP2P_PROTOBUF_MESSAGE_READ_WRITER_HPP
 #define LIBP2P_PROTOBUF_MESSAGE_READ_WRITER_HPP
+#include <cstdint>
+
 
 #include <libp2p/basic/message_read_writer.hpp>
 

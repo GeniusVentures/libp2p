@@ -5,6 +5,8 @@
 
 #ifndef LIBP2P_ED25519_PROVIDER_ED25519_PROVIDER_IMPL_HPP
 #define LIBP2P_ED25519_PROVIDER_ED25519_PROVIDER_IMPL_HPP
+#include <cstdint>
+
 
 #include <libp2p/crypto/ed25519_provider.hpp>
 

@@ -10,6 +10,7 @@
 #include <unordered_map>
 
 #include <libp2p/basic/scheduler.hpp>
+#include <libp2p/network/connection_gater.hpp>
 #include <libp2p/network/connection_manager.hpp>
 #include <libp2p/network/dialer.hpp>
 #include <libp2p/network/listener_manager.hpp>
@@ -17,6 +18,7 @@
 #include <libp2p/network/transport_manager.hpp>
 #include <libp2p/protocol/relay/relay_conupgrader.hpp>
 #include <libp2p/protocol_muxer/protocol_muxer.hpp>
+#include <libp2p/security/pnet/psk.hpp>
 
 namespace libp2p::network {
 
@@ -25,11 +27,19 @@ namespace libp2p::network {
    public:
     ~DialerImpl() override = default;
 
+    /// @param psk_handle private-network pre-shared key, wrapped in the
+    /// copyable PskHandle (Psk itself is move-only and not publicly
+    /// constructible, so it cannot be auto-injected by Boost.DI directly —
+    /// same rationale as PnetUpgraderDecorator's ctor, see psk.hpp);
+    /// default-constructed (null) PskHandle = public mode (absence is the
+    /// meaningful signal — D-08)
     DialerImpl(std::shared_ptr<protocol_muxer::ProtocolMuxer> multiselect,
                std::shared_ptr<TransportManager> tmgr,
                std::shared_ptr<ConnectionManager> cmgr,
                std::shared_ptr<ListenerManager> listener,
-               std::shared_ptr<basic::Scheduler> scheduler);
+               std::shared_ptr<basic::Scheduler> scheduler,
+               std::shared_ptr<ConnectionGater> gater,
+               security::pnet::PskHandle psk_handle = {});
 
     // Establishes a connection to a given peer
     void dial(
@@ -106,6 +116,19 @@ namespace libp2p::network {
     std::shared_ptr<ConnectionManager> cmgr_;
     std::shared_ptr<ListenerManager> listener_;
     std::shared_ptr<basic::Scheduler> scheduler_;
+    std::shared_ptr<ConnectionGater> gater_;
+
+    /// private-network key; nullptr in public mode (D-08)
+    std::shared_ptr<const security::pnet::Psk> psk_;
+
+    /// true when the dial target is public bootstrap infrastructure
+    /// (dnsaddr containment is the primary guard; the peer-ID snapshot is
+    /// advisory — A3 staleness accepted)
+    bool isPublicBootstrapTarget(const peer::PeerInfo &p) const;
+
+    /// Snapshot of well-known public bootstrap peer IDs (base58), from the
+    /// kubo default bootstrap set. Advisory only — see above.
+    static bool isKnownBootstrapPeerId(const peer::PeerId &id);
     log::Logger log_;
 
     // peers we are currently dialing to

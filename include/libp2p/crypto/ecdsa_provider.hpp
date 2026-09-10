@@ -5,6 +5,8 @@
 
 #ifndef LIBP2P_CRYPTO_ECDSA_PROVIDER_HPP
 #define LIBP2P_CRYPTO_ECDSA_PROVIDER_HPP
+#include <cstdint>
+
 
 #include <gsl/span>
 #include <libp2p/crypto/ecdsa_types.hpp>

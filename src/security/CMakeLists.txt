@@ -4,6 +4,7 @@
 #
 
 add_subdirectory(noise)
+add_subdirectory(pnet)
 add_subdirectory(plaintext)
 add_subdirectory(secio)
 add_subdirectory(tls)

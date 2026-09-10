@@ -50,6 +50,9 @@ namespace libp2p::connection {
 
     MOCK_CONST_METHOD0(remotePublicKey,
                        outcome::result<crypto::PublicKey>(void));
+
+    MOCK_CONST_METHOD0(getRawConnection,
+                       outcome::result<std::shared_ptr<RawConnection>>(void));
   };
 }  // namespace libp2p::connection
 

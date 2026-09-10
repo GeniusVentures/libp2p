@@ -66,12 +66,17 @@ namespace libp2p::protocol::kademlia {
     addPeer(host_->getPeerInfo(), true);
 
     // handle streams for observed protocol
-    // host_->setProtocolHandler(
-    //     {protocol_}, [wp = weak_from_this()](StreamAndProtocol stream) {
-    //       if (auto self = wp.lock()) {
-    //         self->handleProtocol(std::move(stream));
-    //       }
-    //     });
+    // Inbound DHT serving is opt-in (Config::enableServer, default off):
+    // nodes bootstrapped to the public IPFS network delegate serving to it,
+    // while self-contained clusters enable it so peers can serve each other.
+    if (config_.enableServer) {
+      host_->setProtocolHandler(
+          {protocol_}, [wp = weak_from_this()](StreamAndProtocol stream) {
+            if (auto self = wp.lock()) {
+              self->handleProtocol(std::move(stream));
+            }
+          });
+    }
 
     // subscribe to new connection
     new_connection_subscription_ =
@@ -563,8 +568,8 @@ namespace libp2p::protocol::kademlia {
   }
 
   outcome::result<void> KademliaImpl::findRandomPeer() {
-    BOOST_ASSERT(config_.randomWalk.enabled);
-
+    // NOTE: called from both bootstrap() and the random walk — must not assert
+    // on randomWalk.enabled, bootstrap() is valid with walking disabled.
     common::Hash256 hash;
     random_generator_->fillRandomly(hash);
 

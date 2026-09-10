@@ -5,6 +5,8 @@
 
 #ifndef LIBP2P_ED25519_PROVIDER_HPP
 #define LIBP2P_ED25519_PROVIDER_HPP
+#include <cstdint>
+
 
 #include <array>
 

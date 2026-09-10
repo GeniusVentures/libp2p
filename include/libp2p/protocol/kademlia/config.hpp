@@ -142,6 +142,16 @@ namespace libp2p::protocol::kademlia {
      * Random walk config
      */
     RandomWalk randomWalk{};
+
+    /**
+     * True if this node should act as a DHT server, i.e. accept inbound
+     * streams for the kademlia protocol and answer queries from other peers.
+     * Nodes bootstrapping to the public IPFS network should keep this off
+     * (the public DHT handles serving); self-contained/private clusters turn
+     * it on so peers can provide/resolve CIDs among themselves.
+     * @note Default: false
+     */
+    bool enableServer = false;
   };
 
 }  // namespace libp2p::protocol::kademlia

@@ -5,6 +5,8 @@
 
 #ifndef LIBP2P_BASIC_SCHEDULER_HPP
 #define LIBP2P_BASIC_SCHEDULER_HPP
+#include <cstdint>
+
 
 #include <chrono>
 #include <functional>

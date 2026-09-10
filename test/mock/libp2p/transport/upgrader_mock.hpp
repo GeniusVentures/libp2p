@@ -23,8 +23,15 @@ namespace libp2p::transport {
                  void(Upgrader::RawSPtr, const peer::PeerId &,
                       Upgrader::OnSecuredCallbackFunc));
 
+    MOCK_METHOD3(upgradeToSecureOutboundRelay,
+                 void(Upgrader::StrSPtr, const peer::PeerId &,
+                      Upgrader::OnSecuredCallbackFunc));
+
     MOCK_METHOD2(upgradeToSecureInbound,
                  void(Upgrader::RawSPtr, Upgrader::OnSecuredCallbackFunc));
+
+    MOCK_METHOD2(upgradeToSecureInboundRelay,
+                 void(Upgrader::StrSPtr, Upgrader::OnSecuredCallbackFunc));
 
     MOCK_METHOD2(upgradeToMuxed,
                  void(Upgrader::SecSPtr, Upgrader::OnMuxedCallbackFunc));

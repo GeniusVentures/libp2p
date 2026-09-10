@@ -5,6 +5,8 @@
 
 #ifndef LIBP2P_COMMON_FUNCTIONS_HPP
 #define LIBP2P_COMMON_FUNCTIONS_HPP
+#include <cstdint>
+
 
 #include <algorithm>
 #include <array>

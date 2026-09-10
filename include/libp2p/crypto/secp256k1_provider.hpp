@@ -5,6 +5,8 @@
 
 #ifndef LIBP2P_CRYPTO_SECP256K1_PROVIDER_HPP
 #define LIBP2P_CRYPTO_SECP256K1_PROVIDER_HPP
+#include <cstdint>
+
 
 #include <gsl/span>
 #include <libp2p/crypto/secp256k1_types.hpp>
