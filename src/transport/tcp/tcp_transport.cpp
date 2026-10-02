@@ -75,7 +75,10 @@ namespace libp2p::transport {
           [self, conn, handler{std::move(handler)}, remoteId, holepunch, holepunchserver](auto ec,
                                                               auto &e) mutable {
             if (ec) {
-              conn->close();
+              if (auto close_res = conn->close(); !close_res) {
+                std::cerr << "TcpTransport: cannot close failed dial connection: "
+                          << close_res.error().message() << std::endl;
+              }
               return handler(ec);
             }
 

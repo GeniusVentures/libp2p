@@ -218,7 +218,11 @@ namespace libp2p::protocol {
           + "/tcp/32348";
       libp2p::multi::Multiaddress listen_address =
           libp2p::multi::Multiaddress::create(tempaddr).value();
-      temphost->getNetwork().getListener().listen(listen_address);
+      auto listen_res = temphost->getNetwork().getListener().listen(listen_address);
+      if (!listen_res) {
+        log_->error("Autonat: cannot listen on temporary address {}: {}",
+                    tempaddr, listen_res.error().message());
+      }
       // Create a dial response
 
       for (const auto &addr : matching_addresses) {
