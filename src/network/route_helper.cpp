@@ -261,7 +261,7 @@ namespace libp2p::network {
     if (!unspecified_listeners.empty()) {
       // Check IP version compatibility first
       bool destination_is_ipv6 = destination_ip.find(':') != std::string::npos;
-      bool have_ipv4_listeners = false;
+      [[maybe_unused]] bool have_ipv4_listeners = false;
       bool have_ipv6_listeners = false;
       
       for (const auto *listener : unspecified_listeners) {

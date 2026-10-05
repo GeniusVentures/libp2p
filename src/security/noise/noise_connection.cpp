@@ -108,7 +108,7 @@ namespace libp2p::connection {
 
   void NoiseConnection::read(gsl::span<uint8_t> out, size_t bytes,
                              OperationContext ctx, ReadCallbackFunc cb) {
-    size_t out_size{out.empty() ? 0u : static_cast<size_t>(out.size())};
+    [[maybe_unused]] size_t out_size{out.empty() ? 0u : static_cast<size_t>(out.size())};
     BOOST_ASSERT(out_size >= bytes);
     if (0 == bytes) {
       BOOST_ASSERT(ctx.bytes_served == ctx.total_bytes);

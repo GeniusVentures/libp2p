@@ -113,7 +113,7 @@ namespace libp2p::protocol::kademlia {
               return;
             }
             // Update peer in routing table to not connected
-            auto result = self->peer_routing_table_->update(peer_id, false, false);
+            [[maybe_unused]] auto result = self->peer_routing_table_->update(peer_id, false, false);
             // Ignore result since we don't need to check it here
           });
     // start random walking

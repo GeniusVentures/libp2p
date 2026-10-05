@@ -79,7 +79,7 @@ namespace libp2p::network {
       bool holepunchserver = false;
 
       /// Addresses we already tried, but no connection was established
-      std::set<multi::Multiaddress> tried_addresses;
+      std::set<multi::Multiaddress> tried_addresses{};
 
       /// Callbacks for all who requested a connection to the peer
       std::vector<Dialer::DialResultFunc> callbacks;

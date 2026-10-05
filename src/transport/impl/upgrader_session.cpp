@@ -84,8 +84,10 @@ namespace libp2p::transport {
                  remote_addr.value().getStringAddress(),
                  gated.error().message());
         if (!secure->isClosed()) {
-          auto close_res = secure->close();
-          BOOST_ASSERT(close_res);
+          if (auto close_res = secure->close(); !close_res) {
+            SL_ERROR(log_, "Cannot close secured connection rejected by gater: {}",
+                     close_res.error().message());
+          }
         }
         scheduler_->schedule(
             [self{shared_from_this()}, err{gated.error()}] {
@@ -107,8 +109,10 @@ namespace libp2p::transport {
                                    : std::string("unknown"),
                        gated.error().message());
               if (!r.value()->isClosed()) {
-                auto close_res = r.value()->close();
-                BOOST_ASSERT(close_res);
+                if (auto close_res = r.value()->close(); !close_res) {
+                  SL_ERROR(self->log_, "Cannot close upgraded connection rejected by gater: {}",
+                           close_res.error().message());
+                }
               }
               self->scheduler_->schedule(
                   [self, err{gated.error()}] { self->handler_(err); });

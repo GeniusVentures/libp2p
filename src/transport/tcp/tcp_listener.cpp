@@ -170,8 +170,10 @@ namespace libp2p::transport {
                        !local_ma ? local_ma.error().message()
                                  : remote_ma.error().message());
               if (!conn->isClosed()) {
-                auto close_res = conn->close();
-                BOOST_ASSERT(close_res);
+                if (auto close_res = conn->close(); !close_res) {
+                  SL_ERROR(self->log_, "Cannot close accepted connection rejected for unresolved multiaddr: {}",
+                          close_res.error().message());
+                }
               }
               return;
             }
@@ -186,8 +188,10 @@ namespace libp2p::transport {
                        local_ma.value().getStringAddress(),
                        gated.error().message());
               if (!conn->isClosed()) {
-                auto close_res = conn->close();
-                BOOST_ASSERT(close_res);
+                if (auto close_res = conn->close(); !close_res) {
+                  SL_ERROR(self->log_, "Cannot close gater-rejected accepted connection: {}",
+                          close_res.error().message());
+                }
               }
               return;
             }

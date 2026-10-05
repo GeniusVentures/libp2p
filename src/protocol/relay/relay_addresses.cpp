@@ -17,7 +17,6 @@ namespace libp2p::protocol {
       return result;
     }
 
-    auto now = Clock::now();
     for (const auto &addr : addr_entry_it->second) {
         result.push_back(addr.address);
     }

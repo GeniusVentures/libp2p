@@ -148,7 +148,8 @@ namespace libp2p::network {
 
     if (!holepunch)
     {
-        bool scheduled = dialing_peers_.emplace(p.id, std::move(new_ctx)).second;
+        [[maybe_unused]] bool scheduled =
+            dialing_peers_.emplace(p.id, std::move(new_ctx)).second;
         BOOST_ASSERT(scheduled);
         rotate(p.id);
     }
@@ -192,8 +193,10 @@ namespace libp2p::network {
                   SL_ERROR(self->log_, "State inconsistency - uninteresting dial result for peer {}", peer_id.toBase58());
                   if (result.has_value() && !result.value()->isClosed()) {
                       SL_ERROR(self->log_, "How often does this happen?");
-                      auto close_res = result.value()->close();
-                      BOOST_ASSERT(close_res);
+                      if (auto close_res = result.value()->close(); !close_res) {
+                          SL_ERROR(self->log_, "Cannot close connection to peer {}: {}",
+                              peer_id.toBase58(), close_res.error().message());
+                      }
                   }
                   return;
               }
@@ -225,8 +228,10 @@ namespace libp2p::network {
           }
           // closing the connection when dialer and connection requester callback no more exist
           if (result.has_value() && !result.value()->isClosed()) {
-              auto close_res = result.value()->close();
-              BOOST_ASSERT(close_res);
+              if (auto close_res = result.value()->close(); !close_res) {
+                  std::cerr << "Dialer: cannot close orphaned connection: "
+                            << close_res.error().message() << std::endl;
+              }
           }
           };
 
@@ -330,8 +335,10 @@ namespace libp2p::network {
               if (self->dialing_holepunches_.end() == ctx_found) {
                   SL_ERROR(self->log_, "Holepunch State inconsistency - uninteresting dial result for peer {}", peer_id.toBase58());
                   if (result.has_value() && !result.value()->isClosed()) {
-                      auto close_res = result.value()->close();
-                      BOOST_ASSERT(close_res);
+                      if (auto close_res = result.value()->close(); !close_res) {
+                          SL_ERROR(self->log_, "Cannot close connection to peer {}: {}",
+                              peer_id.toBase58(), close_res.error().message());
+                      }
                   }
                   return;
               }
@@ -350,8 +357,10 @@ namespace libp2p::network {
           }
           // closing the connection when dialer and connection requester callback no more exist
           if (result.has_value() && !result.value()->isClosed()) {
-              auto close_res = result.value()->close();
-              BOOST_ASSERT(close_res);
+              if (auto close_res = result.value()->close(); !close_res) {
+                  std::cerr << "Dialer: cannot close orphaned connection: "
+                            << close_res.error().message() << std::endl;
+              }
           }
           };
       for (auto& indctx : ctx)
@@ -445,7 +454,7 @@ namespace libp2p::network {
                   addresses.push_back(stream_result.value()->remoteMultiaddr().value());
                   auto tr = self->tmgr_->findBest(stream_result.value()->remoteMultiaddr().value());
                   relayupg->start(
-                      {stream_result.value()},
+                      StreamAndProtocol{stream_result.value(), {}},
                       peer::PeerInfo{ peer_id, addresses },
                       [self, peer_id, stream_result, relayupg, tr](const bool& success) mutable {
                           if (!self) return;

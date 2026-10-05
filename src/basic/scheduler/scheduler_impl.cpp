@@ -238,7 +238,7 @@ namespace libp2p::basic {
     for (const auto &item : items) {
       assert(item.cb);
       item.cb();
-      if (owner.unique()) {
+      if (owner.use_count() == 1) {
         break;
       }
     }
@@ -249,7 +249,7 @@ namespace libp2p::basic {
     for (const auto &seq : items) {
       cancellable_.execute(seq);
 
-      if (owner.unique()) {
+      if (owner.use_count() == 1) {
         break;
       }
     }
@@ -271,7 +271,7 @@ namespace libp2p::basic {
         assert(current_nc_items_[first_cursor].cb);
         current_nc_items_[first_cursor].cb();
 
-        if (owner.unique()) {
+        if (owner.use_count() == 1) {
           break;
         }
 
@@ -283,7 +283,7 @@ namespace libp2p::basic {
       } else {
         cancellable_.execute(second_seq);
 
-        if (owner.unique()) {
+        if (owner.use_count() == 1) {
           break;
         }
 
@@ -335,7 +335,7 @@ namespace libp2p::basic {
         cancellable_.endProcessing();
       }
 
-      if (!owner.unique()) {
+      if (owner.use_count() != 1) {
         rescheduleTimer(owner);
       }
     }();
@@ -376,7 +376,7 @@ namespace libp2p::basic {
     [this, clock, owner = std::move(owner), &lock]() {
       current_timer_ = kZeroTime;
 
-      while (!items_.empty() && !owner.unique()) {
+      while (!items_.empty() && owner.use_count() != 1) {
         auto it = items_.begin();
         auto next_time = it->first.first;
         if (next_time > clock) {
@@ -414,7 +414,7 @@ namespace libp2p::basic {
         seq_in_process_ = 0;
       }
 
-      if (owner.unique()) {
+      if (owner.use_count() == 1) {
         // scheduler finished
         items_.clear();
         return;
