@@ -19,6 +19,10 @@ namespace libp2p::network {
                                       StreamAndProtocolCb cb,
                                       ProtocolPredicate predicate) {
     for (auto &protocol : protocols) {
+      if (proto_handlers_.find(protocol) != proto_handlers_.end()) {
+        log_->warn("Router: overwriting existing handler for protocol [{}]",
+                   protocol);
+      }
       proto_handlers_[protocol] = PredicateAndHandler{predicate, cb};
     }
   }

@@ -7,6 +7,7 @@
 #define LIBP2P_ROUTER_IMPL_HPP
 
 #include <tsl/htrie_map.h>
+#include <libp2p/log/logger.hpp>
 #include <libp2p/network/router.hpp>
 
 namespace libp2p::network {
@@ -36,6 +37,7 @@ namespace libp2p::network {
       StreamAndProtocolCb handler;
     };
     tsl::htrie_map<char, PredicateAndHandler> proto_handlers_;
+    log::Logger log_ = log::createLogger("Router");
   };
 
 }  // namespace libp2p::network

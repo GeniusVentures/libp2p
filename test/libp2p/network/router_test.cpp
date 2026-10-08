@@ -8,6 +8,7 @@
 #include <gtest/gtest.h>
 #include <gsl/span>
 #include "mock/libp2p/connection/stream_mock.hpp"
+#include "testutil/prepare_loggers.hpp"
 
 using namespace libp2p::network;
 using namespace libp2p::peer;
@@ -119,6 +120,33 @@ TEST_F(RouterTest, SetHandlerWithPredicate) {
 }
 
 /**
+ * @given router with a handler A set for a protocol
+ * @when setting another handler B for the same protocol @and calling handle
+ * @then handler B is invoked, handler A is not, @and the protocol appears
+ * exactly once in getSupportedProtocols()
+ */
+TEST_F(RouterTest, SetHandlerOverwrite) {
+  bool a_called = false;
+  bool b_called = false;
+
+  this->setProtocolHandler(
+      {kDefaultProtocol}, [&a_called](auto &&) mutable { a_called = true; });
+
+  // registering a handler for an already-registered protocol overwrites the
+  // previous one and logs a warning
+  this->setProtocolHandler(
+      {kDefaultProtocol}, [&b_called](auto &&) mutable { b_called = true; });
+
+  const auto supported_protos = this->getSupportedProtocols();
+  ASSERT_EQ(supported_protos.size(), 1);
+  ASSERT_EQ(supported_protos[0], kDefaultProtocol);
+
+  EXPECT_TRUE(this->handle(kDefaultProtocol, kStreamToSend));
+  EXPECT_TRUE(b_called);
+  EXPECT_FALSE(a_called);
+}
+
+/**
  * @given router
  * @when setting protocol handlers
  * @then getSupportedProtocols() call returns protocol, which were set
@@ -184,4 +212,15 @@ TEST_F(RouterTest, RemoveAll) {
 
   this->removeAll();
   ASSERT_TRUE(this->getSupportedProtocols().empty());
+}
+
+int main(int argc, char *argv[]) {
+  if (std::getenv("TRACE_DEBUG") != nullptr) {
+    testutil::prepareLoggers(soralog::Level::TRACE);
+  } else {
+    testutil::prepareLoggers(soralog::Level::INFO);
+  }
+
+  ::testing::InitGoogleTest(&argc, argv);
+  return RUN_ALL_TESTS();
 }
