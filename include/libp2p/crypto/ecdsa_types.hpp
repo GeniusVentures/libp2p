@@ -5,6 +5,8 @@
 
 #ifndef LIBP2P_CRYPTO_ECDSA_TYPES_HPP
 #define LIBP2P_CRYPTO_ECDSA_TYPES_HPP
+#include <cstdint>
+
 
 #include <array>
 #include <vector>

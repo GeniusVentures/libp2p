@@ -5,6 +5,8 @@
 
 #ifndef LIBP2P_MULTISELECT_COMMON_HPP
 #define LIBP2P_MULTISELECT_COMMON_HPP
+#include <cstdint>
+
 
 #include <string_view>
 

@@ -15,6 +15,7 @@
 #include <libp2p/connection/stream.hpp>
 #include <libp2p/crypto/key_marshaller/key_marshaller_impl.hpp>
 #include <libp2p/muxer/muxed_connection_config.hpp>
+#include <libp2p/network/impl/permissive_connection_gater.hpp>
 #include <libp2p/peer/impl/identity_manager_impl.hpp>
 #include <libp2p/security/plaintext.hpp>
 #include <libp2p/security/plaintext/exchange_message_marshaller_impl.hpp>
@@ -353,11 +354,10 @@ TEST_P(MuxerAcceptanceTest, ParallelEcho) {
   auto key_marshaller =
       std::make_shared<KeyMarshallerImpl>(createKeyValidator());
 
-  auto muxer = createMuxer(
-      GetParam(),
-      std::make_shared<basic::SchedulerImpl>(
-          std::make_shared<basic::AsioSchedulerBackend>(server_context),
-          basic::Scheduler::Config{}));
+  auto scheduler = std::make_shared<basic::SchedulerImpl>(
+      std::make_shared<basic::AsioSchedulerBackend>(server_context),
+      basic::Scheduler::Config{});
+  auto muxer = createMuxer(GetParam(), scheduler);
   if (!muxer) {
     FAIL() << "no muxer of given type";
   }
@@ -370,7 +370,9 @@ TEST_P(MuxerAcceptanceTest, ParallelEcho) {
   auto plaintext = std::make_shared<Plaintext>(msg_marshaller, idmgr,
                                                std::move(key_marshaller));
   auto upgrader = std::make_shared<UpgraderSemiMock>(plaintext, muxer);
-  auto transport = std::make_shared<TcpTransport>(server_context, upgrader);
+  auto gater = std::make_shared<network::PermissiveConnectionGater>();
+  auto transport =
+      std::make_shared<TcpTransport>(server_context, upgrader, gater, scheduler);
   auto server = std::make_shared<Server>(transport);
   server->listen(serverAddr);
 
@@ -387,11 +389,10 @@ TEST_P(MuxerAcceptanceTest, ParallelEcho) {
         KeyPair clientKeyPair = {{{Key::Type::Ed25519, {3}}},
                                  {{Key::Type::Ed25519, {4}}}};
 
-        auto muxer = createMuxer(
-            GetParam(),
-            std::make_shared<basic::SchedulerImpl>(
-                std::make_shared<basic::AsioSchedulerBackend>(context),
-                basic::Scheduler::Config{}));
+        auto scheduler = std::make_shared<basic::SchedulerImpl>(
+            std::make_shared<basic::AsioSchedulerBackend>(context),
+            basic::Scheduler::Config{});
+        auto muxer = createMuxer(GetParam(), scheduler);
         assert(muxer);
 
         auto key_marshaller =
@@ -404,7 +405,9 @@ TEST_P(MuxerAcceptanceTest, ParallelEcho) {
         auto plaintext =
             std::make_shared<Plaintext>(msg_marshaller, idmgr, key_marshaller);
         auto upgrader = std::make_shared<UpgraderSemiMock>(plaintext, muxer);
-        auto transport = std::make_shared<TcpTransport>(context, upgrader);
+        auto gater = std::make_shared<network::PermissiveConnectionGater>();
+        auto transport =
+            std::make_shared<TcpTransport>(context, upgrader, gater, scheduler);
         auto client = std::make_shared<Client>(transport, localSeed, context,
                                                streams, rounds);
 

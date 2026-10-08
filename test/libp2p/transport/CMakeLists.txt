@@ -19,3 +19,14 @@ target_link_libraries(libp2p_upgrader_test
     p2p_multihash
     p2p_testutil
     )
+
+addtest(upgrader_session_test
+    upgrader_session_test.cpp
+    )
+target_link_libraries(upgrader_session_test
+    p2p_upgrader_session
+    p2p_connection_gater
+    p2p_literals
+    p2p_manual_scheduler_backend
+    p2p_testutil
+    )

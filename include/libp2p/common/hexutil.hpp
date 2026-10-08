@@ -5,6 +5,8 @@
 
 #ifndef LIBP2P_HEXUTIL_HPP
 #define LIBP2P_HEXUTIL_HPP
+#include <cstdint>
+
 
 #include <string_view>
 #include <vector>

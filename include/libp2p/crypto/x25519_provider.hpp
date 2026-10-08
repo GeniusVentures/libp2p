@@ -5,6 +5,8 @@
 
 #ifndef LIBP2P_INCLUDE_LIBP2P_CRYPTO_X25519_PROVIDER_HPP
 #define LIBP2P_INCLUDE_LIBP2P_CRYPTO_X25519_PROVIDER_HPP
+#include <cstdint>
+
 
 #include <array>
 #include <vector>

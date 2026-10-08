@@ -7,11 +7,13 @@
 #include <unordered_map>
 
 #include <gsl/span>
+#include <libp2p/basic/scheduler.hpp>
 #include <libp2p/connection/stream.hpp>
 #include <libp2p/crypto/key_marshaller.hpp>
 #include <libp2p/host/host.hpp>
 #include <libp2p/log/logger.hpp>
 #include <libp2p/multi/multiaddress.hpp>
+#include <libp2p/network/connection_gater.hpp>
 #include <libp2p/network/connection_manager.hpp>
 #include <libp2p/outcome/outcome.hpp>
 #include <libp2p/peer/identity_manager.hpp>
@@ -39,7 +41,10 @@ namespace libp2p::protocol {
     using RelayStopCallback = std::function<void(outcome::result<peer::PeerId>)>;
 
     RelayMessageProcessor(
-        Host &host, network::ConnectionManager &conn_manager, std::shared_ptr<libp2p::transport::Upgrader> upgrader);
+        Host &host, network::ConnectionManager &conn_manager,
+        std::shared_ptr<libp2p::transport::Upgrader> upgrader,
+        std::shared_ptr<network::ConnectionGater> gater,
+        std::shared_ptr<basic::Scheduler> scheduler);
 
     boost::signals2::connection onRelayReceived(
         const std::function<RelayCallback> &cb);
@@ -117,6 +122,8 @@ namespace libp2p::protocol {
     //RelayAddresses relay_addresses_;
     boost::signals2::signal<RelayCallback> signal_relay_received_;
     std::shared_ptr<libp2p::transport::Upgrader> upgrader_;
+    std::shared_ptr<network::ConnectionGater> gater_;
+    std::shared_ptr<basic::Scheduler> scheduler_;
 
 
     log::Logger log_ = log::createLogger("RelayMsgProcessor");

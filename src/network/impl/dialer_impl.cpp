@@ -5,15 +5,59 @@
 
 #include <functional>
 #include <iostream>
+#include <array>
+#include <string_view>
 
 #include <libp2p/connection/stream.hpp>
 #include <libp2p/connection/stream_and_protocol.hpp>
 #include <libp2p/log/logger.hpp>
 #include <libp2p/network/impl/dialer_impl.hpp>
+#include <libp2p/peer/address_repository.hpp>
+#include <libp2p/security/pnet/pnet_error.hpp>
 #include <iostream>
 
 
 namespace libp2p::network {
+
+  namespace {
+    /// Snapshot of the public bootstrap peer IDs (base58), transcribed from
+    /// the LIVE dnsaddr TXT records of bootstrap.libp2p.io at implementation
+    /// time (2026-08-26) — ADVISORY; dnsaddr containment is the primary
+    /// guard (decision A3: snapshot drift accepted)
+    constexpr std::array<std::string_view, 4> kPublicBootstrapPeerIds = {
+        "QmQCU2EcMqAqQPR2i9bChDtGNJchTbq5TbXJJ16u19uLTa",
+        "QmcZf59bWwK5XFi76CZX8cbJ4BhTzzA3gU1ZjYZcYW3dwt",
+        "QmbLHAnMoJPWSCR5Zhtx6BHJX9KiKNN6tpvbUcqanj75Nb",
+        "QmNnooDu7bfjPFoTZYxMNLWUQJyrVwtbZg5gBMjTezGAJN"};
+  }  // namespace
+
+  bool DialerImpl::isKnownBootstrapPeerId(const peer::PeerId &id) {
+    const auto b58 = id.toBase58();
+    for (auto known : kPublicBootstrapPeerIds) {
+      if (b58 == known) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  bool DialerImpl::isPublicBootstrapTarget(const peer::PeerInfo &p) const {
+    // primary guard: any dnsaddr/bootstrap.libp2p.io address component
+    for (const auto &addr : p.addresses) {
+      if (addr.getStringAddress().find(peer::kBootstrapAddress)
+          != std::string::npos) {
+        return true;
+      }
+      // resolved forms (ny5/sg1/am6/sv15 subdomains) count too
+      if (addr.getStringAddress().find("bootstrap.libp2p.io")
+          != std::string::npos) {
+        return true;
+      }
+    }
+    // advisory guard: peer ID snapshot
+    return isKnownBootstrapPeerId(p.id);
+  }
+
     
   void DialerImpl::dial(const peer::PeerInfo &p, DialResultFunc cb,
                         std::chrono::milliseconds timeout, const libp2p::network::RouteHelper::SourceAddresses &source_addresses, bool holepunch, bool holepunchserver) {
@@ -24,7 +68,29 @@ namespace libp2p::network {
           SL_ERROR(log_, "Dialing contains no peer ID to dial");
           return;
       }
-    SL_TRACE(log_, "Dialing to {} from IPv4:{} IPv6:{} they have {} addresses", 
+      if (auto gated = gater_->interceptPeerDial(p.id); !gated) {
+          SL_DEBUG(log_, "gater rejected peer dial to {}: {}", p.id.toBase58(),
+                    gated.error().message());
+          scheduler_->schedule(
+              [cb{ std::move(cb) }, err{ gated.error() }] { cb(err); });
+          return;
+      }
+      // PNET-05/BOOT-01: with a PSK configured, refuse dials to public
+      // bootstrap infrastructure — they would leak this node's existence
+      // to the public DHT and the handshake could never succeed anyway
+      if (psk_ != nullptr && isPublicBootstrapTarget(p)) {
+          SL_DEBUG(log_,
+                   "pnet: refusing public bootstrap dial to {} at {}: "
+                   "private-network mode",
+                   p.id.toBase58(),
+                   p.addresses.empty() ? std::string("<no addresses>")
+                                       : p.addresses.begin()->getStringAddress());
+          scheduler_->schedule([cb{ std::move(cb) }] {
+            cb(security::pnet::PnetError::PNET_PUBLIC_BOOTSTRAP_REFUSED);
+          });
+          return;
+      }
+    SL_TRACE(log_, "Dialing to {} from IPv4:{} IPv6:{} they have {} addresses",
              p.id.toBase58(), 
              source_addresses.has_ipv4 ? source_addresses.ipv4_source.getStringAddress() : "none",
              source_addresses.has_ipv6 ? source_addresses.ipv6_source.getStringAddress() : "none",
@@ -82,7 +148,8 @@ namespace libp2p::network {
 
     if (!holepunch)
     {
-        bool scheduled = dialing_peers_.emplace(p.id, std::move(new_ctx)).second;
+        [[maybe_unused]] bool scheduled =
+            dialing_peers_.emplace(p.id, std::move(new_ctx)).second;
         BOOST_ASSERT(scheduled);
         rotate(p.id);
     }
@@ -126,8 +193,10 @@ namespace libp2p::network {
                   SL_ERROR(self->log_, "State inconsistency - uninteresting dial result for peer {}", peer_id.toBase58());
                   if (result.has_value() && !result.value()->isClosed()) {
                       SL_ERROR(self->log_, "How often does this happen?");
-                      auto close_res = result.value()->close();
-                      BOOST_ASSERT(close_res);
+                      if (auto close_res = result.value()->close(); !close_res) {
+                          SL_ERROR(self->log_, "Cannot close connection to peer {}: {}",
+                              peer_id.toBase58(), close_res.error().message());
+                      }
                   }
                   return;
               }
@@ -159,8 +228,10 @@ namespace libp2p::network {
           }
           // closing the connection when dialer and connection requester callback no more exist
           if (result.has_value() && !result.value()->isClosed()) {
-              auto close_res = result.value()->close();
-              BOOST_ASSERT(close_res);
+              if (auto close_res = result.value()->close(); !close_res) {
+                  std::cerr << "Dialer: cannot close orphaned connection: "
+                            << close_res.error().message() << std::endl;
+              }
           }
           };
 
@@ -176,17 +247,29 @@ namespace libp2p::network {
               auto peer_id_actual = peer::PeerId::fromBase58(addr_peer_id.value());
               if (auto tr = tmgr_->findBest(addr); nullptr != tr && peer_id_actual) {
 
-                  ctx.dialled = true;
                   SL_TRACE(log_, "Dial to {} via {}", peer_id.toBase58(), addr.getStringAddress());
                   if (auto c = cmgr_->getBestConnectionForPeer(peer_id_actual.value()); c != nullptr) {
+                      ctx.dialled = true;
                       SL_TRACE(log_, "We already have a connection to relay node {} but have not established a connection to target node {}", peer_id_actual.value().toBase58(), peer_id.toBase58());
                       upgradeDialRelay(peer_id, c);
                   }
                   else {
+                      if (auto gated = gater_->interceptAddrDial(peer_id, addr); !gated) {
+                          SL_DEBUG(log_, "gater rejected addr dial to {} at {}: {}", peer_id.toBase58(), addr.getStringAddress(), gated.error().message());
+                          ctx.dialled = true;
+                          ctx.result = outcome::failure(gated.error());
+                          scheduler_->schedule([wp{ weak_from_this() }, peer_id] {
+                              if (auto self = wp.lock()) {
+                                  self->rotate(peer_id);
+                              }
+                              });
+                          return;
+                      }
+                      ctx.dialled = true;
                       SL_TRACE(log_, "Dialing relay to {} using dual source addresses", addr.getStringAddress());
                       tr->dial(peer_id_actual.value(), addr, dial_handler, ctx.timeout, ctx.source_addresses, ctx.holepunch, ctx.holepunchserver);
                   }
-                  
+
               }
               else {
                   scheduler_->schedule([wp{ weak_from_this() }, peer_id] {
@@ -206,6 +289,18 @@ namespace libp2p::network {
       }
       else {
           if (auto tr = tmgr_->findBest(addr); nullptr != tr) {
+
+              if (auto gated = gater_->interceptAddrDial(peer_id, addr); !gated) {
+                  SL_DEBUG(log_, "gater rejected addr dial to {} at {}: {}", peer_id.toBase58(), addr.getStringAddress(), gated.error().message());
+                  ctx.dialled = true;
+                  ctx.result = outcome::failure(gated.error());
+                  scheduler_->schedule([wp{ weak_from_this() }, peer_id] {
+                      if (auto self = wp.lock()) {
+                          self->rotate(peer_id);
+                      }
+                      });
+                  return;
+              }
 
               ctx.dialled = true;
               SL_TRACE(log_, "Dial to non-relay {} using dual source addresses to outgoing address {}", peer_id.toBase58(), addr.getStringAddress());
@@ -240,8 +335,10 @@ namespace libp2p::network {
               if (self->dialing_holepunches_.end() == ctx_found) {
                   SL_ERROR(self->log_, "Holepunch State inconsistency - uninteresting dial result for peer {}", peer_id.toBase58());
                   if (result.has_value() && !result.value()->isClosed()) {
-                      auto close_res = result.value()->close();
-                      BOOST_ASSERT(close_res);
+                      if (auto close_res = result.value()->close(); !close_res) {
+                          SL_ERROR(self->log_, "Cannot close connection to peer {}: {}",
+                              peer_id.toBase58(), close_res.error().message());
+                      }
                   }
                   return;
               }
@@ -260,8 +357,10 @@ namespace libp2p::network {
           }
           // closing the connection when dialer and connection requester callback no more exist
           if (result.has_value() && !result.value()->isClosed()) {
-              auto close_res = result.value()->close();
-              BOOST_ASSERT(close_res);
+              if (auto close_res = result.value()->close(); !close_res) {
+                  std::cerr << "Dialer: cannot close orphaned connection: "
+                            << close_res.error().message() << std::endl;
+              }
           }
           };
       for (auto& indctx : ctx)
@@ -274,9 +373,14 @@ namespace libp2p::network {
                   it = indctx.addresses.erase(it);
                   if (auto tr = tmgr_->findBest(addr); nullptr != tr) {
 
+                      if (auto gated = gater_->interceptAddrDial(peer_id, addr); !gated) {
+                          SL_DEBUG(log_, "gater rejected holepunch addr dial to {} at {}: {}", peer_id.toBase58(), addr.getStringAddress(), gated.error().message());
+                          continue;
+                      }
+
                       indctx.dialled = true;
                       SL_TRACE(log_, "Holepunch dial to {} using dual source addresses", peer_id.toBase58());
-                      
+
                       // Use dual address approach for holepunch as well
                       tr->dial(peer_id, addr, dial_handler, indctx.timeout, indctx.source_addresses);
 
@@ -350,7 +454,7 @@ namespace libp2p::network {
                   addresses.push_back(stream_result.value()->remoteMultiaddr().value());
                   auto tr = self->tmgr_->findBest(stream_result.value()->remoteMultiaddr().value());
                   relayupg->start(
-                      {stream_result.value()},
+                      StreamAndProtocol{stream_result.value(), {}},
                       peer::PeerInfo{ peer_id, addresses },
                       [self, peer_id, stream_result, relayupg, tr](const bool& success) mutable {
                           if (!self) return;
@@ -457,18 +561,23 @@ namespace libp2p::network {
       std::shared_ptr<TransportManager> tmgr,
       std::shared_ptr<ConnectionManager> cmgr,
       std::shared_ptr<ListenerManager> listener,
-      std::shared_ptr<basic::Scheduler> scheduler)
+      std::shared_ptr<basic::Scheduler> scheduler,
+      std::shared_ptr<ConnectionGater> gater,
+      security::pnet::PskHandle psk_handle)
       : multiselect_(std::move(multiselect)),
         tmgr_(std::move(tmgr)),
         cmgr_(std::move(cmgr)),
         listener_(std::move(listener)),
         scheduler_(std::move(scheduler)),
+        gater_(std::move(gater)),
+        psk_(std::move(psk_handle.psk)),
         log_(log::createLogger("DialerImpl")) {
     BOOST_ASSERT(multiselect_ != nullptr);
     BOOST_ASSERT(tmgr_ != nullptr);
     BOOST_ASSERT(cmgr_ != nullptr);
     BOOST_ASSERT(listener_ != nullptr);
     BOOST_ASSERT(scheduler_ != nullptr);
+    BOOST_ASSERT(gater_ != nullptr);
     BOOST_ASSERT(log_ != nullptr);
   }
 

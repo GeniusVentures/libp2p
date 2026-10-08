@@ -24,10 +24,14 @@ namespace {
 namespace libp2p::protocol {
     RelayMessageProcessor::RelayMessageProcessor(
         Host& host, network::ConnectionManager& conn_manager,
-        std::shared_ptr<libp2p::transport::Upgrader> upgrader)
+        std::shared_ptr<libp2p::transport::Upgrader> upgrader,
+        std::shared_ptr<network::ConnectionGater> gater,
+        std::shared_ptr<basic::Scheduler> scheduler)
         : host_{ host },
         conn_manager_{ conn_manager },
-        upgrader_{ upgrader }
+        upgrader_{ upgrader },
+        gater_{ std::move(gater) },
+        scheduler_{ std::move(scheduler) }
     {
 
     }
@@ -302,7 +306,7 @@ namespace libp2p::protocol {
                     cb(result.error());
                 }
 
-            });
+            }, gater_, scheduler_);
         stream->setIncomingRelay(true);
         session->secureInboundRelay();
     }

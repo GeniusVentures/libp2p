@@ -8,8 +8,11 @@
 
 #include <memory>
 
+#include <libp2p/basic/scheduler.hpp>
 #include <libp2p/common/metrics/instance_count.hpp>
 #include <libp2p/connection/capable_connection.hpp>
+#include <libp2p/log/logger.hpp>
+#include <libp2p/network/connection_gater.hpp>
 #include <libp2p/transport/upgrader.hpp>
 
 namespace libp2p::transport {
@@ -25,11 +28,15 @@ namespace libp2p::transport {
 
     UpgraderSession(std::shared_ptr<transport::Upgrader> upgrader,
                     std::shared_ptr<connection::RawConnection> raw,
-                    HandlerFunc handler);
+                    HandlerFunc handler,
+                    std::shared_ptr<network::ConnectionGater> gater,
+                    std::shared_ptr<basic::Scheduler> scheduler);
 
     UpgraderSession(std::shared_ptr<transport::Upgrader> upgrader,
                     std::shared_ptr<connection::Stream> stream,
-                    HandlerFunc handler);
+                    HandlerFunc handler,
+                    std::shared_ptr<network::ConnectionGater> gater,
+                    std::shared_ptr<basic::Scheduler> scheduler);
 
     void secureOutbound(const peer::PeerId &remoteId);
 
@@ -44,6 +51,9 @@ namespace libp2p::transport {
     std::shared_ptr<connection::RawConnection> raw_;
     std::shared_ptr<connection::Stream> stream_;
     HandlerFunc handler_;
+    std::shared_ptr<network::ConnectionGater> gater_;
+    std::shared_ptr<basic::Scheduler> scheduler_;
+    log::Logger log_;
 
     void onSecured(
         outcome::result<std::shared_ptr<connection::SecureConnection>> rsecure);

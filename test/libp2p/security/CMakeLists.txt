@@ -3,6 +3,8 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
+add_subdirectory(pnet)
+
 addtest(plaintext_adaptor_test
     plaintext_adaptor_test.cpp
     )

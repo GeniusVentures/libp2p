@@ -38,6 +38,13 @@ namespace libp2p::network {
     MOCK_METHOD1(
         onConnection,
         void(outcome::result<std::shared_ptr<connection::CapableConnection>>));
+
+    MOCK_METHOD2(
+        onConnectionRelay,
+        void(peer::PeerId,
+             outcome::result<std::shared_ptr<connection::CapableConnection>>));
+
+    MOCK_METHOD1(removeRelayedConnections, void(peer::PeerId));
   };
 }  // namespace libp2p::network
 

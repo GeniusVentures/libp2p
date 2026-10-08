@@ -7,6 +7,9 @@
 #define LIBP2P_TCP_LISTENER_HPP
 
 #include <boost/asio.hpp>
+#include <libp2p/basic/scheduler.hpp>
+#include <libp2p/log/logger.hpp>
+#include <libp2p/network/connection_gater.hpp>
 #include <libp2p/transport/tcp/tcp_connection.hpp>
 #include <libp2p/transport/tcp/tcp_util.hpp>
 #include <libp2p/transport/transport_listener.hpp>
@@ -24,7 +27,9 @@ namespace libp2p::transport {
 
     TcpListener(boost::asio::io_context &context,
                 std::shared_ptr<Upgrader> upgrader,
-                TransportListener::HandlerFunc handler);
+                TransportListener::HandlerFunc handler,
+                std::shared_ptr<network::ConnectionGater> gater,
+                std::shared_ptr<basic::Scheduler> scheduler);
 
     outcome::result<void> listen(const multi::Multiaddress &address) override;
 
@@ -41,6 +46,9 @@ namespace libp2p::transport {
     boost::asio::ip::tcp::acceptor acceptor_;
     std::shared_ptr<Upgrader> upgrader_;
     TransportListener::HandlerFunc handle_;
+    std::shared_ptr<network::ConnectionGater> gater_;
+    std::shared_ptr<basic::Scheduler> scheduler_;
+    log::Logger log_;
 
     void doAccept();
     

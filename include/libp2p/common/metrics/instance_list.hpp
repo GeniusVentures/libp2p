@@ -5,6 +5,8 @@
 
 #ifndef LIBP2P_COMMON_METRICS_INSTANCE_LIST_HPP
 #define LIBP2P_COMMON_METRICS_INSTANCE_LIST_HPP
+#include <cstdint>
+
 
 #include <list>
 #include <mutex>

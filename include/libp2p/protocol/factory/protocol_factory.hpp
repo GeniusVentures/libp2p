@@ -266,7 +266,9 @@ namespace libp2p::protocol::factory {
       std::function<void()> callback) {
     auto msg_processor = std::make_shared<RelayMessageProcessor>(
         *host, host->getNetwork().getConnectionManager(),
-        injector.template create<std::shared_ptr<transport::Upgrader>>());
+        injector.template create<std::shared_ptr<transport::Upgrader>>(),
+        injector.template create<std::shared_ptr<network::ConnectionGater>>(),
+        injector.template create<std::shared_ptr<basic::Scheduler>>());
 
     return std::make_shared<Relay>(
         *host, msg_processor, host->getBus(), callback ? callback : []() {

@@ -24,8 +24,10 @@
 #include <libp2p/muxer/yamux.hpp>
 #include <libp2p/basic/scheduler/asio_scheduler_backend.hpp>
 #include <libp2p/basic/scheduler/scheduler_impl.hpp>
+#include <libp2p/network/connection_gater.hpp>
 #include <libp2p/network/impl/connection_manager_impl.hpp>
 #include <libp2p/network/impl/dialer_impl.hpp>
+#include <libp2p/network/impl/permissive_connection_gater.hpp>
 #include <libp2p/network/impl/dnsaddr_resolver_impl.hpp>
 #include <libp2p/network/impl/listener_manager_impl.hpp>
 #include <libp2p/network/impl/network_impl.hpp>
@@ -34,6 +36,9 @@
 #include <libp2p/peer/impl/identity_manager_impl.hpp>
 #include <libp2p/protocol_muxer/multiselect.hpp>
 #include <libp2p/security/noise.hpp>
+#include <libp2p/security/pnet/psk.hpp>
+#include <libp2p/security/pnet/pnet_error.hpp>
+#include <libp2p/transport/impl/pnet_upgrader_decorator.hpp>
 #include <libp2p/security/plaintext.hpp>
 #include <libp2p/security/plaintext/exchange_message_marshaller_impl.hpp>
 #include <libp2p/security/secio.hpp>
@@ -42,6 +47,7 @@
 #include <libp2p/security/tls.hpp>
 #include <libp2p/transport/impl/upgrader_impl.hpp>
 #include <libp2p/transport/tcp.hpp>
+#include <libp2p/transport/tcp/allow_loopback_dial.hpp>
 
 // clang-format off
 /**
@@ -92,7 +98,8 @@
  * auto injector = makeNetworkInjector(
  *   useTransportAdaptors<NewTransport>(),
  *   useMuxerAdaptors<NewMuxer>(),
- *   useSecurityAdaptors<NewSecurity>()
+ *   useSecurityAdaptors<NewSecurity>(),
+ *   useConnectionGater<MyCustomGater>()
  * );
  *
  * std::shared_ptr<Network> network = injector.create<std::shared_ptr<Network>>();
@@ -230,6 +237,118 @@ namespace libp2p::injector {
   }
 
   /**
+   * @brief Instruct injector to use this ConnectionGater implementation
+   * instead of the default PermissiveConnectionGater. Can be used once.
+   * @tparam GaterImpl the ConnectionGater implementation to be used
+   * @return injector binding
+   *
+   * @code
+   * struct MyGaterImpl : public ConnectionGater {...};
+   *
+   * auto injector = makeNetworkInjector(
+   *   useConnectionGater<MyGaterImpl>()
+   * );
+   * @endcode
+   */
+  template <typename GaterImpl>
+  inline auto useConnectionGater() {
+    return boost::di::bind<network::ConnectionGater>()
+        .template to<GaterImpl>()[boost::di::override];
+  }
+
+  /**
+   * @brief Instruct injector to allow TcpTransport::dial() to dial loopback
+   * (127.0.0.0/8, ::1) destinations. Without this override, TcpTransport
+   * rejects loopback dial destinations by default (secure by default --
+   * prevents a malicious/compromised peer's advertised PeerInfo from
+   * inducing this node to dial its own loopback-bound services). Call
+   * once, opting a specific injector composition into live loopback
+   * dialing -- e.g. test fixtures or local-development tooling that
+   * legitimately dial 127.0.0.1/::1.
+   *
+   * @code
+   * auto injector = makeNetworkInjector(
+   *   useAllowLoopbackDial()
+   * );
+   * @endcode
+   */
+  inline auto useAllowLoopbackDial(bool allow = true) {
+    return boost::di::bind<transport::AllowLoopbackDial>().TEMPLATE_TO(
+        transport::AllowLoopbackDial{allow})[boost::di::override];
+  }
+
+  /**
+   * @brief Thrown eagerly by usePrivateNetwork when the key material is
+   * invalid — BEFORE any injector (and therefore any Host) can be assembled.
+   * Carries the pnet error code; the message never embeds key bytes (D-06).
+   */
+  struct PskValidationError : std::runtime_error {
+    explicit PskValidationError(security::pnet::PnetError e)
+        : std::runtime_error(make_error_code(e).message()), error(e) {}
+
+    security::pnet::PnetError error;
+  };
+
+  /**
+   * @brief One-line activation of private-network mode (D-07 combined
+   * module): binds the validated PSK and rebinds the Upgrader to a
+   * PnetUpgraderDecorator, so every upgraded raw connection passes through
+   * the pnet PSK boundary on BOTH dial and accept paths.
+   *
+   * Fails fast: any invalid key throws PskValidationError from THIS call,
+   * before di::make_injector assembles anything — a half-configured
+   * private/public Host can never exist (PNET-05, D-09/D-10).
+   *
+   * @code
+   * auto injector = makeNetworkInjector(
+   *   usePrivateNetwork("/key/swarm/psk/1.0.0/\n/base16/<64 hex chars>\n")
+   * );
+   * @endcode
+   */
+  inline auto usePrivateNetwork(std::string_view key_text) {
+    // dispatch by shape: swarm-key framing → base16 → base64 (D-05 formats)
+    // psk holds the value on success; err holds the FIRST factory's error
+    // code (kept as the reporting error if every shape fails)
+    auto psk = security::pnet::Psk::fromSwarmKeyText(key_text);
+    auto err = security::pnet::PnetError::PNET_INVALID_PSK_FORMAT;
+    if (!psk) {
+      auto as_b16 = security::pnet::Psk::fromBase16String(key_text);
+      if (as_b16) {
+        psk = std::move(as_b16);
+      } else {
+        auto as_b64 = security::pnet::Psk::fromBase64String(key_text);
+        if (as_b64) {
+          psk = std::move(as_b64);
+        }
+      }
+    }
+    if (!psk) {
+      throw PskValidationError(err);
+    }
+    // Psk is move-only; Boost.DI instance scope needs copyable types, so
+    // the validated key travels inside a copyable PskHandle (constant
+    // shared_ptr — never null once constructed)
+    security::pnet::PskHandle handle{
+        std::make_shared<const security::pnet::Psk>(std::move(psk.value()))};
+    return boost::di::make_injector(
+        boost::di::bind<security::pnet::PskHandle>().to(std::move(handle))[boost::di::override],
+        boost::di::bind<transport::Upgrader>()
+            .template to<transport::PnetUpgraderDecorator>()
+            [boost::di::override]);
+  }
+
+  /** Exception-free overload for integrators holding a validated Psk */
+  inline auto usePrivateNetwork(security::pnet::Psk validated_psk) {
+    security::pnet::PskHandle handle{
+        std::make_shared<const security::pnet::Psk>(std::move(validated_psk))};
+    return boost::di::make_injector(
+        boost::di::bind<security::pnet::PskHandle>().to(std::move(handle))[boost::di::override],
+        boost::di::bind<transport::Upgrader>()
+            .template to<transport::PnetUpgraderDecorator>()
+            [boost::di::override]);
+  }
+
+  /**
    * @brief Main function that creates Network Injector.
    * @tparam Ts types of injector bindings
    * @param args injector bindings that override default bindings.
@@ -286,6 +405,16 @@ namespace libp2p::injector {
         di::bind<network::ConnectionManager>().TEMPLATE_TO<network::ConnectionManagerImpl>(),
         di::bind<network::ListenerManager>().TEMPLATE_TO<network::ListenerManagerImpl>(),
         di::bind<network::Dialer>().TEMPLATE_TO<network::DialerImpl>(),
+        // Baseline (public-mode) PskHandle: an explicit instance binding,
+        // never left to Boost.DI's own constructor-injection — DialerImpl's
+        // psk_handle ctor param must always resolve to *some* PskHandle
+        // value (default-constructed here = null Psk, D-08's public-mode
+        // signal). Left to auto-injection instead, Boost.DI would try to
+        // construct the pointee Psk (whose ctors are all private/deleted
+        // except move), which does not compile. usePrivateNetwork(...)
+        // overrides this binding with the real validated key.
+        di::bind<security::pnet::PskHandle>().TEMPLATE_TO(security::pnet::PskHandle{}),
+        di::bind<network::ConnectionGater>().TEMPLATE_TO<network::PermissiveConnectionGater>(),
         di::bind<network::Network>().TEMPLATE_TO<network::NetworkImpl>(),
         di::bind<network::TransportManager>().TEMPLATE_TO<network::TransportManagerImpl>(),
         di::bind<transport::Upgrader>().TEMPLATE_TO<transport::UpgraderImpl>(),
@@ -296,6 +425,13 @@ namespace libp2p::injector {
         di::bind<security::SecurityAdaptor *[]>().TEMPLATE_TO<security::Plaintext, security::Noise>(),  // NOLINT
         //di::bind<security::SecurityAdaptor* []>().TEMPLATE_TO<security::Noise>(),  // NOLINT
         di::bind<muxer::MuxerAdaptor *[]>().TEMPLATE_TO<muxer::Yamux>(),  // NOLINT
+        // Baseline (reject-loopback) AllowLoopbackDial: an explicit instance
+        // binding, never left to Boost.DI's own constructor-injection --
+        // TcpTransport's allow_loopback_dial ctor param must always resolve
+        // to *some* AllowLoopbackDial value (default-constructed here =
+        // allow=false, secure-by-default). useAllowLoopbackDial() overrides
+        // this binding via [boost::di::override].
+        di::bind<transport::AllowLoopbackDial>().TEMPLATE_TO(transport::AllowLoopbackDial{}),
         di::bind<transport::TransportAdaptor *[]>().TEMPLATE_TO<transport::TcpTransport>(),  // NOLINT
 
         // user-defined overrides...
