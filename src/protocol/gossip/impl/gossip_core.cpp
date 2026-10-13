@@ -134,6 +134,11 @@ namespace libp2p::protocol::gossip {
     );
     // clang-format on
 
+    // GOSS-03: forward the embedder's violation handler (registered before
+    // start()) to Connectivity -- the emission site for sustained-overflow
+    // stream closes.
+    connectivity_->setViolationHandler(violation_handler_);
+
     for (const auto &p : bootstrap_peers_) {
       connectivity_->addBootstrapPeer(p.first, p.second);
     }
@@ -181,6 +186,13 @@ namespace libp2p::protocol::gossip {
   void GossipCore::setMessageIdFn(MessageIdFn fn) {
     assert(fn);
     create_message_id_ = std::move(fn);
+  }
+
+  void GossipCore::setViolationHandler(ViolationHandler handler) {
+    // GOSS-03: stored here and forwarded to Connectivity in start(); the
+    // embedder (GossipPubSub) registers before start(), so the handler is
+    // present before any stream event can fire.
+    violation_handler_ = std::move(handler);
   }
 
   Subscription GossipCore::subscribe(TopicSet topics,

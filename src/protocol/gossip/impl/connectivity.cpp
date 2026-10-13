@@ -217,7 +217,8 @@ namespace libp2p::protocol::gossip {
                                                   on_stream_event_,
                                                   *msg_receiver_,
                                                   std::move(stream),
-                                                  ctx);
+                                                  ctx,
+                                                  log_);
 
     gossip_stream->read();
 
@@ -340,7 +341,8 @@ namespace libp2p::protocol::gossip {
                                                   on_stream_event_,
                                                   *msg_receiver_,
                                                   std::move(stream),
-                                                  ctx);
+                                                  ctx,
+                                                  log_);
 
     gossip_stream->read();
 
@@ -422,9 +424,16 @@ namespace libp2p::protocol::gossip {
     }
     //log_.info("stream error='{}', peer={}", event.error(), from->str);
 
-    // TODO(artem): ban incoming peers for protocol violations etc. - v.1.1
-
     banOrForget(from);
+
+    // GOSS-03 (D-08): sustained-overflow closes escalate to the embedder
+    // through the violation seam (this replaces the v1.1 TODO that stood
+    // here); the banOrForget cleanup above stays unconditional, and the
+    // handler is counter+gater work only (exception-safe).
+    if (violation_handler_ && event.error() == Error::PENDING_OVERFLOW) {
+      violation_handler_(from->peer_id,
+                         Gossip::ViolationType::SustainedWriteOverflow);
+    }
   }
 
   void Connectivity::peerIsWritable(const PeerContextPtr &ctx,

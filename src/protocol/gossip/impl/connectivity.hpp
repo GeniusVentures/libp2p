@@ -62,6 +62,14 @@ namespace libp2p::protocol::gossip {
     /// Flushes all pending writes for peers in writable set
     void flush();
 
+    /// Sets handler invoked when a peer violates resource bounds
+    /// (GOSS-03, D-08); called after the offending stream has been torn
+    /// down by the error funnel, from the scheduler/gossip strand -- the
+    /// handler must be exception-safe and cheap
+    void setViolationHandler(Gossip::ViolationHandler handler) {
+      violation_handler_ = std::move(handler);
+    }
+
     /// Performs periodic tasks and broadcasts heartbeat message to
     /// all connected peers. The changes are subscribe/unsubscribe events
     void onHeartbeat(const std::map<TopicId, bool> &local_changes);
@@ -110,6 +118,7 @@ namespace libp2p::protocol::gossip {
     std::shared_ptr<MessageReceiver> msg_receiver_;
     ConnectionStatusFeedback connected_cb_;
     Stream::Feedback on_stream_event_;
+    Gossip::ViolationHandler violation_handler_;
     bool started_ = false;
 
     /// All known peers

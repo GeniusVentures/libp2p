@@ -11,6 +11,7 @@
 #include <libp2p/basic/scheduler.hpp>
 #include <libp2p/common/metrics/instance_count.hpp>
 #include <libp2p/connection/stream.hpp>
+#include <libp2p/log/sublogger.hpp>
 #include <libp2p/multi/uvarint.hpp>
 
 #include "common.hpp"
@@ -32,7 +33,8 @@ namespace libp2p::protocol::gossip {
     /// once the stream is dead
     Stream(size_t stream_id, const Config &config, basic::Scheduler &scheduler,
            const Feedback &feedback, MessageReceiver &msg_receiver,
-           std::shared_ptr<connection::Stream> stream, PeerContextPtr peer);
+           std::shared_ptr<connection::Stream> stream, PeerContextPtr peer,
+           log::SubLogger &logger);
 
     /// Begins reading messages from stream
     void read();
@@ -51,23 +53,34 @@ namespace libp2p::protocol::gossip {
     void onMessageWritten(outcome::result<size_t> res);
     void endWrite();
     void asyncPostError(Error error);
+    void asyncPostViolation();
 
     [[maybe_unused]] const size_t stream_id_;
     const Time timeout_;
     basic::Scheduler &scheduler_;
     const size_t max_message_size_;
+    const size_t max_pending_bytes_;
+    const size_t overflow_close_threshold_;
     const Feedback &feedback_;
     MessageReceiver &msg_receiver_;
     std::shared_ptr<connection::Stream> stream_;
     PeerContextPtr peer_;
+    log::SubLogger &log_;
 
     std::deque<SharedBuffer> pending_buffers_;
 
     /// Number of bytes being awaited in active wrote operation
     size_t writing_bytes_ = 0;
 
-    // TODO(artem): limit pending bytes and close slow streams that way
+    // Outbound pending bound (GOSS-02). Bytes admitted to the pending
+    // queue are capped at max_pending_bytes_: an arriving RPC that would
+    // push the queued backlog strictly over the cap is dropped at write()
+    // entry (drop-new-only, D-05) and logged (GOSS-04), and a run of
+    // consecutive cap-hit drops with no intervening full drain closes the
+    // slow stream (D-06) -- exactly what the TODO that stood here asked
+    // for.
     size_t pending_bytes_ = 0;
+    size_t consecutive_overflow_drops_ = 0;
 
     std::shared_ptr<ByteArray> read_buffer_;
     /// Dont send feedback or schedule writes anymore

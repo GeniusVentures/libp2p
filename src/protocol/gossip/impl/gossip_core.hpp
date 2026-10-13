@@ -63,6 +63,7 @@ namespace libp2p::protocol::gossip {
     void stop() override;
     void setValidator(const TopicId &topic, Validator validator) override;
     void setMessageIdFn(MessageIdFn fn) override;
+    void setViolationHandler(ViolationHandler handler) override;
     Subscription subscribe(TopicSet topics,
                            SubscriptionCallback callback) override;
     bool publish(TopicId topic, ByteArray data) override;
@@ -101,6 +102,9 @@ namespace libp2p::protocol::gossip {
 
     /// Message ID function
     MessageIdFn create_message_id_;
+
+    /// Violation handler registered by the embedder (GOSS-03, D-08)
+    ViolationHandler violation_handler_;
 
     /// Bootstrap peers to dial to
     std::unordered_map<peer::PeerId, boost::optional<multi::Multiaddress>>

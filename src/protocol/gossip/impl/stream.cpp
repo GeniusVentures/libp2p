@@ -21,15 +21,18 @@ namespace libp2p::protocol::gossip {
                  basic::Scheduler &scheduler, const Feedback &feedback,
                  MessageReceiver &msg_receiver,
                  std::shared_ptr<connection::Stream> stream,
-                 PeerContextPtr peer)
+                 PeerContextPtr peer, log::SubLogger &logger)
       : stream_id_(stream_id),
         timeout_(config.rw_timeout_msec),
         scheduler_(scheduler),
         max_message_size_(config.max_message_size),
+        max_pending_bytes_(config.max_pending_bytes_per_stream),
+        overflow_close_threshold_(config.overflow_close_threshold),
         feedback_(feedback),
         msg_receiver_(msg_receiver),
         stream_(std::move(stream)),
         peer_(std::move(peer)),
+        log_(logger),
         read_buffer_(std::make_shared<std::vector<uint8_t>>()) {
     assert(feedback_);
     assert(stream_);
@@ -140,6 +143,30 @@ namespace libp2p::protocol::gossip {
       return;
     }
 
+    // GOSS-02 admission check (D-05/D-07): strictly-greater drops, so an RPC
+    // landing exactly on the cap is admitted, and one larger than the cap
+    // alone is dropped deterministically at entry. Drop-new-only: the
+    // ARRIVING RPC is dropped (never a queued one), queue order preserved.
+    if (pending_bytes_ + buffer->size() > max_pending_bytes_) {
+      ++consecutive_overflow_drops_;
+      log_.warn(
+          "dropping oversized outbound RPC: peer={}, incoming_bytes={}, "
+          "pending_bytes={}, cap={}, consecutive_drops={} (GOSS-04)",
+          peer_->str,
+          buffer->size(),
+          pending_bytes_,
+          max_pending_bytes_,
+          consecutive_overflow_drops_);
+      if (consecutive_overflow_drops_ >= overflow_close_threshold_) {
+        // K-th consecutive cap-hit drop with no intervening full drain
+        // (D-06): close the slow stream and report sustained overflow
+        // through the error funnel (banOrForget runs on the other side).
+        asyncPostViolation();
+        close();
+      }
+      return;
+    }
+
     if (writing_bytes_ > 0) {
       pending_bytes_ += buffer->size();
       pending_buffers_.emplace_back(std::move(buffer));
@@ -208,6 +235,12 @@ namespace libp2p::protocol::gossip {
       pending_bytes_ -= buffer->size();
       beginWrite(std::move(buffer));
       pending_buffers_.pop_front();
+    } else {
+      // Full drain (D-06): the queue is empty again, so any sustained-
+      // overflow streak is over. This is the ONLY reset site -- never on
+      // mere admission: an interleaved small admitted RPC must not mask a
+      // still-overflowing streak.
+      consecutive_overflow_drops_ = 0;
     }
   }
 
@@ -218,6 +251,18 @@ namespace libp2p::protocol::gossip {
       }
       feedback_(peer_, error);
     });
+  }
+
+  void Stream::asyncPostViolation() {
+    // Sustained-overflow error dispatch (GOSS-02/GOSS-03). Deliberately
+    // distinct from asyncPostError: that path's closed_ guard would swallow
+    // an error dispatched at/after close() in any statement ordering, so
+    // this one-shot post captures a STRONG shared_from_this and does not
+    // gate on closed_ -- keeping the Stream alive until dispatch so
+    // teardown cannot lose the event.
+    auto self = shared_from_this();
+    scheduler_.schedule(
+        [self] { self->feedback_(self->peer_, Error::PENDING_OVERFLOW); });
   }
 
   void Stream::endWrite() {

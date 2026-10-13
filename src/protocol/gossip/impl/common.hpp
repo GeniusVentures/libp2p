@@ -24,7 +24,9 @@ namespace libp2p::protocol::gossip {
     READER_TIMEOUT,
     WRITER_TIMEOUT,
     CANNOT_CONNECT,
-    VALIDATION_FAILED
+    VALIDATION_FAILED,
+    /// Sustained outbound pending-bytes overflow (GOSS-02)
+    PENDING_OVERFLOW
   };
 
   /// Success indicator to be passed in outcome::result

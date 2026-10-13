@@ -31,6 +31,8 @@ OUTCOME_CPP_DEFINE_CATEGORY(libp2p::protocol::gossip, Error, e) {
       return "cannot connect to peer";
     case E::VALIDATION_FAILED:
       return "validation failed";
+    case E::PENDING_OVERFLOW:
+      return "sustained outbound pending-bytes overflow";
     default:
       break;
   }

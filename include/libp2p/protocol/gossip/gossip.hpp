@@ -86,6 +86,20 @@ namespace libp2p::protocol::gossip {
     /// Max RPC message size
     size_t max_message_size = 1 << 24;
 
+    /// Max number of remote subscriptions accepted from a single peer;
+    /// subscribe entries beyond the cap are ignored and logged (GOSS-01)
+    size_t max_remote_subscriptions_per_peer = 1024;
+
+    /// Max bytes admitted to the pending queue per outbound stream.
+    /// Mirrors max_message_size per D-02, so a single legitimate large RPC
+    /// (e.g. a large CRDT broadcast) is never dropped under default config;
+    /// only queued backlog beyond it is (GOSS-02)
+    size_t max_pending_bytes_per_stream = 1 << 24;
+
+    /// Number of consecutive cap-hit drops (with no intervening full queue
+    /// drain) before the outbound stream is closed (GOSS-02)
+    size_t overflow_close_threshold = 8;
+
     /// Protocol version
     std::string protocol_version = "/meshsub/1.0.0";
 
@@ -146,6 +160,21 @@ namespace libp2p::protocol::gossip {
 
     /// Sets message ID funtion that differs from default (from+sec_no)
     virtual void setMessageIdFn(MessageIdFn fn) = 0;
+
+    /// Resource-bound violations a remote peer can sustain against this
+    /// node. Escalation is exclusively for sustained outbound overflow this
+    /// phase; subscription-cap drops stay log-only (D-09)
+    enum class ViolationType {
+      SustainedWriteOverflow = 1,
+    };
+
+    /// Handler invoked when a peer violates resource bounds (D-08/GOSS-03)
+    using ViolationHandler =
+        std::function<void(const peer::PeerId &, ViolationType)>;
+
+    /// Sets handler for peer resource-bound violations; invoked after the
+    /// offending stream has been torn down (GOSS-03)
+    virtual void setViolationHandler(ViolationHandler handler) = 0;
 
     /// Empty message means EOS (end of subscription data stream)
     using SubscriptionData = boost::optional<const Message &>;
