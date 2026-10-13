@@ -72,8 +72,20 @@ namespace libp2p::protocol::gossip {
     Connectivity &connectivity_;
     basic::Scheduler &scheduler_;
 
-    // TODO(artem): bound table size (which may grow!)
-    // by removing items not subscribed to locally. LRU(???)
+    // GOSS-01: the remote subscription table is bounded by composition.
+    // (1) Cap (D-03): onPeerSubscribed enforces the receiver-side cumulative
+    //     per-peer cap config_.max_remote_subscriptions_per_peer with
+    //     check-then-insert ordering — dedup early-return first (a duplicate
+    //     never consumes headroom), then the cap check with a warn log
+    //     before any table mutation, then the insert as the final admission
+    //     step; entries beyond the cap are ignored with no table mutation.
+    // (2) Sweep (D-04): onHeartbeat erases entries whose
+    //     TopicSubscriptions::empty() is true — not self-subscribed, no
+    //     fanout, no subscribed peers, no mesh peers. A capped-out
+    //     flooder's rejected topics never populate the table, so they stay
+    //     empty() and are collected on the next heartbeat; a live remote
+    //     subscriber's state (mesh/graft/IHAVE dependencies) is never
+    //     evicted because empty() is the erase gate.
     std::unordered_map<TopicId, TopicSubscriptions> table_;
 
     /// Protects table_ from concurrent access

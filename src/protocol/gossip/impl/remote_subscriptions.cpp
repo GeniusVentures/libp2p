@@ -43,11 +43,33 @@ namespace libp2p::protocol::gossip {
 
   void RemoteSubscriptions::onPeerSubscribed(const PeerContextPtr &peer,
                                              const TopicId &topic) {
-    if (!peer->subscribed_to.insert(topic).second) {
+    if (peer->subscribed_to.count(topic) != 0) {
       // request from wire, already subscribed, ignoring double subscription
       log_.debug("peer {} already subscribed to {}", peer->str, topic);
       return;
     }
+    // GOSS-01: receiver-side cumulative per-peer cap (D-03). The count is
+    // the std::set<TopicId> size itself — no parallel counter to drift —
+    // and dedup precedes this check, so a peer re-sending a subscribe any
+    // number of times never gains or spends headroom. The check runs
+    // BEFORE any table mutation; the insert below is the final admission
+    // step. Rejected topics never populate TopicSubscriptions, so they
+    // stay empty() and the existing heartbeat GC collects them (D-04
+    // cap+sweep composition — see the marker at table_ below).
+    if (peer->subscribed_to.size()
+        >= config_.max_remote_subscriptions_per_peer) {
+      // GOSS-04: no silent rejection — warn with peer, topic, admitted
+      // count, and cap before returning (fmt {} data-only).
+      log_.warn(
+          "peer {} exceeded remote subscription cap, ignoring subscribe to"
+          " {} (admitted {}, cap {})",
+          peer->str,
+          topic,
+          peer->subscribed_to.size(),
+          config_.max_remote_subscriptions_per_peer);
+      return;
+    }
+    peer->subscribed_to.insert(topic);
     log_.debug("peer {} subscribing to {}", peer->str, topic);
 
     std::lock_guard<std::mutex> lock(table_mutex_);
