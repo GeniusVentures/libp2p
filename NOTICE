@@ -1,0 +1,24 @@
+GeniusVentures/libp2p
+Derived from https://github.com/eigendude/libp2p.
+Original copyright and license notices remain in the license files and
+source files. This notice does not replace those notices.
+
+The upstream Apache-2.0 / MIT license choice remains unchanged; see
+LICENSE-APACHE and LICENSE-MIT.
+
+Significant changes made by this project:
+  - Added and hardened relay, NAT traversal, and hole-punching behavior.
+  - Added connection gating and pre-shared-key private-network protection.
+  - Improved connection lifecycle handling, AutoNAT thread ownership, tests, and examples.
+
+Licensed under the Apache License, Version 2.0 (the "License"); you may
+not use this file except in compliance with the License. You may obtain
+a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
